@@ -87,15 +87,20 @@ body {
   transition: opacity 150ms ease, transform 150ms ease;
 }
 
-.nav-links a {
+.nav-links a,
+.nav-links .nav-logout {
   color: #e5e7eb;
   text-decoration: none;
   padding: 0.5rem 0.75rem;
   border-radius: 999px;
   font-size: 0.95rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links .nav-logout:hover {
   background: rgba(55, 65, 81, 0.9);
 }
 
