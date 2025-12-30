@@ -70,8 +70,8 @@ function App() {
               <NavLink to="/profile" onClick={closeNav} end>
                 Profile
               </NavLink>
-              <NavLink to="/profile/edit" onClick={closeNav}>
-                Edit profile
+              <NavLink to="/account" onClick={closeNav}>
+                Account
               </NavLink>
             </>
           )}
@@ -84,9 +84,6 @@ function App() {
               Login
             </NavLink>
           )}
-          <NavLink to="/account" onClick={closeNav}>
-            Account
-          </NavLink>
         </nav>
       </header>
 

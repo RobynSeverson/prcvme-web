@@ -10,6 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [birthday, setBirthday] = useState("");
+  const [userName, setUserName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +46,7 @@ export default function Login() {
 
       if (isRegister) {
         payload.birthday = new Date(birthday).toISOString();
+        payload.userName = userName;
       }
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -76,7 +78,7 @@ export default function Login() {
         window.localStorage.setItem("authUser", JSON.stringify(user));
       }
 
-      navigate("/account");
+      navigate("/profile");
     } catch (err) {
       console.error("Error during auth request", err);
       setError("Something went wrong. Please try again.");
@@ -103,6 +105,20 @@ export default function Login() {
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          {isRegister && (
+            <label className="auth-field">
+              <span>Username</span>
+              <input
+                type="text"
+                name="userName"
+                placeholder="yourusername"
+                required
+                value={userName}
+                onChange={(event) => setUserName(event.target.value)}
+              />
+            </label>
+          )}
+
           <label className="auth-field">
             <span>Email</span>
             <input
