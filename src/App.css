@@ -97,6 +97,7 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
+  text-align: left;
 }
 
 .nav-links a:hover,

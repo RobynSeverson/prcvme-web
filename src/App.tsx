@@ -64,9 +64,9 @@ function App() {
             Home
           </NavLink>
           {isLoggedIn ? (
-            <NavLink to="/" onClick={handleLogout} end>
+            <button type="button" className="nav-logout" onClick={handleLogout}>
               Logout
-            </NavLink>
+            </button>
           ) : (
             <NavLink to="/login" onClick={closeNav}>
               Login
