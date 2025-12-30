@@ -91,6 +91,17 @@ export default function Profile() {
     );
   }
 
+  const buildImageUrl = (imageId?: string | null) => {
+    if (!imageId) return undefined;
+    if (imageId.startsWith("http://") || imageId.startsWith("https://")) {
+      return imageId;
+    }
+    return `${API_BASE}/users/${user.id}/profile/${imageId}`;
+  };
+
+  const profilePictureSrc = buildImageUrl(user.profilePictureUrl);
+  const profileBackgroundSrc = buildImageUrl(user.profileBackgroundUrl);
+
   const createdAt = new Date(user.createdAt).toLocaleString();
   const lastUpdated = user.lastUpdatedAt
     ? new Date(user.lastUpdatedAt).toLocaleString()
@@ -100,7 +111,7 @@ export default function Profile() {
     <main>
       <h1>Profile</h1>
 
-      {user.profileBackgroundUrl && (
+      {profileBackgroundSrc && (
         <div
           style={{
             borderRadius: "0.75rem",
@@ -110,7 +121,7 @@ export default function Profile() {
           }}
         >
           <img
-            src={user.profileBackgroundUrl}
+            src={profileBackgroundSrc}
             alt="Profile background"
             style={{ width: "100%", maxHeight: "180px", objectFit: "cover" }}
           />
@@ -125,9 +136,9 @@ export default function Profile() {
           marginBottom: "1.5rem",
         }}
       >
-        {user.profilePictureUrl && (
+        {profilePictureSrc && (
           <img
-            src={user.profilePictureUrl}
+            src={profilePictureSrc}
             alt="Profile"
             style={{
               width: "80px",

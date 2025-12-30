@@ -12,6 +12,8 @@ export default function EditProfile() {
   const [bio, setBio] = useState("");
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profileBackgroundUrl, setProfileBackgroundUrl] = useState("");
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [profileBackgroundFile, setProfileBackgroundFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,10 +114,51 @@ export default function EditProfile() {
         return;
       }
 
+      let updatedUser: User | null = null;
+
       if (data && data.user) {
-        const updatedUser = data.user as User;
+        updatedUser = data.user as User;
         setUser(updatedUser);
         window.localStorage.setItem("authUser", JSON.stringify(updatedUser));
+      }
+
+      if (profilePictureFile || profileBackgroundFile) {
+        const formData = new FormData();
+        if (profilePictureFile) {
+          formData.append("profilePicture", profilePictureFile);
+        }
+        if (profileBackgroundFile) {
+          formData.append("profileBackground", profileBackgroundFile);
+        }
+
+        const imageResponse = await fetch(`${API_BASE}/users/me/profile-images`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        const imageData = await imageResponse.json().catch(() => null);
+
+        if (!imageResponse.ok) {
+          const message =
+            (imageData && typeof imageData.error === "string" && imageData.error) ||
+            "Failed to upload profile images.";
+          setError(message);
+          return;
+        }
+
+        if (imageData && imageData.user) {
+          updatedUser = imageData.user as User;
+          setUser(updatedUser);
+          setProfilePictureUrl(updatedUser.profilePictureUrl ?? "");
+          setProfileBackgroundUrl(updatedUser.profileBackgroundUrl ?? "");
+          window.localStorage.setItem("authUser", JSON.stringify(updatedUser));
+        }
+
+        setProfilePictureFile(null);
+        setProfileBackgroundFile(null);
       }
 
       setSuccess("Profile updated successfully.");
@@ -221,6 +264,19 @@ export default function EditProfile() {
           </label>
 
           <label className="auth-field">
+            <span>Upload profile picture</span>
+            <input
+              type="file"
+              accept="image/*"
+              name="profilePictureFile"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setProfilePictureFile(file);
+              }}
+            />
+          </label>
+
+          <label className="auth-field">
             <span>Profile background URL</span>
             <input
               type="url"
@@ -228,6 +284,19 @@ export default function EditProfile() {
               value={profileBackgroundUrl}
               onChange={(event) => setProfileBackgroundUrl(event.target.value)}
               placeholder="https://example.com/background.jpg"
+            />
+          </label>
+
+          <label className="auth-field">
+            <span>Upload profile background</span>
+            <input
+              type="file"
+              accept="image/*"
+              name="profileBackgroundFile"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setProfileBackgroundFile(file);
+              }}
             />
           </label>
 
