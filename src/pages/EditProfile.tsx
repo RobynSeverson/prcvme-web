@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
@@ -12,13 +12,18 @@ export default function EditProfile() {
   const [bio, setBio] = useState("");
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profileBackgroundUrl, setProfileBackgroundUrl] = useState("");
-  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
-  const [profileBackgroundFile, setProfileBackgroundFile] = useState<File | null>(null);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(
+    null
+  );
+  const [profileBackgroundFile, setProfileBackgroundFile] =
+    useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
+  const profilePictureInputRef = useRef<HTMLInputElement | null>(null);
+  const profileBackgroundInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");
@@ -131,19 +136,24 @@ export default function EditProfile() {
           formData.append("profileBackground", profileBackgroundFile);
         }
 
-        const imageResponse = await fetch(`${API_BASE}/users/me/profile-images`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
+        const imageResponse = await fetch(
+          `${API_BASE}/users/me/profile-images`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          }
+        );
 
         const imageData = await imageResponse.json().catch(() => null);
 
         if (!imageResponse.ok) {
           const message =
-            (imageData && typeof imageData.error === "string" && imageData.error) ||
+            (imageData &&
+              typeof imageData.error === "string" &&
+              imageData.error) ||
             "Failed to upload profile images.";
           setError(message);
           return;
@@ -204,6 +214,23 @@ export default function EditProfile() {
     );
   }
 
+  const buildImageUrl = (imageId?: string | null) => {
+    if (!imageId) return undefined;
+    if (imageId.startsWith("http://") || imageId.startsWith("https://")) {
+      return imageId;
+    }
+    return `${API_BASE}/users/${user.id}/profile/${encodeURIComponent(
+      imageId
+    )}`;
+  };
+
+  const profilePictureSrc = buildImageUrl(
+    profilePictureUrl || user.profilePictureUrl
+  );
+  const profileBackgroundSrc = buildImageUrl(
+    profileBackgroundUrl || user.profileBackgroundUrl
+  );
+
   return (
     <main>
       <section className="auth-card">
@@ -213,6 +240,101 @@ export default function EditProfile() {
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="auth-field">
+            <span>Profile background</span>
+            <button
+              type="button"
+              onClick={() => profileBackgroundInputRef.current?.click()}
+              style={{
+                width: "100%",
+                height: "140px",
+                borderRadius: "0.75rem",
+                border: "1px solid rgba(148, 163, 184, 0.7)",
+                background:
+                  "radial-gradient(circle at top left, #1f2937, #020617)",
+                overflow: "hidden",
+                display: "block",
+                padding: 0,
+                cursor: "pointer",
+              }}
+            >
+              {profileBackgroundSrc ? (
+                <img
+                  src={profileBackgroundSrc}
+                  alt="Profile background"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    display: "inline-block",
+                    marginTop: "3.25rem",
+                    color: "#9ca3af",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  Click to upload background
+                </span>
+              )}
+            </button>
+          </label>
+          <label className="auth-field">
+            <span>Profile picture</span>
+            <button
+              type="button"
+              onClick={() => profilePictureInputRef.current?.click()}
+              style={{
+                width: "80px",
+                height: "80px",
+                borderRadius: "999px",
+                border: "2px solid rgba(148, 163, 184, 0.7)",
+                background:
+                  "radial-gradient(circle at 30% 30%, #1f2937, #020617)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              {profilePictureSrc ? (
+                <img
+                  src={profilePictureSrc}
+                  alt="Profile"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "999px",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    color: "#9ca3af",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  Upload
+                </span>
+              )}
+            </button>
+            <input
+              ref={profilePictureInputRef}
+              type="file"
+              accept="image/*"
+              name="profilePictureFile"
+              style={{ display: "none" }}
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setProfilePictureFile(file);
+              }}
+            />
+          </label>
           <label className="auth-field">
             <span>Username</span>
             <input
@@ -252,53 +374,17 @@ export default function EditProfile() {
             />
           </label>
 
-          <label className="auth-field">
-            <span>Profile picture URL</span>
-            <input
-              type="url"
-              name="profilePictureUrl"
-              value={profilePictureUrl}
-              onChange={(event) => setProfilePictureUrl(event.target.value)}
-              placeholder="https://example.com/profile.jpg"
-            />
-          </label>
-
-          <label className="auth-field">
-            <span>Upload profile picture</span>
-            <input
-              type="file"
-              accept="image/*"
-              name="profilePictureFile"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                setProfilePictureFile(file);
-              }}
-            />
-          </label>
-
-          <label className="auth-field">
-            <span>Profile background URL</span>
-            <input
-              type="url"
-              name="profileBackgroundUrl"
-              value={profileBackgroundUrl}
-              onChange={(event) => setProfileBackgroundUrl(event.target.value)}
-              placeholder="https://example.com/background.jpg"
-            />
-          </label>
-
-          <label className="auth-field">
-            <span>Upload profile background</span>
-            <input
-              type="file"
-              accept="image/*"
-              name="profileBackgroundFile"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                setProfileBackgroundFile(file);
-              }}
-            />
-          </label>
+          <input
+            ref={profileBackgroundInputRef}
+            type="file"
+            accept="image/*"
+            name="profileBackgroundFile"
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              setProfileBackgroundFile(file);
+            }}
+          />
 
           {error && <p className="auth-error">{error}</p>}
           {success && <p className="auth-success">{success}</p>}
