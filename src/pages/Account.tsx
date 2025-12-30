@@ -10,6 +10,11 @@ type User = {
   lastUpdatedAt?: string;
   profilePictureUrl?: string;
   profileBackgroundUrl?: string;
+  userName: string;
+  isActive: boolean;
+  isCreator: boolean;
+  identityVerified: boolean;
+  isAdmin: boolean;
 };
 
 export default function Account() {

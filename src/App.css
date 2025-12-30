@@ -273,3 +273,15 @@ body {
 .auth-toggle:hover {
   color: #e5e7eb;
 }
+
+.auth-error {
+  margin-top: 0.5rem;
+  color: #fca5a5;
+  font-size: 0.9rem;
+}
+
+.auth-success {
+  margin-top: 0.5rem;
+  color: #6ee7b7;
+  font-size: 0.9rem;
+}

@@ -11,6 +11,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Account from "./pages/Account";
 import "./App.css";
+import EditProfile from "./pages/EditProfile";
+import Profile from "./pages/Profile";
 
 function App() {
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -63,6 +65,16 @@ function App() {
           <NavLink to="/" onClick={closeNav} end>
             Home
           </NavLink>
+          {isLoggedIn && (
+            <>
+              <NavLink to="/profile" onClick={closeNav} end>
+                Profile
+              </NavLink>
+              <NavLink to="/profile/edit" onClick={closeNav}>
+                Edit profile
+              </NavLink>
+            </>
+          )}
           {isLoggedIn ? (
             <button type="button" className="nav-logout" onClick={handleLogout}>
               Logout
@@ -83,6 +95,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
         </Routes>
       </div>
 
