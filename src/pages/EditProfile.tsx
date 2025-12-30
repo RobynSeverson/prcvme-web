@@ -17,6 +17,12 @@ export default function EditProfile() {
   );
   const [profileBackgroundFile, setProfileBackgroundFile] =
     useState<File | null>(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState<
+    string | null
+  >(null);
+  const [profileBackgroundPreview, setProfileBackgroundPreview] = useState<
+    string | null
+  >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +70,8 @@ export default function EditProfile() {
           setBio(loadedUser.bio ?? "");
           setProfilePictureUrl(loadedUser.profilePictureUrl ?? "");
           setProfileBackgroundUrl(loadedUser.profileBackgroundUrl ?? "");
+          setProfilePicturePreview(null);
+          setProfileBackgroundPreview(null);
           window.localStorage.setItem("authUser", JSON.stringify(loadedUser));
         }
       } catch (err) {
@@ -164,6 +172,8 @@ export default function EditProfile() {
           setUser(updatedUser);
           setProfilePictureUrl(updatedUser.profilePictureUrl ?? "");
           setProfileBackgroundUrl(updatedUser.profileBackgroundUrl ?? "");
+          setProfilePicturePreview(null);
+          setProfileBackgroundPreview(null);
           window.localStorage.setItem("authUser", JSON.stringify(updatedUser));
         }
 
@@ -224,12 +234,12 @@ export default function EditProfile() {
     )}`;
   };
 
-  const profilePictureSrc = buildImageUrl(
-    profilePictureUrl || user.profilePictureUrl
-  );
-  const profileBackgroundSrc = buildImageUrl(
-    profileBackgroundUrl || user.profileBackgroundUrl
-  );
+  const profilePictureSrc =
+    profilePicturePreview ||
+    buildImageUrl(profilePictureUrl || user.profilePictureUrl);
+  const profileBackgroundSrc =
+    profileBackgroundPreview ||
+    buildImageUrl(profileBackgroundUrl || user.profileBackgroundUrl);
 
   return (
     <main>
@@ -332,6 +342,12 @@ export default function EditProfile() {
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;
                 setProfilePictureFile(file);
+                if (file) {
+                  const url = URL.createObjectURL(file);
+                  setProfilePicturePreview(url);
+                } else {
+                  setProfilePicturePreview(null);
+                }
               }}
             />
           </label>
@@ -383,6 +399,12 @@ export default function EditProfile() {
             onChange={(event) => {
               const file = event.target.files?.[0] ?? null;
               setProfileBackgroundFile(file);
+              if (file) {
+                const url = URL.createObjectURL(file);
+                setProfileBackgroundPreview(url);
+              } else {
+                setProfileBackgroundPreview(null);
+              }
             }}
           />
 
