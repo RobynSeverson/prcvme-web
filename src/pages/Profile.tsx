@@ -4,47 +4,70 @@ import type { User } from "../models/user";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export default function Profile() {
+export default function Profile({ userName }: { userName?: string }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = window.localStorage.getItem("authToken");
-
-    if (!token) {
-      setIsLoading(false);
-      setError("You need to be signed in to view your profile.");
-      return;
-    }
-
     const loadUser = async () => {
       try {
-        const response = await fetch(`${API_BASE}/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        setIsLoading(true);
+        setError(null);
 
-        const data = await response.json().catch(() => null);
+        if (userName) {
+          const response = await fetch(
+            `${API_BASE}/users/${encodeURIComponent(userName)}`
+          );
 
-        if (!response.ok) {
-          const message =
-            (data && typeof data.error === "string" && data.error) ||
-            "Failed to load profile.";
-          setError(message);
-          if (response.status === 401 || response.status === 404) {
-            window.localStorage.removeItem("authToken");
-            window.localStorage.removeItem("authUser");
+          const data = await response.json().catch(() => null);
+
+          if (!response.ok) {
+            const message =
+              (data && typeof data.error === "string" && data.error) ||
+              "Failed to load profile.";
+            setError(message);
+            return;
           }
-          return;
-        }
 
-        if (data && data.user) {
-          const loadedUser = data.user as User;
-          setUser(loadedUser);
-          window.localStorage.setItem("authUser", JSON.stringify(loadedUser));
+          if (data && data.user) {
+            const loadedUser = data.user as User;
+            setUser(loadedUser);
+          }
+        } else {
+          const token = window.localStorage.getItem("authToken");
+
+          if (!token) {
+            setError("You need to be signed in to view your profile.");
+            return;
+          }
+
+          const response = await fetch(`${API_BASE}/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json().catch(() => null);
+
+          if (!response.ok) {
+            const message =
+              (data && typeof data.error === "string" && data.error) ||
+              "Failed to load profile.";
+            setError(message);
+            if (response.status === 401 || response.status === 404) {
+              window.localStorage.removeItem("authToken");
+              window.localStorage.removeItem("authUser");
+            }
+            return;
+          }
+
+          if (data && data.user) {
+            const loadedUser = data.user as User;
+            setUser(loadedUser);
+            window.localStorage.setItem("authUser", JSON.stringify(loadedUser));
+          }
         }
       } catch (err) {
         console.error("Error loading profile", err);
@@ -55,7 +78,7 @@ export default function Profile() {
     };
 
     void loadUser();
-  }, []);
+  }, [userName]);
 
   const handleEditProfile = () => {
     navigate("/profile/edit");
@@ -175,14 +198,16 @@ export default function Profile() {
         )}
       </section>
 
-      <button
-        type="button"
-        onClick={handleEditProfile}
-        className="auth-submit"
-        style={{ marginTop: "1.5rem", width: "auto" }}
-      >
-        Edit profile
-      </button>
+      {!userName && (
+        <button
+          type="button"
+          onClick={handleEditProfile}
+          className="auth-submit"
+          style={{ marginTop: "1.5rem", width: "auto" }}
+        >
+          Edit profile
+        </button>
+      )}
     </main>
   );
 }

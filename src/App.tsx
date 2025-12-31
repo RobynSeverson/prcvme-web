@@ -6,6 +6,7 @@ import {
   Routes,
   useLocation,
   useNavigate,
+  useParams,
 } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -41,6 +42,11 @@ function App() {
     setIsLoggedIn(false);
     closeNav();
     navigate("/login");
+  };
+
+  const UserProfileRoute = () => {
+    const { userName } = useParams();
+    return <Profile userName={userName} />;
   };
 
   return (
@@ -93,6 +99,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/account" element={<Account />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path=":userName" element={<UserProfileRoute />} />
           <Route path="/profile/edit" element={<EditProfile />} />
         </Routes>
       </div>
