@@ -103,20 +103,7 @@ export default function Profile({ userName }: { userName?: string }) {
     const url = `${baseUrl}/${user.userName}`;
 
     try {
-      if (typeof navigator !== "undefined" && (navigator as any).share) {
-        await (navigator as any).share({
-          title: user.displayName || user.userName,
-          text: `Check out ${user.displayName || user.userName} on prcvme`,
-          url,
-        });
-        return;
-      }
-
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.clipboard &&
-        navigator.clipboard.writeText
-      ) {
+      if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(url);
       }
     } catch (err) {
@@ -233,14 +220,14 @@ export default function Profile({ userName }: { userName?: string }) {
         )}
       </section>
 
-      {!userName && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginBottom: "1.5rem",
-          }}
-        >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "1.5rem",
+        }}
+      >
+        {!userName && (
           <button
             type="button"
             onClick={handleEditProfile}
@@ -249,16 +236,16 @@ export default function Profile({ userName }: { userName?: string }) {
           >
             Edit profile
           </button>
-          <button
-            type="button"
-            onClick={handleShareProfile}
-            className="auth-submit"
-            style={{ width: "auto" }}
-          >
-            Share profile
-          </button>
-        </div>
-      )}
+        )}
+        <button
+          type="button"
+          onClick={handleShareProfile}
+          className="auth-submit"
+          style={{ width: "auto" }}
+        >
+          Copy profile link
+        </button>
+      </div>
 
       <section>
         <hr />
