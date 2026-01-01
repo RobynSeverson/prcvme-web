@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
+import UserPosts from "../components/UserPosts";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -8,6 +9,11 @@ export default function Profile({ userName }: { userName?: string }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      !!window.localStorage.getItem("authToken")
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,15 +86,48 @@ export default function Profile({ userName }: { userName?: string }) {
     void loadUser();
   }, [userName]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setIsLoggedIn(!!window.localStorage.getItem("authToken"));
+  }, []);
+
   const handleEditProfile = () => {
     navigate("/profile/edit");
+  };
+
+  const handleShareProfile = async () => {
+    if (!user) return;
+    if (typeof window === "undefined") return;
+
+    const baseUrl = window.location.origin;
+    const url = `${baseUrl}/${user.userName}`;
+
+    try {
+      if (typeof navigator !== "undefined" && (navigator as any).share) {
+        await (navigator as any).share({
+          title: user.displayName || user.userName,
+          text: `Check out ${user.displayName || user.userName} on prcvme`,
+          url,
+        });
+        return;
+      }
+
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        navigator.clipboard.writeText
+      ) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch (err) {
+      console.error("Failed to copy profile link", err);
+    }
   };
 
   if (isLoading) {
     return (
       <main>
-        <h1>Profile</h1>
-        <p>Loading your profile...</p>
+        <p>Loading profile...</p>
       </main>
     );
   }
@@ -96,7 +135,6 @@ export default function Profile({ userName }: { userName?: string }) {
   if (error && !user) {
     return (
       <main>
-        <h1>Profile</h1>
         <p>{error}</p>
         <p>
           <Link to="/login">Go to login</Link>
@@ -108,7 +146,6 @@ export default function Profile({ userName }: { userName?: string }) {
   if (!user) {
     return (
       <main>
-        <h1>Profile</h1>
         <p>Profile information is not available.</p>
       </main>
     );
@@ -127,8 +164,6 @@ export default function Profile({ userName }: { userName?: string }) {
 
   return (
     <main>
-      <h1>Profile</h1>
-
       <section
         style={{
           position: "relative",
@@ -199,15 +234,43 @@ export default function Profile({ userName }: { userName?: string }) {
       </section>
 
       {!userName && (
-        <button
-          type="button"
-          onClick={handleEditProfile}
-          className="auth-submit"
-          style={{ marginTop: "1.5rem", width: "auto" }}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: "1.5rem",
+          }}
         >
-          Edit profile
-        </button>
+          <button
+            type="button"
+            onClick={handleEditProfile}
+            className="auth-submit"
+            style={{ width: "auto", marginRight: "0.5rem" }}
+          >
+            Edit profile
+          </button>
+          <button
+            type="button"
+            onClick={handleShareProfile}
+            className="auth-submit"
+            style={{ width: "auto" }}
+          >
+            Share profile
+          </button>
+        </div>
       )}
+
+      <section>
+        <hr />
+        {isLoggedIn ? (
+          <UserPosts userId={user.id} userName={userName} />
+        ) : (
+          <p>
+            You need to log in to view posts.{" "}
+            <Link to="/login">Go to login</Link>
+          </p>
+        )}
+      </section>
     </main>
   );
 }
