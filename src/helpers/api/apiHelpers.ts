@@ -183,7 +183,9 @@ const getMySubscriptionStatus = async (userId: string): Promise<boolean> => {
   }
 };
 
-const unsubscribeFromUser = async (userId: string): Promise<UserSubscription> => {
+const unsubscribeFromUser = async (
+  userId: string
+): Promise<UserSubscription> => {
   const token = window.localStorage.getItem("authToken");
 
   if (!token) {
