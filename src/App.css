@@ -423,6 +423,8 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.7);
   padding: 0.6rem 0.75rem;
   font: inherit;
+  box-sizing: border-box;
+  display: block;
   background: #020617;
   color: #f9fafb;
 }
@@ -463,6 +465,8 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.7);
   padding: 0.6rem 0.75rem;
   font: inherit;
+  box-sizing: border-box;
+  display: block;
   background: #020617;
   color: #f9fafb;
 }
@@ -517,12 +521,16 @@ body {
   padding: 0;
 }
 
+[data-theme='light'] .auth-toggle {
+  color: #828282;
+}
+
 .auth-toggle:hover {
   color: #e5e7eb;
 }
 
 [data-theme='light'] .auth-toggle:hover {
-  color: #828282;
+  color: #626262;
 }
 
 .auth-error {

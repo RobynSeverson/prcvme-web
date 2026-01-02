@@ -5,7 +5,12 @@ const isUserLoggedIn = (): boolean => {
   return !!token;
 };
 
-const getLoggedInUser = (): User | null => {
+const getAuthToken = (): string | null => {
+  const token = window.localStorage.getItem("authToken");
+  return token;
+};
+
+const getLoggedInUserFromStorage = (): User | null => {
   const raw = window.localStorage.getItem("authUser");
   if (raw) {
     const parsed = JSON.parse(raw) as User;
@@ -15,4 +20,4 @@ const getLoggedInUser = (): User | null => {
   }
 };
 
-export { isUserLoggedIn, getLoggedInUser };
+export { isUserLoggedIn, getAuthToken, getLoggedInUserFromStorage };

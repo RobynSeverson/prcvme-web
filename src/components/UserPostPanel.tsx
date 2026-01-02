@@ -2,11 +2,12 @@ import type { UserPost } from "../models/userPost";
 
 export type UserPostProps = {
   post: UserPost;
+  protectContent?: boolean;
 };
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export default function UserPostPanel({ post }: UserPostProps) {
+export default function UserPostPanel({ post, protectContent }: UserPostProps) {
   const buildMediaUrl = (imageKey?: string | null) => {
     if (!imageKey) return undefined;
     if (imageKey.startsWith("http://") || imageKey.startsWith("https://")) {
@@ -37,11 +38,20 @@ export default function UserPostPanel({ post }: UserPostProps) {
                   key={`${post.id}-img-${index}`}
                   src={src}
                   alt="Post media"
+                  draggable={protectContent ? false : undefined}
+                  onContextMenu={
+                    protectContent ? (e) => e.preventDefault() : undefined
+                  }
+                  onDragStart={
+                    protectContent ? (e) => e.preventDefault() : undefined
+                  }
                   style={{
                     maxWidth: "150px",
                     maxHeight: "150px",
                     objectFit: "cover",
                     borderRadius: "0.5rem",
+                    userSelect: protectContent ? "none" : undefined,
+                    WebkitTouchCallout: protectContent ? "none" : undefined,
                   }}
                 />
               );
@@ -53,6 +63,7 @@ export default function UserPostPanel({ post }: UserPostProps) {
                   key={`${post.id}-vid-${index}`}
                   src={src}
                   controls
+                  controlsList={protectContent ? "nodownload" : undefined}
                   style={{
                     maxWidth: "220px",
                     borderRadius: "0.5rem",

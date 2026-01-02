@@ -2,14 +2,18 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
-import { getUserByUserName } from "../helpers/api/apiHelpers";
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+import { getCurrentUser, getUserByUserName } from "../helpers/api/apiHelpers";
+import { buildProfileImageUrl } from "../helpers/userHelpers";
+import {
+  getLoggedInUserFromStorage,
+  isUserLoggedIn,
+} from "../helpers/auth/authHelpers";
 
 export default function Profile({ userName }: { userName?: string }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -37,37 +41,19 @@ export default function Profile({ userName }: { userName?: string }) {
             return;
           }
         } else {
-          const token = window.localStorage.getItem("authToken");
-
-          if (!token) {
+          if (!isUserLoggedIn()) {
             setError("You need to be signed in to view your profile.");
             return;
           }
 
-          const response = await fetch(`${API_BASE}/me`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          try {
+            const currentUser = await getCurrentUser();
 
-          const data = await response.json().catch(() => null);
-
-          if (!response.ok) {
+            setUser(currentUser);
+          } catch (error) {
             const message =
-              (data && typeof data.error === "string" && data.error) ||
-              "Failed to load profile.";
+              (typeof error === "string" && error) || "Failed to load profile.";
             setError(message);
-            if (response.status === 401 || response.status === 404) {
-              window.localStorage.removeItem("authToken");
-              window.localStorage.removeItem("authUser");
-            }
-            return;
-          }
-
-          if (data && data.user) {
-            const loadedUser = data.user as User;
-            setUser(loadedUser);
-            window.localStorage.setItem("authUser", JSON.stringify(loadedUser));
           }
         }
       } catch (err) {
@@ -83,8 +69,67 @@ export default function Profile({ userName }: { userName?: string }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setIsLoggedIn(!!window.localStorage.getItem("authToken"));
+    setIsLoggedIn(isUserLoggedIn());
+    setLoggedInUser(getLoggedInUserFromStorage());
   }, []);
+
+  const isOwner =
+    !!loggedInUser?.id && !!user?.id && loggedInUser.id === user.id;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!user) return;
+    if (isOwner) return;
+
+    const handleContextMenu = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLImageElement) {
+        event.preventDefault();
+      }
+    };
+
+    const handleDragStart = (event: DragEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLImageElement) {
+        event.preventDefault();
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Best-effort: block common “save/print” shortcuts while on someone else’s profile.
+      const key = event.key.toLowerCase();
+      const metaOrCtrl = event.metaKey || event.ctrlKey;
+      if (metaOrCtrl && (key === "s" || key === "p")) {
+        event.preventDefault();
+        return;
+      }
+
+      // Best-effort: attempt to block screenshot hotkeys (OS-level capture may still occur).
+      if (event.key === "PrintScreen") {
+        event.preventDefault();
+        return;
+      }
+
+      // macOS screenshot shortcuts: Cmd+Shift+3/4/5
+      if (
+        event.metaKey &&
+        event.shiftKey &&
+        (key === "3" || key === "4" || key === "5")
+      ) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu, true);
+    document.addEventListener("dragstart", handleDragStart, true);
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu, true);
+      document.removeEventListener("dragstart", handleDragStart, true);
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isOwner, user]);
 
   const handleEditProfile = () => {
     navigate("/profile/edit");
@@ -133,25 +178,47 @@ export default function Profile({ userName }: { userName?: string }) {
     );
   }
 
-  const buildImageUrl = (imageId?: string | null) => {
-    if (!imageId) return undefined;
-    if (imageId.startsWith("http://") || imageId.startsWith("https://")) {
-      return imageId;
-    }
-    return `${API_BASE}/users/${user.id}/profile/${imageId}`;
-  };
-
-  const profilePictureSrc = buildImageUrl(user.profilePictureUrl);
-  const profileBackgroundSrc = buildImageUrl(user.profileBackgroundUrl);
+  const profilePictureSrc = buildProfileImageUrl(
+    user.id,
+    user.profilePictureUrl
+  );
+  const profileBackgroundSrc = buildProfileImageUrl(
+    user.id,
+    user.profileBackgroundUrl
+  );
 
   return (
-    <main>
+    <main style={{ position: "relative" }}>
+      {!isOwner && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            pointerEvents: "none",
+            zIndex: 9999,
+            opacity: 0.14,
+            mixBlendMode: "multiply",
+            backgroundImage:
+              "repeating-linear-gradient(-25deg, rgba(0,0,0,0.35) 0px, rgba(0,0,0,0.35) 1px, transparent 1px, transparent 90px)",
+          }}
+        />
+      )}
       <section className="app-card profile-header-card">
         {profileBackgroundSrc && (
           <img
             src={profileBackgroundSrc}
             alt="Profile background"
-            style={{ width: "100%", height: "160px", objectFit: "cover" }}
+            draggable={false}
+            onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
+            onDragStart={isOwner ? undefined : (e) => e.preventDefault()}
+            style={{
+              width: "100%",
+              height: "160px",
+              objectFit: "cover",
+              userSelect: isOwner ? undefined : "none",
+              WebkitTouchCallout: isOwner ? undefined : "none",
+            }}
           />
         )}
 
@@ -159,6 +226,9 @@ export default function Profile({ userName }: { userName?: string }) {
           <img
             src={profilePictureSrc}
             alt="Profile"
+            draggable={false}
+            onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
+            onDragStart={isOwner ? undefined : (e) => e.preventDefault()}
             style={{
               position: "absolute",
               left: "1.5rem",
@@ -170,6 +240,8 @@ export default function Profile({ userName }: { userName?: string }) {
               border: "3px solid var(--bg-color)",
               boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
               backgroundColor: "var(--bg-color)",
+              userSelect: isOwner ? undefined : "none",
+              WebkitTouchCallout: isOwner ? undefined : "none",
             }}
           />
         )}
@@ -212,7 +284,7 @@ export default function Profile({ userName }: { userName?: string }) {
           marginBottom: "1.5rem",
         }}
       >
-        {!userName && (
+        {loggedInUser?.id === user.id && (
           <button
             type="button"
             onClick={handleEditProfile}
@@ -235,7 +307,11 @@ export default function Profile({ userName }: { userName?: string }) {
       <section>
         <hr />
         {isLoggedIn ? (
-          <UserPosts userId={user.id} userName={userName} />
+          <UserPosts
+            userId={user.id}
+            userName={userName}
+            protectContent={!isOwner}
+          />
         ) : (
           <p>
             You need to log in to view posts.{" "}

@@ -34,4 +34,38 @@ const getUserByUserName = async (userName: string) => {
   }
 };
 
-export { getAPIBase, getUserByUserName };
+const getCurrentUser = async (): Promise<User | null> => {
+  const token = window.localStorage.getItem("authToken");
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const message =
+        (data && typeof data.error === "string" && data.error) ||
+        "Failed to load current user.";
+      throw new Error(message);
+    }
+
+    if (data && data.user) {
+      window.localStorage.setItem("authUser", JSON.stringify(data.user));
+      return data.user as User;
+    }
+
+    return null;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export { getAPIBase, getUserByUserName, getCurrentUser };

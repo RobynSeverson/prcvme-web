@@ -7,9 +7,14 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 export type UserPostsProps = {
   userId?: string;
   userName?: string;
+  protectContent?: boolean;
 };
 
-export default function UserPosts({ userId, userName }: UserPostsProps) {
+export default function UserPosts({
+  userId,
+  userName,
+  protectContent,
+}: UserPostsProps) {
   const [posts, setPosts] = useState<UserPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +64,7 @@ export default function UserPosts({ userId, userName }: UserPostsProps) {
     };
 
     void loadPosts();
-  }, [userId]);
+  }, [userId, userName]);
 
   return (
     <section>
@@ -70,7 +75,11 @@ export default function UserPosts({ userId, userName }: UserPostsProps) {
       )}
       <ul className="user-posts-list">
         {posts.map((post) => (
-          <UserPostPanel key={post.id} post={post} />
+          <UserPostPanel
+            key={post.id}
+            post={post}
+            protectContent={protectContent}
+          />
         ))}
       </ul>
     </section>
