@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
+import { getUserByUserName } from "../helpers/api/apiHelpers";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -23,23 +24,17 @@ export default function Profile({ userName }: { userName?: string }) {
         setError(null);
 
         if (userName) {
-          const response = await fetch(
-            `${API_BASE}/users/${encodeURIComponent(userName)}`
-          );
+          try {
+            const userByUserName = await getUserByUserName(userName);
 
-          const data = await response.json().catch(() => null);
-
-          if (!response.ok) {
+            if (userByUserName) {
+              setUser(userByUserName);
+            }
+          } catch (error) {
             const message =
-              (data && typeof data.error === "string" && data.error) ||
-              "Failed to load profile.";
+              (typeof error === "string" && error) || "Failed to load profile.";
             setError(message);
             return;
-          }
-
-          if (data && data.user) {
-            const loadedUser = data.user as User;
-            setUser(loadedUser);
           }
         } else {
           const token = window.localStorage.getItem("authToken");

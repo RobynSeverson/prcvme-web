@@ -14,6 +14,7 @@ import Account from "./pages/Account";
 import "./App.css";
 import EditProfile from "./pages/EditProfile";
 import Profile from "./pages/Profile";
+import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 
 function App() {
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -22,17 +23,46 @@ function App() {
       typeof window !== "undefined" &&
       !!window.localStorage.getItem("authToken")
   );
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") {
+      return "dark";
+    }
+
+    const stored = window.localStorage.getItem("theme");
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
+
+    const prefersDark =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+    return prefersDark ? "dark" : "light";
+  });
 
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setIsLoggedIn(!!window.localStorage.getItem("authToken"));
+    setIsLoggedIn(isUserLoggedIn());
   }, [location]);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("theme", theme);
+    }
+  }, [theme]);
 
   const toggleNav = () => setIsNavOpen((open) => !open);
   const closeNav = () => setIsNavOpen(false);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -81,6 +111,24 @@ function App() {
               </NavLink>
             </>
           )}
+          <button
+            type="button"
+            className="nav-theme-toggle"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            aria-pressed={theme === "dark"}
+          >
+            <span className="theme-toggle-label">Dark</span>
+            <span
+              className={`theme-toggle-slider ${
+                theme === "dark"
+                  ? "theme-toggle-slider-on"
+                  : "theme-toggle-slider-off"
+              }`}
+            >
+              <span className="theme-toggle-knob" />
+            </span>
+          </button>
           {isLoggedIn ? (
             <button type="button" className="nav-logout" onClick={handleLogout}>
               Logout

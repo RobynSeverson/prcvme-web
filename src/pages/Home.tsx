@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation } from "react-router-dom";
 import Login from "./Login";
 import UserPosts from "../components/UserPosts";
+import SVG from "../assets/image.svg";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -16,6 +17,7 @@ export default function Home() {
   const [newText, setNewText] = useState("");
   const [newMediaFiles, setNewMediaFiles] = useState<FileList | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const location = useLocation();
 
@@ -105,8 +107,6 @@ export default function Home() {
 
   return (
     <main>
-      <h1>Home</h1>
-
       <section style={{ marginBottom: "2rem" }}>
         <h2 style={{ marginBottom: "0.5rem" }}>New Post</h2>
         <form onSubmit={handleSubmitPost} className="auth-form">
@@ -115,13 +115,55 @@ export default function Home() {
             onChange={(e) => setNewText(e.target.value)}
             placeholder="What's on your mind?"
             rows={3}
-            style={{ width: "100%", marginBottom: "0.75rem" }}
+            className="new-post-textarea"
           />
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              marginTop: "0px",
+              padding: "0.4rem 0.8rem",
+              width: "48px",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <rect
+                x="3"
+                y="5"
+                width="18"
+                height="14"
+                rx="2"
+                ry="2"
+                fill="none"
+                stroke="#ffffffff"
+                strokeWidth="1.6"
+              />
+              <circle
+                cx="9"
+                cy="10"
+                r="1.6"
+                fill="none"
+                stroke="#ffffffff"
+                strokeWidth="1.6"
+              />
+              <path
+                d="M5 17l4-4 3 3 3-3 4 4"
+                fill="none"
+                stroke="#ffffffff"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <input
+            ref={fileInputRef}
             type="file"
             multiple
             onChange={handleMediaChange}
-            style={{ marginBottom: "0.75rem" }}
+            style={{ display: "none" }}
           />
           <button type="submit" className="auth-submit" disabled={isSubmitting}>
             {isSubmitting ? "Posting..." : "Post"}

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getAPIBase } from "../helpers/api/apiHelpers";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_BASE = getAPIBase();
 
 type User = {
   id: string;
@@ -70,12 +71,6 @@ export default function Account() {
     void loadUser();
   }, []);
 
-  const handleLogout = () => {
-    window.localStorage.removeItem("authToken");
-    window.localStorage.removeItem("authUser");
-    navigate("/login");
-  };
-
   if (isLoading) {
     return (
       <main>
@@ -127,10 +122,6 @@ export default function Account() {
           </p>
         )}
       </section>
-
-      <button type="button" onClick={handleLogout} className="auth-submit">
-        Log out
-      </button>
     </main>
   );
 }
