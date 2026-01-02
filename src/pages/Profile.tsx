@@ -146,16 +146,7 @@ export default function Profile({ userName }: { userName?: string }) {
 
   return (
     <main>
-      <section
-        style={{
-          position: "relative",
-          marginBottom: "3rem",
-          borderRadius: "0.75rem",
-          border: "1px solid rgba(148, 163, 184, 0.4)",
-          minHeight: "160px",
-          background: "radial-gradient(circle at top left, #1f2937, #020617)",
-        }}
-      >
+      <section className="app-card profile-header-card">
         {profileBackgroundSrc && (
           <img
             src={profileBackgroundSrc}
@@ -176,9 +167,9 @@ export default function Profile({ userName }: { userName?: string }) {
               height: "80px",
               borderRadius: "999px",
               objectFit: "cover",
-              border: "3px solid #020617",
+              border: "3px solid var(--bg-color)",
               boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
-              backgroundColor: "#020617",
+              backgroundColor: "var(--bg-color)",
             }}
           />
         )}
@@ -196,9 +187,9 @@ export default function Profile({ userName }: { userName?: string }) {
         <p
           style={{
             margin: "0.15rem 0",
-            color: "#9ca3af",
             fontSize: "0.9rem",
           }}
+          className="text-muted"
         >
           @{user.userName}
         </p>
@@ -206,7 +197,6 @@ export default function Profile({ userName }: { userName?: string }) {
           <p
             style={{
               marginTop: "0.5rem",
-              color: "#d1d5db",
               whiteSpace: "pre-wrap",
             }}
           >

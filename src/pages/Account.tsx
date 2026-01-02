@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { getAPIBase } from "../helpers/api/apiHelpers";
 
 const API_BASE = getAPIBase();
@@ -22,7 +22,6 @@ export default function Account() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");

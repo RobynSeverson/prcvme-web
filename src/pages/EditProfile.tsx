@@ -255,13 +255,10 @@ export default function EditProfile() {
             <button
               type="button"
               onClick={() => profileBackgroundInputRef.current?.click()}
+              className="app-card"
               style={{
                 width: "100%",
                 height: "140px",
-                borderRadius: "0.75rem",
-                border: "1px solid rgba(148, 163, 184, 0.7)",
-                background:
-                  "radial-gradient(circle at top left, #1f2937, #020617)",
                 overflow: "hidden",
                 display: "block",
                 padding: 0,
@@ -283,7 +280,7 @@ export default function EditProfile() {
                   style={{
                     display: "inline-block",
                     marginTop: "3.25rem",
-                    color: "#9ca3af",
+                    color: "var(--text-muted)",
                     fontSize: "0.85rem",
                   }}
                 >
@@ -301,9 +298,8 @@ export default function EditProfile() {
                 width: "80px",
                 height: "80px",
                 borderRadius: "999px",
-                border: "2px solid rgba(148, 163, 184, 0.7)",
-                background:
-                  "radial-gradient(circle at 30% 30%, #1f2937, #020617)",
+                border: "2px solid var(--card-border)",
+                background: "var(--card-bg)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -325,7 +321,7 @@ export default function EditProfile() {
               ) : (
                 <span
                   style={{
-                    color: "#9ca3af",
+                    color: "var(--text-muted)",
                     fontSize: "0.8rem",
                   }}
                 >
@@ -379,14 +375,7 @@ export default function EditProfile() {
               rows={4}
               value={bio}
               onChange={(event) => setBio(event.target.value)}
-              style={{
-                borderRadius: "0.6rem",
-                border: "1px solid rgba(148, 163, 184, 0.7)",
-                padding: "0.6rem 0.75rem",
-                font: "inherit",
-                color: "#e5e7eb",
-                background: "rgba(15, 23, 42, 0.6)",
-              }}
+              className="new-post-textarea"
             />
           </label>
 

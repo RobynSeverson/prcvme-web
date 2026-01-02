@@ -63,10 +63,12 @@ export default function UserPosts({ userId, userName }: UserPostsProps) {
 
   return (
     <section>
-      {isLoading && <p>Loading posts...</p>}
+      {isLoading && <p className="text-muted">Loading posts...</p>}
       {error && <p className="auth-error">{error}</p>}
-      {!isLoading && !error && posts.length === 0 && <p>No posts yet.</p>}
-      <ul style={{ listStyle: "none", padding: 0 }}>
+      {!isLoading && !error && posts.length === 0 && (
+        <p className="text-muted">No posts yet.</p>
+      )}
+      <ul className="user-posts-list">
         {posts.map((post) => (
           <UserPostPanel key={post.id} post={post} />
         ))}

@@ -3,7 +3,6 @@ import type { FormEvent } from "react";
 import { useLocation } from "react-router-dom";
 import Login from "./Login";
 import UserPosts from "../components/UserPosts";
-import SVG from "../assets/image.svg";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -119,14 +118,9 @@ export default function Home() {
           />
           <button
             type="button"
-            className="btn-primary"
+            className="icon-button"
             onClick={() => fileInputRef.current?.click()}
-            style={{
-              marginTop: "0px",
-              padding: "0.4rem 0.8rem",
-              width: "48px",
-              cursor: "pointer",
-            }}
+            style={{ marginTop: "0px", width: "48px" }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
               <rect
@@ -137,7 +131,7 @@ export default function Home() {
                 rx="2"
                 ry="2"
                 fill="none"
-                stroke="#ffffffff"
+                stroke="currentColor"
                 strokeWidth="1.6"
               />
               <circle
@@ -145,13 +139,13 @@ export default function Home() {
                 cy="10"
                 r="1.6"
                 fill="none"
-                stroke="#ffffffff"
+                stroke="currentColor"
                 strokeWidth="1.6"
               />
               <path
                 d="M5 17l4-4 3 3 3-3 4 4"
                 fill="none"
-                stroke="#ffffffff"
+                stroke="currentColor"
                 strokeWidth="1.6"
                 strokeLinecap="round"
                 strokeLinejoin="round"

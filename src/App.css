@@ -19,6 +19,8 @@
   --footer-link-color: #9ca3af;
   --footer-link-hover-color: #e5e7eb;
   --footer-copy-color: #6b7280;
+  --card-bg: radial-gradient(circle at top left, #1f2937, #020617);
+  --card-border: rgba(148, 163, 184, 0.5);
 }
 
 [data-theme='light'] {
@@ -42,6 +44,8 @@
   --footer-link-color: #4b5563;
   --footer-link-hover-color: #111827;
   --footer-copy-color: #9ca3af;
+  --card-bg: #ffffff;
+  --card-border: rgba(209, 213, 219, 0.9);
 }
 
 body {
@@ -210,6 +214,52 @@ body {
   transform: translateX(1.2rem);
 }
 
+.nav-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.theme-toggle-label {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.theme-toggle-slider {
+  position: relative;
+  width: 2.4rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.5);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.15rem;
+  transition: background 150ms ease;
+}
+
+.theme-toggle-slider-on {
+  background: #4f46e5;
+}
+
+.theme-toggle-knob {
+  position: relative;
+  width: 1.2rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.4);
+  transform: translateX(0);
+  transition: transform 150ms ease;
+}
+
+.theme-toggle-slider-off .theme-toggle-knob {
+  transform: translateX(0);
+}
+
+.theme-toggle-slider-on .theme-toggle-knob {
+  transform: translateX(1.2rem);
+}
+
 .app-content {
   flex: 1;
   padding: 2rem 1.5rem 1.5rem;
@@ -257,6 +307,28 @@ body {
   font-size: 0.8rem;
 }
 
+.app-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--nav-toggle-border);
+  padding: 0.4rem 0.8rem;
+  background: var(--nav-toggle-bg);
+  color: var(--nav-link-color);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
 @media (min-width: 768px) {
   .app-header {
     padding-inline: 2.5rem;
@@ -288,9 +360,9 @@ body {
 }
 
 .auth-card {
-  background: radial-gradient(circle at top left, #1f2937, #020617);
+  background: var(--card-bg);
   border-radius: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.5);
+  border: 1px solid var(--card-border);
   padding: 2rem 1.5rem 1.75rem;
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.7);
 }
@@ -321,6 +393,10 @@ body {
   color: #d1d5db;
 }
 
+[data-theme='light'] .auth-field span {
+  color: #656565;
+}
+
 .auth-field input {
   border-radius: 0.6rem;
   border: 1px solid rgba(148, 163, 184, 0.7);
@@ -330,10 +406,55 @@ body {
   background: rgba(15, 23, 42, 0.6);
 }
 
+[data-theme='light'] .auth-field input {
+  background: rgba(255, 255, 255);
+  color: rgba(0, 0, 0);
+}
+
 .auth-field input:focus {
   outline: 2px solid #4f46e5;
   outline-offset: 1px;
   border-color: transparent;
+}
+
+.new-post-textarea {
+  width: 100%;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  background: #020617;
+  color: #f9fafb;
+}
+
+.new-post-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+[data-theme='light'] .new-post-textarea {
+  background: #ffffff;
+  color: #020617;
+}
+
+.profile-header-card {
+  position: relative;
+  margin-bottom: 3rem;
+  min-height: 160px;
+}
+
+.user-posts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.user-post-card {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.post-meta {
+  font-size: 0.8rem;
 }
 
 .new-post-textarea {
@@ -398,6 +519,10 @@ body {
 
 .auth-toggle:hover {
   color: #e5e7eb;
+}
+
+[data-theme='light'] .auth-toggle:hover {
+  color: #828282;
 }
 
 .auth-error {

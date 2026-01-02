@@ -16,14 +16,7 @@ export default function UserPostPanel({ post }: UserPostProps) {
   };
 
   return (
-    <li
-      style={{
-        border: "1px solid rgba(148, 163, 184, 0.4)",
-        borderRadius: "0.75rem",
-        padding: "0.75rem 1rem",
-        marginBottom: "0.75rem",
-      }}
-    >
+    <li className="app-card user-post-card">
       {post.text && <p style={{ marginBottom: "0.5rem" }}>{post.text}</p>}
       {post.mediaItems && post.mediaItems.length > 0 && (
         <div
@@ -72,13 +65,7 @@ export default function UserPostPanel({ post }: UserPostProps) {
           })}
         </div>
       )}
-      <p
-        style={{
-          fontSize: "0.8rem",
-          color: "#6b7280",
-          marginTop: "0.25rem",
-        }}
-      >
+      <p className="post-meta text-muted" style={{ marginTop: "0.25rem" }}>
         Posted on {new Date(post.createdAt).toLocaleString()}
       </p>
     </li>
