@@ -20,6 +20,30 @@ type UiMessage = {
   createdAt: string;
 };
 
+function formatMessageTime(isoString: string): string {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const isSameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  const time = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (isSameDay) return time;
+
+  const day = date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
+  return `${day} ${time}`;
+}
+
 export default function MessageThread() {
   const { userName } = useParams();
   const location = useLocation();
@@ -299,8 +323,8 @@ export default function MessageThread() {
 
       {error && <p className="auth-error">{error}</p>}
 
-      <section className="app-card" style={{ padding: "0.75rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <section className="app-card message-thread-card">
+        <div className="message-thread-actions">
           <button
             type="button"
             className="auth-submit"
@@ -313,7 +337,7 @@ export default function MessageThread() {
           <Link to="/messages">Back</Link>
         </div>
 
-        <div style={{ marginTop: "1rem" }}>
+        <div className="message-list">
           {isLoadingMessages && messages.length === 0 ? (
             <p>Loading...</p>
           ) : messages.length === 0 ? (
@@ -324,25 +348,15 @@ export default function MessageThread() {
               return (
                 <div
                   key={m.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: isMine ? "flex-end" : "flex-start",
-                    marginBottom: "0.5rem",
-                  }}
+                  className={`message-row ${isMine ? "is-mine" : ""}`}
                 >
-                  <div
-                    style={{
-                      maxWidth: "75%",
-                      padding: "0.5rem 0.75rem",
-                      borderRadius: "12px",
-                      background: isMine
-                        ? "rgba(102, 126, 234, 0.25)"
-                        : "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      whiteSpace: "pre-wrap",
-                    }}
-                  >
-                    {m.text}
+                  <div className="message-bubble">
+                    <div>{m.text}</div>
+                    {m.createdAt ? (
+                      <div className="message-meta">
+                        {formatMessageTime(m.createdAt)}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );
