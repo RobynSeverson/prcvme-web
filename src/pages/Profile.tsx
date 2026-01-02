@@ -342,7 +342,11 @@ export default function Profile({ userName }: { userName?: string }) {
             disabled={isSubLoading || isSubscribed}
             style={{ width: "auto", marginRight: "0.5rem" }}
           >
-            {isSubscribed ? "Subscribed" : isSubLoading ? "Subscribing..." : "Subscribe"}
+            {isSubscribed
+              ? "Subscribed"
+              : isSubLoading
+              ? "Subscribing..."
+              : "Subscribe"}
           </button>
         )}
         {loggedInUser?.id === user.id && (

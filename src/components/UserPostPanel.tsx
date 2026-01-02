@@ -91,7 +91,9 @@ export default function UserPostPanel({ post, protectContent }: UserPostProps) {
                       ...blurredMediaStyle,
                     }}
                   />
-                  {protectContent && <div style={overlayStyle}>Subscribe to view</div>}
+                  {protectContent && (
+                    <div style={overlayStyle}>Subscribe to view</div>
+                  )}
                 </div>
               );
             }
@@ -113,7 +115,9 @@ export default function UserPostPanel({ post, protectContent }: UserPostProps) {
                       ...blurredMediaStyle,
                     }}
                   />
-                  {protectContent && <div style={overlayStyle}>Subscribe to view</div>}
+                  {protectContent && (
+                    <div style={overlayStyle}>Subscribe to view</div>
+                  )}
                 </div>
               );
             }
