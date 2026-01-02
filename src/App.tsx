@@ -14,11 +14,17 @@ import Account from "./pages/Account";
 import "./App.css";
 import EditProfile from "./pages/EditProfile";
 import Profile from "./pages/Profile";
+import Messages from "./pages/Messages";
+import MessageThread from "./pages/MessageThread";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 
 function UserProfileRoute() {
   const { userName } = useParams();
   return <Profile userName={userName} />;
+}
+
+function UserMessageRoute() {
+  return <MessageThread />;
 }
 
 function App() {
@@ -110,6 +116,9 @@ function App() {
               <NavLink to="/profile" onClick={closeNav} end>
                 Profile
               </NavLink>
+              <NavLink to="/messages" onClick={closeNav} end>
+                Messages
+              </NavLink>
               <NavLink to="/account" onClick={closeNav}>
                 Account
               </NavLink>
@@ -156,6 +165,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/account" element={<Account />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/messages/:userName" element={<UserMessageRoute />} />
           <Route path="/:userName" element={<UserProfileRoute />} />
           <Route path="/profile/edit" element={<EditProfile />} />
         </Routes>

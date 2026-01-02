@@ -6,6 +6,16 @@ const getAPIBase = (): string => {
   return API_BASE;
 };
 
+const getWebSocketBase = (): string => {
+  if (API_BASE.startsWith("https://")) {
+    return API_BASE.replace(/^https:\/\//, "wss://");
+  }
+  if (API_BASE.startsWith("http://")) {
+    return API_BASE.replace(/^http:\/\//, "ws://");
+  }
+  return API_BASE;
+};
+
 const getUserByUserName = async (userName: string) => {
   try {
     const response = await fetch(
@@ -74,6 +84,21 @@ export type UserSubscription = {
   subscribedToUserId: string;
   createdAt: string;
   isActive?: boolean;
+};
+
+export type DirectMessage = {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  text: string;
+  createdAt: string;
+};
+
+export type MessageThread = {
+  participantsKey: string;
+  otherUserId: string;
+  lastMessageAt: string;
+  lastText: string;
 };
 
 const getMySubscriptions = async (): Promise<UserSubscription[]> => {
@@ -218,12 +243,118 @@ const unsubscribeFromUser = async (
   throw new Error("Subscription data is missing.");
 };
 
+const getDirectMessages = async (
+  userId: string,
+  before?: string
+): Promise<{ messages: DirectMessage[]; nextCursor: string | null }> => {
+  const token = window.localStorage.getItem("authToken");
+
+  if (!token) {
+    throw new Error("You must be logged in to load messages.");
+  }
+
+  const url = new URL(
+    `${API_BASE}/messages/${encodeURIComponent(userId)}`,
+    window.location.origin
+  );
+  if (before) {
+    url.searchParams.set("before", before);
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load messages.";
+    throw new Error(message);
+  }
+
+  const messages =
+    data && Array.isArray(data.messages)
+      ? (data.messages as DirectMessage[])
+      : ([] as DirectMessage[]);
+
+  const nextCursor =
+    data && (typeof data.nextCursor === "string" || data.nextCursor === null)
+      ? (data.nextCursor as string | null)
+      : null;
+
+  return { messages, nextCursor };
+};
+
+const getMyMessageThreads = async (
+  before?: string,
+  limit?: number
+): Promise<{ threads: MessageThread[]; nextCursor: string | null }> => {
+  const token = window.localStorage.getItem("authToken");
+
+  if (!token) {
+    throw new Error("You must be logged in to load message threads.");
+  }
+
+  const url = new URL(`${API_BASE}/messages`, window.location.origin);
+  if (before) {
+    url.searchParams.set("before", before);
+  }
+  if (typeof limit === "number" && Number.isFinite(limit)) {
+    url.searchParams.set("limit", String(limit));
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load message threads.";
+    throw new Error(message);
+  }
+
+  const threads =
+    data && Array.isArray(data.threads)
+      ? (data.threads as MessageThread[])
+      : ([] as MessageThread[]);
+
+  const nextCursor =
+    data && (typeof data.nextCursor === "string" || data.nextCursor === null)
+      ? (data.nextCursor as string | null)
+      : null;
+
+  return { threads, nextCursor };
+};
+
+const getMessagesWebSocketUrl = (userId: string): string | null => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) return null;
+
+  const wsBase = getWebSocketBase();
+  const url = new URL(`${wsBase}/messages/${encodeURIComponent(userId)}`);
+  url.searchParams.set("token", token);
+  return url.toString();
+};
+
 export {
   getAPIBase,
+  getWebSocketBase,
   getUserByUserName,
   getCurrentUser,
   getMySubscriptions,
   getMySubscriptionStatus,
   subscribeToUser,
   unsubscribeFromUser,
+  getMyMessageThreads,
+  getDirectMessages,
+  getMessagesWebSocketUrl,
 };
