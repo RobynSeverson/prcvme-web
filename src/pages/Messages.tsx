@@ -93,7 +93,7 @@ export default function Messages() {
     <main>
       <section style={{ marginBottom: "1rem" }}>
         <h2 style={{ marginBottom: "0.5rem" }}>Messages</h2>
-        <form onSubmit={handleSearchSubmit} className="auth-form">
+        <form onSubmit={handleSearchSubmit} className="auth-form message-form">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}

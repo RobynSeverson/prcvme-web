@@ -352,7 +352,7 @@ export default function MessageThread() {
 
         <form
           onSubmit={handleSend}
-          className="auth-form"
+          className="auth-form message-form"
           style={{ marginTop: "1rem" }}
         >
           <input
