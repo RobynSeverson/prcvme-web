@@ -68,4 +68,79 @@ const getCurrentUser = async (): Promise<User | null> => {
   }
 };
 
-export { getAPIBase, getUserByUserName, getCurrentUser };
+export type UserSubscription = {
+  id: string;
+  subscriberUserId: string;
+  subscribedToUserId: string;
+  createdAt: string;
+};
+
+const getMySubscriptions = async (): Promise<UserSubscription[]> => {
+  const token = window.localStorage.getItem("authToken");
+
+  if (!token) {
+    return [];
+  }
+
+  const response = await fetch(`${API_BASE}/subscriptions`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load subscriptions.";
+    throw new Error(message);
+  }
+
+  if (data && Array.isArray(data.subscriptions)) {
+    return data.subscriptions as UserSubscription[];
+  }
+
+  return [];
+};
+
+const subscribeToUser = async (userId: string): Promise<UserSubscription> => {
+  const token = window.localStorage.getItem("authToken");
+
+  if (!token) {
+    throw new Error("You must be logged in to subscribe.");
+  }
+
+  const response = await fetch(
+    `${API_BASE}/subscriptions/${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to subscribe.";
+    throw new Error(message);
+  }
+
+  if (data && data.subscription) {
+    return data.subscription as UserSubscription;
+  }
+
+  throw new Error("Subscription data is missing.");
+};
+
+export {
+  getAPIBase,
+  getUserByUserName,
+  getCurrentUser,
+  getMySubscriptions,
+  subscribeToUser,
+};

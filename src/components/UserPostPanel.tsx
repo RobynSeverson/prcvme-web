@@ -1,3 +1,4 @@
+import React from "react";
 import type { UserPost } from "../models/userPost";
 
 export type UserPostProps = {
@@ -32,43 +33,88 @@ export default function UserPostPanel({ post, protectContent }: UserPostProps) {
             const src = buildMediaUrl(item.mediaKey);
             if (!src) return null;
 
+            const wrapperStyle: React.CSSProperties | undefined = protectContent
+              ? {
+                  position: "relative",
+                  display: "inline-block",
+                  borderRadius: "0.5rem",
+                  overflow: "hidden",
+                }
+              : undefined;
+
+            const overlayStyle: React.CSSProperties | undefined = protectContent
+              ? {
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  padding: "0.5rem",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.92)",
+                  textShadow: "0 2px 12px rgba(0,0,0,0.75)",
+                  background:
+                    "linear-gradient(0deg, rgba(0,0,0,0.55), rgba(0,0,0,0.25))",
+                  pointerEvents: "none",
+                }
+              : undefined;
+
+            const blurredMediaStyle: React.CSSProperties | undefined =
+              protectContent
+                ? {
+                    filter: "blur(16px)",
+                    transform: "scale(1.06)",
+                  }
+                : undefined;
+
             if (item.mediaType === "image") {
               return (
-                <img
-                  key={`${post.id}-img-${index}`}
-                  src={src}
-                  alt="Post media"
-                  draggable={protectContent ? false : undefined}
-                  onContextMenu={
-                    protectContent ? (e) => e.preventDefault() : undefined
-                  }
-                  onDragStart={
-                    protectContent ? (e) => e.preventDefault() : undefined
-                  }
-                  style={{
-                    maxWidth: "150px",
-                    maxHeight: "150px",
-                    objectFit: "cover",
-                    borderRadius: "0.5rem",
-                    userSelect: protectContent ? "none" : undefined,
-                    WebkitTouchCallout: protectContent ? "none" : undefined,
-                  }}
-                />
+                <div key={`${post.id}-img-${index}`} style={wrapperStyle}>
+                  <img
+                    src={src}
+                    alt="Post media"
+                    draggable={protectContent ? false : undefined}
+                    onContextMenu={
+                      protectContent ? (e) => e.preventDefault() : undefined
+                    }
+                    onDragStart={
+                      protectContent ? (e) => e.preventDefault() : undefined
+                    }
+                    style={{
+                      maxWidth: "150px",
+                      maxHeight: "150px",
+                      objectFit: "cover",
+                      borderRadius: protectContent ? undefined : "0.5rem",
+                      userSelect: protectContent ? "none" : undefined,
+                      WebkitTouchCallout: protectContent ? "none" : undefined,
+                      ...blurredMediaStyle,
+                    }}
+                  />
+                  {protectContent && <div style={overlayStyle}>Subscribe to view</div>}
+                </div>
               );
             }
 
             if (item.mediaType === "video") {
               return (
-                <video
-                  key={`${post.id}-vid-${index}`}
-                  src={src}
-                  controls
-                  controlsList={protectContent ? "nodownload" : undefined}
-                  style={{
-                    maxWidth: "220px",
-                    borderRadius: "0.5rem",
-                  }}
-                />
+                <div key={`${post.id}-vid-${index}`} style={wrapperStyle}>
+                  <video
+                    src={src}
+                    controls={!protectContent}
+                    controlsList={protectContent ? "nodownload" : undefined}
+                    onContextMenu={
+                      protectContent ? (e) => e.preventDefault() : undefined
+                    }
+                    style={{
+                      maxWidth: "220px",
+                      borderRadius: protectContent ? undefined : "0.5rem",
+                      pointerEvents: protectContent ? "none" : undefined,
+                      ...blurredMediaStyle,
+                    }}
+                  />
+                  {protectContent && <div style={overlayStyle}>Subscribe to view</div>}
+                </div>
               );
             }
 

@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
-import { getCurrentUser, getUserByUserName } from "../helpers/api/apiHelpers";
+import {
+  getCurrentUser,
+  getMySubscriptions,
+  getUserByUserName,
+  subscribeToUser,
+} from "../helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import {
   getLoggedInUserFromStorage,
@@ -14,6 +19,9 @@ export default function Profile({ userName }: { userName?: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubLoading, setIsSubLoading] = useState(false);
+  const [subError, setSubError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -75,6 +83,30 @@ export default function Profile({ userName }: { userName?: string }) {
 
   const isOwner =
     !!loggedInUser?.id && !!user?.id && loggedInUser.id === user.id;
+
+  useEffect(() => {
+    const loadSubscriptionStatus = async () => {
+      if (!user) return;
+      if (!isLoggedIn) return;
+      if (isOwner) return;
+
+      try {
+        setSubError(null);
+        setIsSubLoading(true);
+        const subs = await getMySubscriptions();
+        setIsSubscribed(subs.some((s) => s.subscribedToUserId === user.id));
+      } catch (err) {
+        const message =
+          (err instanceof Error && err.message) ||
+          "Failed to load subscription status.";
+        setSubError(message);
+      } finally {
+        setIsSubLoading(false);
+      }
+    };
+
+    void loadSubscriptionStatus();
+  }, [user, isLoggedIn, isOwner]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -148,6 +180,24 @@ export default function Profile({ userName }: { userName?: string }) {
       }
     } catch (err) {
       console.error("Failed to copy profile link", err);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!user) return;
+    if (isOwner) return;
+
+    try {
+      setSubError(null);
+      setIsSubLoading(true);
+      await subscribeToUser(user.id);
+      setIsSubscribed(true);
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) || "Failed to subscribe.";
+      setSubError(message);
+    } finally {
+      setIsSubLoading(false);
     }
   };
 
@@ -284,6 +334,17 @@ export default function Profile({ userName }: { userName?: string }) {
           marginBottom: "1.5rem",
         }}
       >
+        {!isOwner && isLoggedIn && (
+          <button
+            type="button"
+            onClick={handleSubscribe}
+            className="auth-submit"
+            disabled={isSubLoading || isSubscribed}
+            style={{ width: "auto", marginRight: "0.5rem" }}
+          >
+            {isSubscribed ? "Subscribed" : isSubLoading ? "Subscribing..." : "Subscribe"}
+          </button>
+        )}
         {loggedInUser?.id === user.id && (
           <button
             type="button"
@@ -304,13 +365,15 @@ export default function Profile({ userName }: { userName?: string }) {
         </button>
       </div>
 
+      {subError && <p className="auth-error">{subError}</p>}
+
       <section>
         <hr />
         {isLoggedIn ? (
           <UserPosts
             userId={user.id}
             userName={userName}
-            protectContent={!isOwner}
+            protectContent={!isOwner && !isSubscribed}
           />
         ) : (
           <p>
