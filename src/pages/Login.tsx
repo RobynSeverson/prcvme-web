@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -15,6 +15,23 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getSafeRedirectPath = (raw: string | null): string | null => {
+    if (!raw) return null;
+
+    // Only allow internal paths.
+    if (!raw.startsWith("/")) return null;
+    if (raw.startsWith("//")) return null;
+    if (raw.includes("://")) return null;
+    if (raw.startsWith("/login")) return null;
+
+    return raw;
+  };
+
+  const redirectPath =
+    getSafeRedirectPath(new URLSearchParams(location.search).get("redirect")) ||
+    "/profile";
 
   const isRegister = mode === "register";
 
@@ -78,7 +95,7 @@ export default function Login() {
         window.localStorage.setItem("authUser", JSON.stringify(user));
       }
 
-      navigate("/profile");
+      navigate(redirectPath, { replace: true });
     } catch (err) {
       console.error("Error during auth request", err);
       setError("Something went wrong. Please try again.");

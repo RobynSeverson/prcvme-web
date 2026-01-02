@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getAPIBase } from "../helpers/api/apiHelpers";
 
 const API_BASE = getAPIBase();
@@ -22,6 +22,11 @@ export default function Account() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+
+  const loginLink = `/login?redirect=${encodeURIComponent(
+    location.pathname + location.search
+  )}`;
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");
@@ -85,7 +90,7 @@ export default function Account() {
         <h1>Account</h1>
         <p>{error}</p>
         <p>
-          <Link to="/login">Go to login</Link>
+          <Link to={loginLink}>Go to login</Link>
         </p>
       </main>
     );

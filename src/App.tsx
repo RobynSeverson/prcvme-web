@@ -71,7 +71,11 @@ function App() {
     }
     setIsLoggedIn(false);
     closeNav();
-    navigate("/login");
+    navigate(
+      `/login?redirect=${encodeURIComponent(
+        location.pathname + location.search
+      )}`
+    );
   };
 
   const UserProfileRoute = () => {
@@ -134,7 +138,12 @@ function App() {
               Logout
             </button>
           ) : (
-            <NavLink to="/login" onClick={closeNav}>
+            <NavLink
+              to={`/login?redirect=${encodeURIComponent(
+                location.pathname + location.search
+              )}`}
+              onClick={closeNav}
+            >
               Login
             </NavLink>
           )}

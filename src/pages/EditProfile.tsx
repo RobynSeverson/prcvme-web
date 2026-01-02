@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
@@ -28,8 +28,13 @@ export default function EditProfile() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const profilePictureInputRef = useRef<HTMLInputElement | null>(null);
   const profileBackgroundInputRef = useRef<HTMLInputElement | null>(null);
+
+  const loginLink = `/login?redirect=${encodeURIComponent(
+    location.pathname + location.search
+  )}`;
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");
@@ -209,7 +214,7 @@ export default function EditProfile() {
         <h1>Edit profile</h1>
         <p>{error}</p>
         <p>
-          <Link to="/login">Go to login</Link>
+          <Link to={loginLink}>Go to login</Link>
         </p>
       </main>
     );

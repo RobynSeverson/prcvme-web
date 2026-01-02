@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
 import {
@@ -28,6 +28,11 @@ export default function Profile({ userName }: { userName?: string }) {
       !!window.localStorage.getItem("authToken")
   );
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const loginLink = `/login?redirect=${encodeURIComponent(
+    location.pathname + location.search
+  )}`;
 
   useEffect(() => {
     const loadUser = async () => {
@@ -214,7 +219,7 @@ export default function Profile({ userName }: { userName?: string }) {
       <main>
         <p>{error}</p>
         <p>
-          <Link to="/login">Go to login</Link>
+          <Link to={loginLink}>Go to login</Link>
         </p>
       </main>
     );
@@ -382,7 +387,7 @@ export default function Profile({ userName }: { userName?: string }) {
         ) : (
           <p>
             You need to log in to view posts.{" "}
-            <Link to="/login">Go to login</Link>
+            <Link to={loginLink}>Go to login</Link>
           </p>
         )}
       </section>
