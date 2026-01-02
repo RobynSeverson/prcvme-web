@@ -16,6 +16,11 @@ import EditProfile from "./pages/EditProfile";
 import Profile from "./pages/Profile";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 
+function UserProfileRoute() {
+  const { userName } = useParams();
+  return <Profile userName={userName} />;
+}
+
 function App() {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -76,11 +81,6 @@ function App() {
         location.pathname + location.search
       )}`
     );
-  };
-
-  const UserProfileRoute = () => {
-    const { userName } = useParams();
-    return <Profile userName={userName} />;
   };
 
   return (
@@ -156,7 +156,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/account" element={<Account />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path=":userName" element={<UserProfileRoute />} />
+          <Route path="/:userName" element={<UserProfileRoute />} />
           <Route path="/profile/edit" element={<EditProfile />} />
         </Routes>
       </div>
