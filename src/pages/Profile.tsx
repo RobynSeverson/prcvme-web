@@ -4,9 +4,10 @@ import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
 import {
   getCurrentUser,
-  getMySubscriptions,
+  getMySubscriptionStatus,
   getUserByUserName,
   subscribeToUser,
+  unsubscribeFromUser,
 } from "../helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import {
@@ -98,8 +99,8 @@ export default function Profile({ userName }: { userName?: string }) {
       try {
         setSubError(null);
         setIsSubLoading(true);
-        const subs = await getMySubscriptions();
-        setIsSubscribed(subs.some((s) => s.subscribedToUserId === user.id));
+        const subscribed = await getMySubscriptionStatus(user.id);
+        setIsSubscribed(subscribed);
       } catch (err) {
         const message =
           (err instanceof Error && err.message) ||
@@ -188,18 +189,24 @@ export default function Profile({ userName }: { userName?: string }) {
     }
   };
 
-  const handleSubscribe = async () => {
+  const handleSubscribeToggle = async () => {
     if (!user) return;
     if (isOwner) return;
 
     try {
       setSubError(null);
       setIsSubLoading(true);
-      await subscribeToUser(user.id);
-      setIsSubscribed(true);
+      if (isSubscribed) {
+        await unsubscribeFromUser(user.id);
+        setIsSubscribed(false);
+      } else {
+        await subscribeToUser(user.id);
+        setIsSubscribed(true);
+      }
     } catch (err) {
       const message =
-        (err instanceof Error && err.message) || "Failed to subscribe.";
+        (err instanceof Error && err.message) ||
+        (isSubscribed ? "Failed to unsubscribe." : "Failed to subscribe.");
       setSubError(message);
     } finally {
       setIsSubLoading(false);
@@ -254,8 +261,6 @@ export default function Profile({ userName }: { userName?: string }) {
             zIndex: 9999,
             opacity: 0.14,
             mixBlendMode: "multiply",
-            backgroundImage:
-              "repeating-linear-gradient(-25deg, rgba(0,0,0,0.35) 0px, rgba(0,0,0,0.35) 1px, transparent 1px, transparent 90px)",
           }}
         />
       )}
@@ -342,15 +347,17 @@ export default function Profile({ userName }: { userName?: string }) {
         {!isOwner && isLoggedIn && (
           <button
             type="button"
-            onClick={handleSubscribe}
+            onClick={handleSubscribeToggle}
             className="auth-submit"
-            disabled={isSubLoading || isSubscribed}
+            disabled={isSubLoading}
             style={{ width: "auto", marginRight: "0.5rem" }}
           >
-            {isSubscribed
-              ? "Subscribed"
-              : isSubLoading
-              ? "Subscribing..."
+            {isSubLoading
+              ? isSubscribed
+                ? "Unsubscribing..."
+                : "Subscribing..."
+              : isSubscribed
+              ? "Unsubscribe"
               : "Subscribe"}
           </button>
         )}
