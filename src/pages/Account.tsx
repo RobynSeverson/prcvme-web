@@ -350,12 +350,18 @@ export default function Account() {
               />
             </label>
 
-            {emailUpdateError ? <p className="auth-error">{emailUpdateError}</p> : null}
+            {emailUpdateError ? (
+              <p className="auth-error">{emailUpdateError}</p>
+            ) : null}
             {emailUpdateSuccess ? (
               <p className="auth-success">{emailUpdateSuccess}</p>
             ) : null}
 
-            <button type="submit" className="auth-submit" disabled={isUpdatingEmail}>
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={isUpdatingEmail}
+            >
               {isUpdatingEmail ? "Updating…" : "Update email"}
             </button>
           </form>
