@@ -128,7 +128,7 @@ export default function Privacy() {
       <section style={{ marginTop: "1.25rem" }}>
         <h2>Children’s Privacy</h2>
         <p>
-          The Service is not intended for children under 13 (or the minimum age
+          The Service is not intended for children under 18 (or the minimum age
           required in your jurisdiction). We do not knowingly collect personal
           information from children. If you believe a child has provided us
           information, please contact us so we can take appropriate action.
