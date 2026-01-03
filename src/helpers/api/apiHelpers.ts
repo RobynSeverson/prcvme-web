@@ -91,6 +91,7 @@ export type DirectMessage = {
   fromUserId: string;
   toUserId: string;
   text: string;
+  mediaItems?: { mediaKey: string; mediaType: "image" | "video" | "audio" }[];
   createdAt: string;
 };
 
@@ -289,6 +290,64 @@ const getDirectMessages = async (
   return { messages, nextCursor };
 };
 
+const sendDirectMessage = async (
+  userId: string,
+  args: { text?: string; mediaFiles?: FileList | File[] | null }
+): Promise<DirectMessage> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to send messages.");
+  }
+
+  const trimmedText = typeof args.text === "string" ? args.text.trim() : "";
+  const mediaFiles = args.mediaFiles;
+  const hasMedia =
+    !!mediaFiles &&
+    ((Array.isArray(mediaFiles) && mediaFiles.length > 0) ||
+      (!Array.isArray(mediaFiles) && mediaFiles.length > 0));
+
+  if (!trimmedText && !hasMedia) {
+    throw new Error("Message must contain text, media, or both.");
+  }
+
+  const formData = new FormData();
+  if (trimmedText) {
+    formData.append("text", trimmedText);
+  }
+  if (mediaFiles) {
+    const arr = Array.isArray(mediaFiles) ? mediaFiles : Array.from(mediaFiles);
+    for (const file of arr) {
+      formData.append("media", file);
+    }
+  }
+
+  const response = await fetch(
+    `${API_BASE}/messages/${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to send message.";
+    throw new Error(message);
+  }
+
+  if (data && data.message) {
+    return data.message as DirectMessage;
+  }
+
+  throw new Error("Message data is missing.");
+};
+
 const getMyMessageThreads = async (
   before?: string,
   limit?: number
@@ -356,5 +415,6 @@ export {
   unsubscribeFromUser,
   getMyMessageThreads,
   getDirectMessages,
+  sendDirectMessage,
   getMessagesWebSocketUrl,
 };

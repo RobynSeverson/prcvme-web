@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation } from "react-router-dom";
 import Login from "./Login";
@@ -13,10 +13,30 @@ export default function Home() {
       !!window.localStorage.getItem("authToken")
   );
   const [userId, setUserId] = useState<string | null>(null);
+  const [postsRefreshKey, setPostsRefreshKey] = useState(0);
   const [newText, setNewText] = useState("");
-  const [newMediaFiles, setNewMediaFiles] = useState<FileList | null>(null);
+  const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const mediaPreviews = useMemo(() => {
+    return newMediaFiles.map((file) => {
+      const kind = file.type.startsWith("image/")
+        ? "image"
+        : file.type.startsWith("video/")
+        ? "video"
+        : file.type.startsWith("audio/")
+        ? "audio"
+        : "file";
+      return { file, kind, url: URL.createObjectURL(file) };
+    });
+  }, [newMediaFiles]);
+
+  useEffect(() => {
+    return () => {
+      mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [mediaPreviews]);
 
   const location = useLocation();
 
@@ -43,6 +63,10 @@ export default function Home() {
     }
   }, [location]);
 
+  useEffect(() => {
+    setPostsRefreshKey(0);
+  }, [userId]);
+
   const handleSubmitPost = async (event: FormEvent) => {
     event.preventDefault();
     if (!isLoggedIn) return;
@@ -50,7 +74,7 @@ export default function Home() {
     const token = window.localStorage.getItem("authToken");
     if (!token) return;
 
-    if (!newText.trim() && (!newMediaFiles || newMediaFiles.length === 0)) {
+    if (!newText.trim() && newMediaFiles.length === 0) {
       return;
     }
 
@@ -61,8 +85,8 @@ export default function Home() {
       if (newText.trim()) {
         formData.append("text", newText.trim());
       }
-      if (newMediaFiles && newMediaFiles.length > 0) {
-        Array.from(newMediaFiles).forEach((file) => {
+      if (newMediaFiles.length > 0) {
+        newMediaFiles.forEach((file) => {
           formData.append("media", file);
         });
       }
@@ -87,7 +111,11 @@ export default function Home() {
 
       if (data && data.post) {
         setNewText("");
-        setNewMediaFiles(null);
+        setNewMediaFiles([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        setPostsRefreshKey((k) => k + 1);
       }
     } catch (err) {
       console.error("Error creating post", err);
@@ -97,7 +125,15 @@ export default function Home() {
   };
 
   const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMediaFiles(event.target.files);
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    setNewMediaFiles(files);
+  };
+
+  const removeMediaAt = (index: number) => {
+    setNewMediaFiles((prev) => prev.filter((_, i) => i !== index));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   if (!isLoggedIn) {
@@ -158,14 +194,159 @@ export default function Home() {
             multiple
             onChange={handleMediaChange}
             style={{ display: "none" }}
+            accept="image/*,video/*,audio/*"
           />
+
+          {mediaPreviews.length > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.5rem",
+                marginTop: "0.5rem",
+              }}
+            >
+              {mediaPreviews.map((p, idx) => (
+                <div
+                  key={`${p.file.name}-${p.file.size}-${idx}`}
+                  style={{
+                    width: "52px",
+                    height: "52px",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    position: "relative",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(0,0,0,0.12)",
+                  }}
+                  title={p.file.name}
+                >
+                  {p.kind === "image" ? (
+                    <img
+                      src={p.url}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : p.kind === "video" ? (
+                    <video
+                      src={p.url}
+                      muted
+                      playsInline
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.75rem",
+                        color: "rgba(255,255,255,0.8)",
+                      }}
+                    >
+                      {p.kind === "audio" ? (
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M9 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                          />
+                          <path
+                            d="M11 16V6l10-2v10"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M19 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-5-5Z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M14 2v5h5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => removeMediaAt(idx)}
+                    aria-label="Remove attachment"
+                    style={{
+                      position: "absolute",
+                      top: "2px",
+                      right: "2px",
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "999px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: "rgba(0,0,0,0.6)",
+                      color: "white",
+                      lineHeight: "18px",
+                      fontSize: "12px",
+                      padding: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <button type="submit" className="auth-submit" disabled={isSubmitting}>
             {isSubmitting ? "Posting..." : "Post"}
           </button>
         </form>
       </section>
 
-      <section>{userId && <UserPosts userId={userId} />}</section>
+      <section>
+        {userId && (
+          <UserPosts key={`${userId}-${postsRefreshKey}`} userId={userId} />
+        )}
+      </section>
     </main>
   );
 }

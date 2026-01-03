@@ -5,6 +5,7 @@ import {
   getDirectMessages,
   getMessagesWebSocketUrl,
   getUserByUserName,
+  sendDirectMessage,
 } from "../helpers/api/apiHelpers";
 import type { User } from "../models/user";
 import {
@@ -17,8 +18,17 @@ type UiMessage = {
   fromUserId: string;
   toUserId: string;
   text: string;
+  mediaItems?: { mediaKey: string; mediaType: "image" | "video" | "audio" }[];
   createdAt: string;
 };
+
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
+function getUserMediaUrl(userId: string, mediaKey: string): string {
+  return `${API_BASE}/users/${encodeURIComponent(
+    userId
+  )}/media/${encodeURIComponent(mediaKey)}`;
+}
 
 function formatMessageTime(isoString: string): string {
   const date = new Date(isoString);
@@ -61,6 +71,27 @@ export default function MessageThread() {
 
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const mediaPreviews = useMemo(() => {
+    return newMediaFiles.map((file) => {
+      const kind = file.type.startsWith("image/")
+        ? "image"
+        : file.type.startsWith("video/")
+        ? "video"
+        : file.type.startsWith("audio/")
+        ? "audio"
+        : "file";
+      return { file, kind, url: URL.createObjectURL(file) };
+    });
+  }, [newMediaFiles]);
+
+  useEffect(() => {
+    return () => {
+      mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [mediaPreviews]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const messageIdsRef = useRef<Set<string>>(new Set());
@@ -121,6 +152,7 @@ export default function MessageThread() {
           fromUserId: m.fromUserId,
           toUserId: m.toUserId,
           text: m.text,
+          mediaItems: m.mediaItems,
           createdAt: m.createdAt,
         }));
 
@@ -159,6 +191,10 @@ export default function MessageThread() {
           fromUserId?: string;
           toUserId?: string;
           text?: string;
+          mediaItems?: {
+            mediaKey: string;
+            mediaType: "image" | "video" | "audio";
+          }[];
           timestamp?: string;
         };
 
@@ -176,6 +212,9 @@ export default function MessageThread() {
         const fromUserId = parsed.fromUserId;
         const toUserId = parsed.toUserId;
         const text = parsed.text;
+        const mediaItems = Array.isArray(parsed.mediaItems)
+          ? parsed.mediaItems
+          : undefined;
         const createdAt = parsed.timestamp ?? new Date().toISOString();
 
         if (messageIdsRef.current.has(id)) {
@@ -190,6 +229,7 @@ export default function MessageThread() {
             fromUserId,
             toUserId,
             text,
+            mediaItems,
             createdAt,
           },
         ]);
@@ -227,6 +267,7 @@ export default function MessageThread() {
         fromUserId: m.fromUserId,
         toUserId: m.toUserId,
         text: m.text,
+        mediaItems: m.mediaItems,
         createdAt: m.createdAt,
       }));
 
@@ -247,28 +288,52 @@ export default function MessageThread() {
     e.preventDefault();
     if (!otherUser) return;
 
-    const text = draft.trim();
-    if (!text) return;
-
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setError("Realtime connection not ready. Try again in a moment.");
-      return;
-    }
+    const hasMedia = newMediaFiles.length > 0;
+    if (!draft.trim() && !hasMedia) return;
 
     try {
       setError(null);
       setIsSending(true);
-      ws.send(
-        JSON.stringify({
-          type: "dm",
-          toUserId: otherUser.id,
-          text,
-        })
-      );
+
+      const created = await sendDirectMessage(otherUser.id, {
+        text: draft,
+        mediaFiles: newMediaFiles.length > 0 ? newMediaFiles : null,
+      });
+
+      if (!messageIdsRef.current.has(created.id)) {
+        messageIdsRef.current.add(created.id);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: created.id,
+            fromUserId: created.fromUserId,
+            toUserId: created.toUserId,
+            text: created.text,
+            mediaItems: created.mediaItems,
+            createdAt: created.createdAt,
+          },
+        ]);
+      }
+
       setDraft("");
+      setNewMediaFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    setNewMediaFiles(files);
+  };
+
+  const removeMediaAt = (index: number) => {
+    setNewMediaFiles((prev) => prev.filter((_, i) => i !== index));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -352,6 +417,46 @@ export default function MessageThread() {
                 >
                   <div className="message-bubble">
                     <div>{m.text}</div>
+                    {Array.isArray(m.mediaItems) && m.mediaItems.length > 0 ? (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gap: "0.5rem",
+                          marginTop: "0.5rem",
+                        }}
+                      >
+                        {m.mediaItems.map((it) => {
+                          const src = getUserMediaUrl(
+                            m.fromUserId,
+                            it.mediaKey
+                          );
+                          return it.mediaType === "video" ? (
+                            <video
+                              key={it.mediaKey}
+                              src={src}
+                              controls
+                              style={{ width: "100%", borderRadius: "10px" }}
+                            />
+                          ) : it.mediaType === "audio" ? (
+                            <audio
+                              key={it.mediaKey}
+                              src={src}
+                              controls
+                              style={{ width: "100%" }}
+                            />
+                          ) : (
+                            <img
+                              key={it.mediaKey}
+                              src={src}
+                              alt=""
+                              style={{ width: "100%", borderRadius: "10px" }}
+                              loading="lazy"
+                            />
+                          );
+                        })}
+                      </div>
+                    ) : null}
                     {m.createdAt ? (
                       <div className="message-meta">
                         {formatMessageTime(m.createdAt)}
@@ -369,6 +474,51 @@ export default function MessageThread() {
           className="auth-form message-form"
           style={{ marginTop: "1rem" }}
         >
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ width: "48px" }}
+            title="Add media"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <rect
+                x="3"
+                y="5"
+                width="18"
+                height="14"
+                rx="2"
+                ry="2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+              />
+              <circle
+                cx="9"
+                cy="10"
+                r="1.6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+              />
+              <path
+                d="M5 17l4-4 3 3 3-3 4 4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleMediaChange}
+            style={{ display: "none" }}
+            accept="image/*,video/*,audio/*"
+          />
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -379,6 +529,145 @@ export default function MessageThread() {
             {isSending ? "Sending..." : "Send"}
           </button>
         </form>
+
+        {mediaPreviews.length > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              marginTop: "0.5rem",
+            }}
+          >
+            {mediaPreviews.map((p, idx) => (
+              <div
+                key={`${p.file.name}-${p.file.size}-${idx}`}
+                style={{
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  position: "relative",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(0,0,0,0.12)",
+                }}
+                title={p.file.name}
+              >
+                {p.kind === "image" ? (
+                  <img
+                    src={p.url}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : p.kind === "video" ? (
+                  <video
+                    src={p.url}
+                    muted
+                    playsInline
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.75rem",
+                      color: "rgba(255,255,255,0.8)",
+                    }}
+                  >
+                    {p.kind === "audio" ? (
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M9 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                        />
+                        <path
+                          d="M11 16V6l10-2v10"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M19 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-5-5Z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M14 2v5h5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => removeMediaAt(idx)}
+                  aria-label="Remove attachment"
+                  style={{
+                    position: "absolute",
+                    top: "2px",
+                    right: "2px",
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "999px",
+                    border: "none",
+                    cursor: "pointer",
+                    background: "rgba(0,0,0,0.6)",
+                    color: "white",
+                    lineHeight: "18px",
+                    fontSize: "12px",
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
     </main>
   );
