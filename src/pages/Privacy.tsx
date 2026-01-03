@@ -11,11 +11,6 @@ export default function Privacy() {
         (collectively, the "Service").
       </p>
 
-      <p style={{ opacity: 0.85 }}>
-        This Privacy Policy is a generic template intended to be customized. It
-        is not legal advice.
-      </p>
-
       <section style={{ marginTop: "1.25rem" }}>
         <h2>Information We Collect</h2>
         <p>We may collect the following types of information:</p>
