@@ -7,6 +7,7 @@ import {
 } from "../helpers/api/apiHelpers";
 import type { User } from "../models/user";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
+import { buildProfileImageUrl } from "../helpers/userHelpers";
 
 type ThreadRow = {
   user: User;
@@ -116,33 +117,109 @@ export default function Messages() {
           <p className="text-muted">No messages yet.</p>
         ) : (
           <div className="app-card" style={{ padding: "0.75rem" }}>
-            {threads.map((t) => (
-              <div
-                key={t.user.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "0.5rem 0",
-                  borderBottom: "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600 }}>
-                    {t.user.displayName || t.user.userName}
+            {threads.map((t) => {
+              const display = t.user.displayName || t.user.userName;
+              const avatarSrc = buildProfileImageUrl(
+                t.user.id,
+                t.user.profilePictureUrl
+              );
+
+              return (
+                <div
+                  key={t.user.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "0.5rem 0",
+                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "999px",
+                          overflow: "hidden",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1px solid rgba(255,255,255,0.18)",
+                          background: "rgba(255,255,255,0.06)",
+                          color: "rgba(255,255,255,0.9)",
+                          flex: "0 0 auto",
+                          position: "relative",
+                        }}
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          style={{ position: "absolute" }}
+                        >
+                          <path
+                            d="M20 21a8 8 0 0 0-16 0"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+
+                        {avatarSrc ? (
+                          <img
+                            src={avatarSrc}
+                            alt=""
+                            loading="lazy"
+                            draggable={false}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              position: "absolute",
+                              inset: 0,
+                            }}
+                          />
+                        ) : null}
+                      </span>
+
+                      <span>{display}</span>
+                    </div>
+
+                    <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                      @{t.user.userName}
+                    </div>
+                    <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                      {t.lastText}
+                    </div>
                   </div>
-                  <div className="text-muted" style={{ fontSize: "0.9rem" }}>
-                    @{t.user.userName}
-                  </div>
-                  <div className="text-muted" style={{ fontSize: "0.9rem" }}>
-                    {t.lastText}
-                  </div>
+                  <Link to={`/messages/${encodeURIComponent(t.user.userName)}`}>
+                    Open
+                  </Link>
                 </div>
-                <Link to={`/messages/${encodeURIComponent(t.user.userName)}`}>
-                  Open
-                </Link>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
