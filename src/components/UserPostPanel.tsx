@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  type DetailedHTMLProps,
-  type ImgHTMLAttributes,
-} from "react";
+import React, { useEffect, useState } from "react";
 import type { UserPost } from "../models/userPost";
 import SecureImage from "./SecureImage";
 import SecureVideo from "./SecureVideo";
@@ -28,22 +23,6 @@ export default function UserPostPanel({
   const [lightboxMedia, setLightboxMedia] = useState<LightboxMedia | null>(
     null
   );
-
-  const secureImageStyle: React.CSSProperties | undefined = isOwner
-    ? {
-        userSelect: protectContent ? "none" : undefined,
-        WebkitTouchCallout: protectContent ? "none" : undefined,
-      }
-    : undefined;
-
-  const secureImgProps: DetailedHTMLProps<
-    ImgHTMLAttributes<HTMLImageElement>,
-    HTMLImageElement
-  > = {
-    draggable: isOwner ? false : undefined,
-    onContextMenu: isOwner ? (e) => e.preventDefault() : undefined,
-    onDragStart: isOwner ? (e) => e.preventDefault() : undefined,
-  };
 
   useEffect(() => {
     if (!lightboxMedia) return;
@@ -276,19 +255,17 @@ export default function UserPostPanel({
           </button>
 
           {lightboxMedia.type === "image" ? (
-            <img
-              {...secureImgProps}
+            <SecureImage
               src={lightboxMedia.src}
               alt={lightboxMedia.alt ?? ""}
-              draggable={false}
+              isOwner={isOwner}
+              protectContent={protectContent}
               onClick={(e) => e.stopPropagation()}
               style={{
                 maxWidth: "min(96vw, 1100px)",
                 maxHeight: "88vh",
                 borderRadius: "12px",
                 boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-                userSelect: "none",
-                ...secureImageStyle,
               }}
             />
           ) : (
