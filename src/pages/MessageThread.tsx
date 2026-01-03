@@ -74,6 +74,31 @@ export default function MessageThread() {
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  const preventDefault = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    if (!lightboxSrc) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLightboxSrc(null);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [lightboxSrc]);
+
   const mediaPreviews = useMemo(() => {
     return newMediaFiles.map((file) => {
       const kind = file.type.startsWith("image/")
@@ -410,6 +435,13 @@ export default function MessageThread() {
           ) : (
             messages.map((m) => {
               const isMine = !!meUserId && m.fromUserId === meUserId;
+              let mediaLength = m.mediaItems ? m.mediaItems.length : 0;
+              let mediaGridColumns = mediaLength === 1 ? 1 : mediaLength;
+
+              if (mediaLength > 4) {
+                mediaGridColumns = 3;
+              }
+
               return (
                 <div
                   key={m.id}
@@ -421,7 +453,7 @@ export default function MessageThread() {
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gridTemplateColumns: `repeat(${mediaGridColumns}, minmax(0, 1fr))`,
                           gap: "0.5rem",
                           marginTop: "0.5rem",
                         }}
@@ -436,6 +468,10 @@ export default function MessageThread() {
                               key={it.mediaKey}
                               src={src}
                               controls
+                              controlsList="nodownload"
+                              disablePictureInPicture
+                              onContextMenu={preventDefault}
+                              onDragStart={preventDefault}
                               style={{ width: "100%", borderRadius: "10px" }}
                             />
                           ) : it.mediaType === "audio" ? (
@@ -443,6 +479,9 @@ export default function MessageThread() {
                               key={it.mediaKey}
                               src={src}
                               controls
+                              controlsList="nodownload"
+                              onContextMenu={preventDefault}
+                              onDragStart={preventDefault}
                               style={{ width: "100%" }}
                             />
                           ) : (
@@ -452,6 +491,18 @@ export default function MessageThread() {
                               alt=""
                               style={{ width: "100%", borderRadius: "10px" }}
                               loading="lazy"
+                              draggable={false}
+                              onContextMenu={preventDefault}
+                              onDragStart={preventDefault}
+                              onClick={() => setLightboxSrc(src)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setLightboxSrc(src);
+                                }
+                              }}
+                              tabIndex={0}
+                              role="button"
                             />
                           );
                         })}
@@ -666,6 +717,63 @@ export default function MessageThread() {
                 </button>
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {lightboxSrc ? (
+          <div
+            onClick={() => setLightboxSrc(null)}
+            onContextMenu={preventDefault}
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.85)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1rem",
+              zIndex: 1000,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxSrc(null)}
+              aria-label="Close"
+              style={{
+                position: "fixed",
+                top: "12px",
+                right: "12px",
+                width: "40px",
+                height: "40px",
+                borderRadius: "999px",
+                border: "1px solid rgba(255,255,255,0.25)",
+                background: "rgba(0,0,0,0.4)",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "20px",
+                lineHeight: "40px",
+                padding: 0,
+              }}
+            >
+              ×
+            </button>
+            <img
+              src={lightboxSrc}
+              alt=""
+              draggable={false}
+              onClick={(e) => e.stopPropagation()}
+              onContextMenu={preventDefault}
+              onDragStart={preventDefault}
+              style={{
+                maxWidth: "min(96vw, 1100px)",
+                maxHeight: "88vh",
+                borderRadius: "12px",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                userSelect: "none",
+              }}
+            />
           </div>
         ) : null}
       </section>
