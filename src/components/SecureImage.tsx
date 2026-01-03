@@ -8,6 +8,10 @@ export interface SecureImageProps {
   isOwner?: boolean;
   style: React.CSSProperties;
   onClick?: (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLImageElement>) => void;
+  loading?: "eager" | "lazy";
+  tabIndex?: number;
+  role?: string;
 }
 
 const SecureImage = ({
@@ -17,6 +21,10 @@ const SecureImage = ({
   isOwner,
   style,
   onClick,
+  onKeyDown,
+  loading,
+  tabIndex,
+  role,
 }: SecureImageProps) => {
   const secureImageStyle: React.CSSProperties = {
     userSelect: !isOwner ? "none" : undefined,
@@ -42,6 +50,10 @@ const SecureImage = ({
       src={src}
       alt={alt}
       onClick={onClick}
+      onKeyDown={onKeyDown}
+      loading={loading}
+      tabIndex={tabIndex}
+      role={role}
       style={{
         ...style,
         ...secureImageStyle,

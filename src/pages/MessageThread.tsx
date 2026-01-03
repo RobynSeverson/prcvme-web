@@ -12,6 +12,8 @@ import {
   getLoggedInUserFromStorage,
   isUserLoggedIn,
 } from "../helpers/auth/authHelpers";
+import SecureImage from "../components/SecureImage";
+import SecureVideo from "../components/SecureVideo";
 
 type UiMessage = {
   id: string;
@@ -554,14 +556,10 @@ export default function MessageThread() {
                             it.mediaKey
                           );
                           return it.mediaType === "video" ? (
-                            <video
+                            <SecureVideo
                               key={it.mediaKey}
                               src={src}
-                              controls
-                              controlsList="nodownload"
                               disablePictureInPicture
-                              onContextMenu={preventDefault}
-                              onDragStart={preventDefault}
                               style={{ width: "100%", borderRadius: "10px" }}
                             />
                           ) : it.mediaType === "audio" ? (
@@ -575,15 +573,12 @@ export default function MessageThread() {
                               style={{ width: "100%" }}
                             />
                           ) : (
-                            <img
+                            <SecureImage
                               key={it.mediaKey}
                               src={src}
                               alt=""
                               style={{ width: "100%", borderRadius: "10px" }}
                               loading="lazy"
-                              draggable={false}
-                              onContextMenu={preventDefault}
-                              onDragStart={preventDefault}
                               onClick={() => setLightboxSrc(src)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
