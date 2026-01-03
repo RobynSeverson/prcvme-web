@@ -23,7 +23,6 @@ export default function UserPosts({
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");
-    if (!token) return;
 
     const loadPosts = async () => {
       try {
@@ -37,9 +36,11 @@ export default function UserPosts({
         }
 
         const response = await fetch(apiPath, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
         });
 
         const data = await response.json().catch(() => null);

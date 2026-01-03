@@ -385,19 +385,12 @@ export default function Profile({ userName }: { userName?: string }) {
 
       <section>
         <hr />
-        {isLoggedIn ? (
-          <UserPosts
-            userId={user.id}
-            userName={userName}
-            protectContent={!isOwner && !isSubscribed}
-            isOwner={isOwner}
-          />
-        ) : (
-          <p>
-            You need to log in to view posts.{" "}
-            <Link to={loginLink}>Go to login</Link>
-          </p>
-        )}
+        <UserPosts
+          userId={user.id}
+          userName={userName}
+          protectContent={!isOwner && !isSubscribed}
+          isOwner={isOwner}
+        />
       </section>
     </main>
   );
