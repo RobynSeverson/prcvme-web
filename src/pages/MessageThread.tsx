@@ -843,13 +843,10 @@ export default function MessageThread() {
             >
               ×
             </button>
-            <img
+            <SecureImage
               src={lightboxSrc}
               alt=""
-              draggable={false}
               onClick={(e) => e.stopPropagation()}
-              onContextMenu={preventDefault}
-              onDragStart={preventDefault}
               style={{
                 maxWidth: "min(96vw, 1100px)",
                 maxHeight: "88vh",
