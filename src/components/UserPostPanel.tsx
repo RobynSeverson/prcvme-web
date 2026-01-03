@@ -130,18 +130,37 @@ export default function UserPostPanel({
             }
 
             if (item.mediaType === "video") {
+              const thumbSrc = `${src}${
+                src.includes("?") ? "&" : "?"
+              }thumbnail=1`;
+
               return (
                 <div key={`${post.id}-vid-${index}`} style={wrapperStyle}>
-                  <SecureVideo
-                    src={src}
-                    isOwner={isOwner}
-                    protectContent={protectContent}
-                    style={{
-                      width: "100%",
-                      maxHeight: "320px",
-                      borderRadius: protectContent ? undefined : "0.5rem",
-                    }}
-                  />
+                  {protectContent ? (
+                    <SecureImage
+                      src={thumbSrc}
+                      alt="Video preview"
+                      isOwner={isOwner}
+                      protectContent={false}
+                      style={{
+                        width: "100%",
+                        maxHeight: "320px",
+                        objectFit: "cover",
+                        borderRadius: "0.5rem",
+                      }}
+                    />
+                  ) : (
+                    <SecureVideo
+                      src={src}
+                      isOwner={isOwner}
+                      protectContent={protectContent}
+                      style={{
+                        width: "100%",
+                        maxHeight: "320px",
+                        borderRadius: protectContent ? undefined : "0.5rem",
+                      }}
+                    />
+                  )}
                   {!protectContent ? (
                     <button
                       type="button"
