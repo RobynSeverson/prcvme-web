@@ -20,6 +20,7 @@ import Privacy from "./pages/Privacy";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import CookieBanner from "./components/CookieBanner";
 
 function UserProfileRoute() {
   const { userName } = useParams();
@@ -100,6 +101,8 @@ function App() {
         onLogout={handleLogout}
         loginHref={loginHref}
       />
+
+      <CookieBanner />
 
       <div className="app-content">
         <Routes>
