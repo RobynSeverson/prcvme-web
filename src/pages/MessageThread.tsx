@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
@@ -69,6 +69,10 @@ export default function MessageThread() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+  const initialScrolledRef = useRef(false);
+  const autoLoadLockRef = useRef(false);
+
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
@@ -120,6 +124,19 @@ export default function MessageThread() {
 
   const wsRef = useRef<WebSocket | null>(null);
   const messageIdsRef = useRef<Set<string>>(new Set());
+
+  const scrollToBottom = () => {
+    const el = messageListRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  };
+
+  const isNearBottom = () => {
+    const el = messageListRef.current;
+    if (!el) return true;
+    const distance = el.scrollHeight - (el.scrollTop + el.clientHeight);
+    return distance < 120;
+  };
 
   const loginLink = useMemo(() => {
     return `/login?redirect=${encodeURIComponent(
@@ -184,6 +201,9 @@ export default function MessageThread() {
         ui.forEach((m) => messageIdsRef.current.add(m.id));
         setMessages(ui);
         setNextCursor(result.nextCursor);
+
+        // Ensure we start at the latest message.
+        initialScrolledRef.current = false;
       } catch (err) {
         const message =
           (err instanceof Error && err.message) || "Failed to load messages.";
@@ -195,6 +215,22 @@ export default function MessageThread() {
 
     void loadInitial();
   }, [otherUser, isLoggedIn]);
+
+  useLayoutEffect(() => {
+    if (isLoadingMessages) return;
+    if (messages.length === 0) return;
+    if (initialScrolledRef.current) return;
+
+    // Multi-pass: helps when images/videos change scrollHeight after paint.
+    scrollToBottom();
+    requestAnimationFrame(() => {
+      scrollToBottom();
+    });
+    setTimeout(() => {
+      scrollToBottom();
+      initialScrolledRef.current = true;
+    }, 0);
+  }, [isLoadingMessages, messages.length]);
 
   useEffect(() => {
     if (!otherUser) return;
@@ -247,17 +283,28 @@ export default function MessageThread() {
         }
 
         messageIdsRef.current.add(id);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id,
-            fromUserId,
-            toUserId,
-            text,
-            mediaItems,
-            createdAt,
-          },
-        ]);
+        setMessages((prev) => {
+          const wasNearBottom = isNearBottom();
+          const next = [
+            ...prev,
+            {
+              id,
+              fromUserId,
+              toUserId,
+              text,
+              mediaItems,
+              createdAt,
+            },
+          ];
+
+          if (wasNearBottom) {
+            requestAnimationFrame(() => {
+              scrollToBottom();
+            });
+          }
+
+          return next;
+        });
       } catch {
         // ignore
       }
@@ -283,6 +330,10 @@ export default function MessageThread() {
     if (!otherUser) return;
     if (!nextCursor) return;
 
+    const el = messageListRef.current;
+    const prevScrollHeight = el?.scrollHeight ?? 0;
+    const prevScrollTop = el?.scrollTop ?? 0;
+
     try {
       setIsLoadingMessages(true);
       const result = await getDirectMessages(otherUser.id, nextCursor);
@@ -299,6 +350,15 @@ export default function MessageThread() {
       ui.forEach((m) => messageIdsRef.current.add(m.id));
       setMessages((prev) => [...ui, ...prev]);
       setNextCursor(result.nextCursor);
+
+      // Keep the viewport anchored to the same message after prepending.
+      requestAnimationFrame(() => {
+        const current = messageListRef.current;
+        if (!current) return;
+        const nextScrollHeight = current.scrollHeight;
+        const delta = nextScrollHeight - prevScrollHeight;
+        current.scrollTop = prevScrollTop + delta;
+      });
     } catch (err) {
       const message =
         (err instanceof Error && err.message) ||
@@ -306,6 +366,21 @@ export default function MessageThread() {
       setError(message);
     } finally {
       setIsLoadingMessages(false);
+    }
+  };
+
+  const handleMessageListScroll = () => {
+    const el = messageListRef.current;
+    if (!el) return;
+    if (!nextCursor) return;
+    if (autoLoadLockRef.current) return;
+    if (isLoadingMessages) return;
+
+    if (el.scrollTop <= 40) {
+      autoLoadLockRef.current = true;
+      Promise.resolve(loadOlder()).finally(() => {
+        autoLoadLockRef.current = false;
+      });
     }
   };
 
@@ -327,17 +402,23 @@ export default function MessageThread() {
 
       if (!messageIdsRef.current.has(created.id)) {
         messageIdsRef.current.add(created.id);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: created.id,
-            fromUserId: created.fromUserId,
-            toUserId: created.toUserId,
-            text: created.text,
-            mediaItems: created.mediaItems,
-            createdAt: created.createdAt,
-          },
-        ]);
+        setMessages((prev) => {
+          const next = [
+            ...prev,
+            {
+              id: created.id,
+              fromUserId: created.fromUserId,
+              toUserId: created.toUserId,
+              text: created.text,
+              mediaItems: created.mediaItems,
+              createdAt: created.createdAt,
+            },
+          ];
+          requestAnimationFrame(() => {
+            scrollToBottom();
+          });
+          return next;
+        });
       }
 
       setDraft("");
@@ -401,7 +482,15 @@ export default function MessageThread() {
   }
 
   return (
-    <main>
+    <main
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    >
       <section style={{ marginBottom: "1rem" }}>
         <h2 style={{ marginBottom: "0.25rem" }}>
           Messages with {otherUser.displayName || otherUser.userName}
@@ -413,21 +502,25 @@ export default function MessageThread() {
 
       {error && <p className="auth-error">{error}</p>}
 
-      <section className="app-card message-thread-card">
+      <section
+        className="app-card message-thread-card"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
         <div className="message-thread-actions">
-          <button
-            type="button"
-            className="auth-submit"
-            style={{ width: "auto" }}
-            onClick={loadOlder}
-            disabled={!nextCursor || isLoadingMessages}
-          >
-            {nextCursor ? "Load older" : "No more"}
-          </button>
           <Link to="/messages">Back</Link>
         </div>
 
-        <div className="message-list">
+        <div
+          className="message-list"
+          ref={messageListRef}
+          onScroll={handleMessageListScroll}
+          style={{ overflowY: "auto", flex: 1, minHeight: 0 }}
+        >
           {isLoadingMessages && messages.length === 0 ? (
             <p>Loading...</p>
           ) : messages.length === 0 ? (

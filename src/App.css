@@ -48,6 +48,16 @@
   --card-border: rgba(209, 213, 219, 0.9);
 }
 
+:root {
+  height: 100%;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
@@ -57,13 +67,14 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
@@ -263,6 +274,10 @@ body {
 .app-content {
   flex: 1;
   padding: 2rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
 }
 
 .app-content main {
@@ -466,7 +481,7 @@ body {
 }
 
 .message-list {
-  margin-top: 1rem;
+  padding-top: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
