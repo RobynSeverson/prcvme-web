@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Link,
-  NavLink,
   Route,
   Routes,
   useLocation,
@@ -16,7 +14,12 @@ import EditProfile from "./pages/EditProfile";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import MessageThread from "./pages/MessageThread";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 function UserProfileRoute() {
   const { userName } = useParams();
@@ -28,7 +31,6 @@ function UserMessageRoute() {
 }
 
 function App() {
-  const [isNavOpen, setIsNavOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -68,9 +70,6 @@ function App() {
     }
   }, [theme]);
 
-  const toggleNav = () => setIsNavOpen((open) => !open);
-  const closeNav = () => setIsNavOpen(false);
-
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
@@ -81,7 +80,6 @@ function App() {
       window.localStorage.removeItem("authUser");
     }
     setIsLoggedIn(false);
-    closeNav();
     navigate(
       `/login?redirect=${encodeURIComponent(
         location.pathname + location.search
@@ -89,75 +87,19 @@ function App() {
     );
   };
 
+  const loginHref = `/login?redirect=${encodeURIComponent(
+    location.pathname + location.search
+  )}`;
+
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="brand">
-          <Link to="/" onClick={closeNav}>
-            prcvme
-          </Link>
-        </div>
-        <button
-          className={`nav-toggle ${isNavOpen ? "open" : ""}`}
-          onClick={toggleNav}
-          aria-label="Toggle navigation menu"
-          aria-expanded={isNavOpen}
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-        <nav className={`nav-links ${isNavOpen ? "nav-open" : ""}`}>
-          <NavLink to="/" onClick={closeNav} end>
-            Home
-          </NavLink>
-          {isLoggedIn && (
-            <>
-              <NavLink to="/profile" onClick={closeNav} end>
-                Profile
-              </NavLink>
-              <NavLink to="/messages" onClick={closeNav} end>
-                Messages
-              </NavLink>
-              <NavLink to="/account" onClick={closeNav}>
-                Account
-              </NavLink>
-            </>
-          )}
-          <button
-            type="button"
-            className="nav-theme-toggle"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            aria-pressed={theme === "dark"}
-          >
-            <span className="theme-toggle-label">Dark</span>
-            <span
-              className={`theme-toggle-slider ${
-                theme === "dark"
-                  ? "theme-toggle-slider-on"
-                  : "theme-toggle-slider-off"
-              }`}
-            >
-              <span className="theme-toggle-knob" />
-            </span>
-          </button>
-          {isLoggedIn ? (
-            <button type="button" className="nav-logout" onClick={handleLogout}>
-              Logout
-            </button>
-          ) : (
-            <NavLink
-              to={`/login?redirect=${encodeURIComponent(
-                location.pathname + location.search
-              )}`}
-              onClick={closeNav}
-            >
-              Login
-            </NavLink>
-          )}
-        </nav>
-      </header>
+      <Navbar
+        isLoggedIn={isLoggedIn}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onLogout={handleLogout}
+        loginHref={loginHref}
+      />
 
       <div className="app-content">
         <Routes>
@@ -166,20 +108,16 @@ function App() {
           <Route path="/account" element={<Account />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/messages/:userName" element={<UserMessageRoute />} />
           <Route path="/:userName" element={<UserProfileRoute />} />
           <Route path="/profile/edit" element={<EditProfile />} />
         </Routes>
       </div>
 
-      <footer className="app-footer">
-        <div className="footer-links">
-          <a href="#">About</a>
-          <a href="#">Contact</a>
-          <a href="#">Privacy</a>
-        </div>
-        <p className="footer-copy">&copy; {new Date().getFullYear()} prcvme</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

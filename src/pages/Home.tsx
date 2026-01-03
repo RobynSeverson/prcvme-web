@@ -152,50 +152,77 @@ export default function Home() {
             rows={3}
             className="new-post-textarea"
           />
-          <button
-            type="button"
-            className="icon-button"
-            onClick={() => fileInputRef.current?.click()}
-            style={{ marginTop: "0px", width: "48px" }}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "0.75rem",
+            }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-              <rect
-                x="3"
-                y="5"
-                width="18"
-                height="14"
-                rx="2"
-                ry="2"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{ width: "48px" }}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="3"
+                    y="5"
+                    width="18"
+                    height="14"
+                    rx="2"
+                    ry="2"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <circle
+                    cx="9"
+                    cy="10"
+                    r="1.6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M5 17l4-4 3 3 3-3 4 4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleMediaChange}
+                style={{ display: "none" }}
+                accept="image/*,video/*,audio/*"
               />
-              <circle
-                cx="9"
-                cy="10"
-                r="1.6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-              <path
-                d="M5 17l4-4 3 3 3-3 4 4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleMediaChange}
-            style={{ display: "none" }}
-            accept="image/*,video/*,audio/*"
-          />
+            </div>
+
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={isSubmitting}
+              style={{ width: "auto", paddingInline: "16px" }}
+            >
+              {isSubmitting ? "Posting..." : "Post"}
+            </button>
+          </div>
 
           {mediaPreviews.length > 0 ? (
             <div
@@ -335,10 +362,6 @@ export default function Home() {
               ))}
             </div>
           ) : null}
-
-          <button type="submit" className="auth-submit" disabled={isSubmitting}>
-            {isSubmitting ? "Posting..." : "Post"}
-          </button>
         </form>
       </section>
 
