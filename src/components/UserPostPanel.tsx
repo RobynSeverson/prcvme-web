@@ -1,9 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+  type DetailedHTMLProps,
+  type ImgHTMLAttributes,
+} from "react";
 import type { UserPost } from "../models/userPost";
+import SecureImage from "./SecureImage";
+import SecureVideo from "./SecureVideo";
 
 export type UserPostProps = {
   post: UserPost;
   protectContent?: boolean;
+  isOwner?: boolean;
 };
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
@@ -12,13 +20,29 @@ type LightboxMedia =
   | { type: "image"; src: string; alt?: string }
   | { type: "video"; src: string };
 
-export default function UserPostPanel({ post, protectContent }: UserPostProps) {
+export default function UserPostPanel({
+  post,
+  protectContent,
+  isOwner,
+}: UserPostProps) {
   const [lightboxMedia, setLightboxMedia] = useState<LightboxMedia | null>(
     null
   );
 
-  const preventDefault = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
+  const secureImageStyle: React.CSSProperties | undefined = isOwner
+    ? {
+        userSelect: protectContent ? "none" : undefined,
+        WebkitTouchCallout: protectContent ? "none" : undefined,
+      }
+    : undefined;
+
+  const secureImgProps: DetailedHTMLProps<
+    ImgHTMLAttributes<HTMLImageElement>,
+    HTMLImageElement
+  > = {
+    draggable: isOwner ? false : undefined,
+    onContextMenu: isOwner ? (e) => e.preventDefault() : undefined,
+    onDragStart: isOwner ? (e) => e.preventDefault() : undefined,
   };
 
   useEffect(() => {
@@ -99,41 +123,24 @@ export default function UserPostPanel({ post, protectContent }: UserPostProps) {
                 }
               : undefined;
 
-            const blurredMediaStyle: React.CSSProperties | undefined =
-              protectContent
-                ? {
-                    filter: "blur(16px)",
-                    transform: "scale(1.06)",
-                  }
-                : undefined;
-
             if (item.mediaType === "image") {
               return (
                 <div key={`${post.id}-img-${index}`} style={wrapperStyle}>
-                  <img
+                  <SecureImage
                     src={src}
                     alt="Post media"
-                    draggable={protectContent ? false : undefined}
-                    onContextMenu={
-                      protectContent ? (e) => e.preventDefault() : undefined
-                    }
-                    onDragStart={
-                      protectContent ? (e) => e.preventDefault() : undefined
-                    }
+                    isOwner={isOwner}
+                    protectContent={protectContent}
                     onClick={
                       protectContent
                         ? undefined
                         : () => setLightboxMedia({ type: "image", src })
                     }
                     style={{
-                      cursor: protectContent ? undefined : "zoom-in",
                       width: "100%",
                       maxHeight: "260px",
                       objectFit: "cover",
                       borderRadius: protectContent ? undefined : "0.5rem",
-                      userSelect: protectContent ? "none" : undefined,
-                      WebkitTouchCallout: protectContent ? "none" : undefined,
-                      ...blurredMediaStyle,
                     }}
                   />
                   {protectContent && (
@@ -146,19 +153,14 @@ export default function UserPostPanel({ post, protectContent }: UserPostProps) {
             if (item.mediaType === "video") {
               return (
                 <div key={`${post.id}-vid-${index}`} style={wrapperStyle}>
-                  <video
+                  <SecureVideo
                     src={src}
-                    controls={!protectContent}
-                    controlsList={protectContent ? "nodownload" : undefined}
-                    onContextMenu={
-                      protectContent ? (e) => e.preventDefault() : undefined
-                    }
+                    isOwner={isOwner}
+                    protectContent={protectContent}
                     style={{
                       width: "100%",
                       maxHeight: "320px",
                       borderRadius: protectContent ? undefined : "0.5rem",
-                      pointerEvents: protectContent ? "none" : undefined,
-                      ...blurredMediaStyle,
                     }}
                   />
                   {!protectContent ? (
@@ -236,7 +238,7 @@ export default function UserPostPanel({ post, protectContent }: UserPostProps) {
       {lightboxMedia ? (
         <div
           onClick={() => setLightboxMedia(null)}
-          onContextMenu={preventDefault}
+          onContextMenu={(e) => e.preventDefault()}
           role="dialog"
           aria-modal="true"
           style={{
@@ -275,28 +277,27 @@ export default function UserPostPanel({ post, protectContent }: UserPostProps) {
 
           {lightboxMedia.type === "image" ? (
             <img
+              {...secureImgProps}
               src={lightboxMedia.src}
               alt={lightboxMedia.alt ?? ""}
               draggable={false}
               onClick={(e) => e.stopPropagation()}
-              onContextMenu={preventDefault}
-              onDragStart={preventDefault}
               style={{
                 maxWidth: "min(96vw, 1100px)",
                 maxHeight: "88vh",
                 borderRadius: "12px",
                 boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
                 userSelect: "none",
+                ...secureImageStyle,
               }}
             />
           ) : (
-            <video
+            <SecureVideo
               src={lightboxMedia.src}
-              controls
-              controlsList="nodownload"
+              isOwner={isOwner}
+              protectContent={protectContent}
               disablePictureInPicture
               onClick={(e) => e.stopPropagation()}
-              onContextMenu={preventDefault}
               style={{
                 maxWidth: "min(96vw, 1100px)",
                 maxHeight: "88vh",

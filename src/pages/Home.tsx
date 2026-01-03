@@ -344,7 +344,11 @@ export default function Home() {
 
       <section>
         {userId && (
-          <UserPosts key={`${userId}-${postsRefreshKey}`} userId={userId} />
+          <UserPosts
+            key={`${userId}-${postsRefreshKey}`}
+            userId={userId}
+            isOwner={true}
+          />
         )}
       </section>
     </main>

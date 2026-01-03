@@ -8,12 +8,14 @@ export type UserPostsProps = {
   userId?: string;
   userName?: string;
   protectContent?: boolean;
+  isOwner?: boolean;
 };
 
 export default function UserPosts({
   userId,
   userName,
   protectContent,
+  isOwner,
 }: UserPostsProps) {
   const [posts, setPosts] = useState<UserPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,6 +81,7 @@ export default function UserPosts({
             key={post.id}
             post={post}
             protectContent={protectContent}
+            isOwner={isOwner}
           />
         ))}
       </ul>

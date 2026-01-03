@@ -390,6 +390,7 @@ export default function Profile({ userName }: { userName?: string }) {
             userId={user.id}
             userName={userName}
             protectContent={!isOwner && !isSubscribed}
+            isOwner={isOwner}
           />
         ) : (
           <p>
