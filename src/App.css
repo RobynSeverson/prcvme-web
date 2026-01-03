@@ -547,12 +547,29 @@ body {
 
 @media (max-width: 520px) {
   .message-form {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .message-form .auth-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .message-form .icon-button {
+    flex: 0 0 auto;
+    width: 44px;
+    padding: 0;
   }
 
   .message-form .auth-submit {
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.9rem;
   }
 
   .message-bubble {

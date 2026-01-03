@@ -492,11 +492,8 @@ export default function MessageThread() {
       }}
     >
       <section style={{ marginBottom: "1rem" }}>
-        <h2 style={{ marginBottom: "0.25rem" }}>
-          Messages with {otherUser.displayName || otherUser.userName}
-        </h2>
         <p className="text-muted" style={{ margin: 0 }}>
-          @{otherUser.userName}
+          {otherUser.displayName || otherUser.userName} | @{otherUser.userName}
         </p>
       </section>
 
@@ -622,7 +619,6 @@ export default function MessageThread() {
             type="button"
             className="icon-button"
             onClick={() => fileInputRef.current?.click()}
-            style={{ width: "48px" }}
             title="Add media"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
