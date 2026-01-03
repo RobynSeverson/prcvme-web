@@ -18,12 +18,107 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
+import { getUserByUserName } from "./helpers/api/apiHelpers";
+import { buildProfileImageUrl } from "./helpers/userHelpers";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CookieBanner from "./components/CookieBanner";
 
+function upsertMetaTag(
+  kind: "name" | "property",
+  key: string,
+  content: string
+): () => void {
+  if (typeof document === "undefined") return () => {};
+
+  const head = document.head;
+  const selector = `meta[${kind}="${CSS.escape(key)}"]`;
+  const existing = head.querySelector(selector) as HTMLMetaElement | null;
+
+  if (existing) {
+    const prev = existing.getAttribute("content");
+    existing.setAttribute("content", content);
+    return () => {
+      if (prev === null) {
+        existing.removeAttribute("content");
+      } else {
+        existing.setAttribute("content", prev);
+      }
+    };
+  }
+
+  const meta = document.createElement("meta");
+  meta.setAttribute(kind, key);
+  meta.setAttribute("content", content);
+  head.appendChild(meta);
+
+  return () => {
+    meta.remove();
+  };
+}
+
+function setProfileMetadata(
+  title: string,
+  previewImageUrl?: string
+): () => void {
+  if (typeof document === "undefined") return () => {};
+
+  const prevTitle = document.title;
+  document.title = title;
+
+  const cleanups: Array<() => void> = [];
+  cleanups.push(upsertMetaTag("property", "og:title", title));
+  cleanups.push(upsertMetaTag("name", "twitter:title", title));
+
+  if (previewImageUrl) {
+    cleanups.push(upsertMetaTag("property", "og:image", previewImageUrl));
+    cleanups.push(upsertMetaTag("name", "twitter:image", previewImageUrl));
+    cleanups.push(upsertMetaTag("name", "twitter:card", "summary_large_image"));
+  }
+
+  return () => {
+    document.title = prevTitle;
+    for (const fn of cleanups.reverse()) fn();
+  };
+}
+
 function UserProfileRoute() {
   const { userName } = useParams();
+
+  useEffect(() => {
+    if (!userName) return;
+
+    // Set a fast title immediately, then refine once we have image URL.
+    const baseTitle = `${userName} • prcvme`;
+    let cleanup = setProfileMetadata(baseTitle);
+
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const user = await getUserByUserName(userName);
+        if (!user || controller.signal.aborted) return;
+
+        const previewUrl = buildProfileImageUrl(
+          user.id,
+          typeof (user as any).profileBackgroundUrl === "string"
+            ? ((user as any).profileBackgroundUrl as string)
+            : undefined
+        );
+
+        cleanup();
+        cleanup = setProfileMetadata(baseTitle, previewUrl);
+      } catch {
+        // Ignore metadata failures; profile page handles errors.
+      }
+    })();
+
+    return () => {
+      controller.abort();
+      cleanup();
+    };
+  }, [userName]);
+
   return <Profile userName={userName} />;
 }
 
