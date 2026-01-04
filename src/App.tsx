@@ -73,7 +73,6 @@ function setProfileMetadata(
   if (previewImageUrl) {
     cleanups.push(upsertMetaTag("property", "og:image", previewImageUrl));
     cleanups.push(upsertMetaTag("name", "twitter:image", previewImageUrl));
-    cleanups.push(upsertMetaTag("name", "twitter:card", "summary_large_image"));
   }
 
   return () => {
