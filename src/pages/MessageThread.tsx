@@ -14,6 +14,7 @@ import {
 } from "../helpers/auth/authHelpers";
 import SecureImage from "../components/SecureImage";
 import SecureVideo from "../components/SecureVideo";
+import Lightbox from "../components/Lightbox";
 
 type UiMessage = {
   id: string;
@@ -80,30 +81,13 @@ export default function MessageThread() {
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
 
   const preventDefault = (e: { preventDefault: () => void }) => {
     e.preventDefault();
   };
 
-  useEffect(() => {
-    if (!lightboxSrc) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setLightboxSrc(null);
-      }
-    };
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [lightboxSrc]);
+  const isLightboxOpen = Boolean(activeMediaId);
 
   const mediaPreviews = useMemo(() => {
     return newMediaFiles.map((file) => {
@@ -555,6 +539,30 @@ export default function MessageThread() {
                             m.fromUserId,
                             it.mediaKey
                           );
+
+                          const mediaId = `${m.id}-${it.mediaType}-${it.mediaKey}`;
+                          const isActive = activeMediaId === mediaId;
+
+                          const wrapperStyle: React.CSSProperties = {
+                            position: "relative",
+                            display: "inline-block",
+                            width: "100%",
+                          };
+
+                          const lightboxActiveStyle:
+                            | React.CSSProperties
+                            | undefined = isActive
+                            ? {
+                                position: "fixed",
+                                inset: 0,
+                                zIndex: 1001,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: "1rem",
+                              }
+                            : undefined;
+
                           return it.mediaType === "video" ? (
                             <SecureVideo
                               key={it.mediaKey}
@@ -573,22 +581,54 @@ export default function MessageThread() {
                               style={{ width: "100%" }}
                             />
                           ) : (
-                            <SecureImage
+                            <div
                               key={it.mediaKey}
-                              src={src}
-                              alt=""
-                              style={{ width: "100%", borderRadius: "10px" }}
-                              loading="lazy"
-                              onClick={() => setLightboxSrc(src)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  setLightboxSrc(src);
-                                }
+                              style={{
+                                ...wrapperStyle,
+                                ...lightboxActiveStyle,
                               }}
-                              tabIndex={0}
-                              role="button"
-                            />
+                              onClick={
+                                isActive
+                                  ? () => setActiveMediaId(null)
+                                  : undefined
+                              }
+                              onContextMenu={
+                                isActive ? preventDefault : undefined
+                              }
+                            >
+                              <SecureImage
+                                src={src}
+                                alt=""
+                                style={{
+                                  width: isActive ? "auto" : "100%",
+                                  maxWidth: isActive
+                                    ? "min(96vw, 1100px)"
+                                    : undefined,
+                                  maxHeight: isActive ? "88vh" : undefined,
+                                  borderRadius: isActive ? "12px" : "10px",
+                                  boxShadow: isActive
+                                    ? "0 20px 60px rgba(0,0,0,0.6)"
+                                    : undefined,
+                                  objectFit: isActive ? "contain" : "cover",
+                                }}
+                                loading="lazy"
+                                onClick={(e) => {
+                                  if (isActive) {
+                                    e.stopPropagation();
+                                    return;
+                                  }
+                                  setActiveMediaId(mediaId);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setActiveMediaId(mediaId);
+                                  }
+                                }}
+                                tabIndex={0}
+                                role="button"
+                              />
+                            </div>
                           );
                         })}
                       </div>
@@ -804,59 +844,10 @@ export default function MessageThread() {
           </div>
         ) : null}
 
-        {lightboxSrc ? (
-          <div
-            onClick={() => setLightboxSrc(null)}
-            onContextMenu={preventDefault}
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.85)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "1rem",
-              zIndex: 1000,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setLightboxSrc(null)}
-              aria-label="Close"
-              style={{
-                position: "fixed",
-                top: "12px",
-                right: "12px",
-                width: "40px",
-                height: "40px",
-                borderRadius: "999px",
-                border: "1px solid rgba(255,255,255,0.25)",
-                background: "rgba(0,0,0,0.4)",
-                color: "white",
-                cursor: "pointer",
-                fontSize: "20px",
-                lineHeight: "40px",
-                padding: 0,
-              }}
-            >
-              ×
-            </button>
-            <SecureImage
-              src={lightboxSrc}
-              alt=""
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                maxWidth: "min(96vw, 1100px)",
-                maxHeight: "88vh",
-                borderRadius: "12px",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-                userSelect: "none",
-              }}
-            />
-          </div>
-        ) : null}
+        <Lightbox
+          isOpen={isLightboxOpen}
+          onClose={() => setActiveMediaId(null)}
+        />
       </section>
     </main>
   );

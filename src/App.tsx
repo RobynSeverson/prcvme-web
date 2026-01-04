@@ -67,11 +67,11 @@ function setProfileMetadata(
   document.title = title;
 
   const cleanups: Array<() => void> = [];
-  cleanups.push(upsertMetaTag("property", "og:title", title));
+  cleanups.push(upsertMetaTag("name", "og:title", title));
   cleanups.push(upsertMetaTag("name", "twitter:title", title));
 
   if (previewImageUrl) {
-    cleanups.push(upsertMetaTag("property", "og:image", previewImageUrl));
+    cleanups.push(upsertMetaTag("name", "og:image", previewImageUrl));
     cleanups.push(upsertMetaTag("name", "twitter:image", previewImageUrl));
   }
 
