@@ -23,6 +23,7 @@ export default function Profile({ userName }: { userName?: string }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [subError, setSubError] = useState<string | null>(null);
+  const [postsReloadToken, setPostsReloadToken] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -202,6 +203,7 @@ export default function Profile({ userName }: { userName?: string }) {
       } else {
         await subscribeToUser(user.id);
         setIsSubscribed(true);
+        setPostsReloadToken((prev) => prev + 1);
       }
     } catch (err) {
       const message =
@@ -390,6 +392,7 @@ export default function Profile({ userName }: { userName?: string }) {
           userName={userName}
           protectContent={!isOwner && !isSubscribed}
           isOwner={isOwner}
+          reloadToken={postsReloadToken}
         />
       </section>
     </main>
