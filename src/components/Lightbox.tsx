@@ -1,12 +1,20 @@
 import { useEffect } from "react";
+import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export type LightboxProps = {
   isOpen: boolean;
   onClose: () => void;
   zIndex?: number;
+  children?: ReactNode;
 };
 
-export default function Lightbox({ isOpen, onClose, zIndex }: LightboxProps) {
+export default function Lightbox({
+  isOpen,
+  onClose,
+  zIndex,
+  children,
+}: LightboxProps) {
   useEffect(() => {
     if (!isOpen) return;
 
@@ -27,28 +35,58 @@ export default function Lightbox({ isOpen, onClose, zIndex }: LightboxProps) {
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+  if (typeof document === "undefined") return null;
 
   const baseZ = zIndex ?? 1000;
 
-  return (
-    <>
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      onContextMenu={(e) => e.preventDefault()}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: baseZ,
+      }}
+    >
       <div
-        role="presentation"
-        onClick={onClose}
-        onContextMenu={(e) => e.preventDefault()}
+        aria-hidden="true"
         style={{
-          position: "fixed",
+          position: "absolute",
           inset: 0,
           background: "rgba(0,0,0,0.85)",
-          zIndex: baseZ,
         }}
       />
+
+      {children ? (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            boxSizing: "border-box",
+            zIndex: baseZ + 1,
+          }}
+        >
+          {children}
+        </div>
+      ) : null}
+
       <button
         type="button"
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
         aria-label="Close"
         style={{
-          position: "fixed",
+          position: "absolute",
           top: "12px",
           right: "12px",
           width: "40px",
@@ -66,6 +104,7 @@ export default function Lightbox({ isOpen, onClose, zIndex }: LightboxProps) {
       >
         ×
       </button>
-    </>
+    </div>,
+    document.body
   );
 }

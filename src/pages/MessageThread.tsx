@@ -81,13 +81,13 @@ export default function MessageThread() {
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
+  const [activeImageSrc, setActiveImageSrc] = useState<string | null>(null);
 
   const preventDefault = (e: { preventDefault: () => void }) => {
     e.preventDefault();
   };
 
-  const isLightboxOpen = Boolean(activeMediaId);
+  const isLightboxOpen = Boolean(activeImageSrc);
 
   const mediaPreviews = useMemo(() => {
     return newMediaFiles.map((file) => {
@@ -540,28 +540,11 @@ export default function MessageThread() {
                             it.mediaKey
                           );
 
-                          const mediaId = `${m.id}-${it.mediaType}-${it.mediaKey}`;
-                          const isActive = activeMediaId === mediaId;
-
                           const wrapperStyle: React.CSSProperties = {
                             position: "relative",
                             display: "inline-block",
                             width: "100%",
                           };
-
-                          const lightboxActiveStyle:
-                            | React.CSSProperties
-                            | undefined = isActive
-                            ? {
-                                position: "fixed",
-                                inset: 0,
-                                zIndex: 1001,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: "1rem",
-                              }
-                            : undefined;
 
                           return it.mediaType === "video" ? (
                             <SecureVideo
@@ -581,48 +564,24 @@ export default function MessageThread() {
                               style={{ width: "100%" }}
                             />
                           ) : (
-                            <div
-                              key={it.mediaKey}
-                              style={{
-                                ...wrapperStyle,
-                                ...lightboxActiveStyle,
-                              }}
-                              onClick={
-                                isActive
-                                  ? () => setActiveMediaId(null)
-                                  : undefined
-                              }
-                              onContextMenu={
-                                isActive ? preventDefault : undefined
-                              }
-                            >
+                            <div key={it.mediaKey} style={wrapperStyle}>
                               <SecureImage
                                 src={src}
                                 alt=""
                                 style={{
-                                  width: isActive ? "auto" : "100%",
-                                  maxWidth: isActive
-                                    ? "min(96vw, 1100px)"
-                                    : undefined,
-                                  maxHeight: isActive ? "88vh" : undefined,
-                                  borderRadius: isActive ? "12px" : "10px",
-                                  boxShadow: isActive
-                                    ? "0 20px 60px rgba(0,0,0,0.6)"
-                                    : undefined,
-                                  objectFit: isActive ? "contain" : "cover",
+                                  width: "100%",
+                                  borderRadius: "10px",
+                                  objectFit: "cover",
                                 }}
                                 loading="lazy"
                                 onClick={(e) => {
-                                  if (isActive) {
-                                    e.stopPropagation();
-                                    return;
-                                  }
-                                  setActiveMediaId(mediaId);
+                                  e.preventDefault();
+                                  setActiveImageSrc(src);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
-                                    setActiveMediaId(mediaId);
+                                    setActiveImageSrc(src);
                                   }
                                 }}
                                 tabIndex={0}
@@ -846,8 +805,23 @@ export default function MessageThread() {
 
         <Lightbox
           isOpen={isLightboxOpen}
-          onClose={() => setActiveMediaId(null)}
-        />
+          onClose={() => setActiveImageSrc(null)}
+        >
+          {activeImageSrc ? (
+            <SecureImage
+              src={activeImageSrc}
+              alt=""
+              style={{
+                width: "auto",
+                maxWidth: "min(96vw, 1100px)",
+                maxHeight: "88vh",
+                borderRadius: "12px",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                objectFit: "contain",
+              }}
+            />
+          ) : null}
+        </Lightbox>
       </section>
     </main>
   );

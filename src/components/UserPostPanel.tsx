@@ -17,9 +17,12 @@ export default function UserPostPanel({
   protectContent,
   isOwner,
 }: UserPostProps) {
-  const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
+  const [activeMedia, setActiveMedia] = useState<{
+    type: "image" | "video";
+    src: string;
+  } | null>(null);
 
-  const isLightboxOpen = Boolean(activeMediaId);
+  const isLightboxOpen = Boolean(activeMedia);
 
   const buildMediaUrl = (imageKey?: string | null) => {
     if (!imageKey) return undefined;
@@ -52,9 +55,6 @@ export default function UserPostPanel({
             const src = buildMediaUrl(item.mediaKey);
             if (!src) return null;
 
-            const mediaId = `${post.id}-${item.mediaType}-${index}`;
-            const isActive = activeMediaId === mediaId;
-
             const wrapperStyle: React.CSSProperties = {
               position: "relative",
               display: "inline-block",
@@ -62,21 +62,6 @@ export default function UserPostPanel({
               borderRadius: protectContent ? "0.5rem" : undefined,
               overflow: protectContent ? "hidden" : undefined,
             };
-
-            const lightboxActiveStyle: React.CSSProperties | undefined =
-              isActive
-                ? {
-                    position: "fixed",
-                    inset: 0,
-                    zIndex: 1001,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "1rem",
-                    borderRadius: 0,
-                    overflow: "visible",
-                  }
-                : undefined;
 
             const overlayStyle: React.CSSProperties | undefined = protectContent
               ? {
@@ -98,14 +83,7 @@ export default function UserPostPanel({
 
             if (item.mediaType === "image") {
               return (
-                <div
-                  key={`${post.id}-img-${index}`}
-                  style={{ ...wrapperStyle, ...lightboxActiveStyle }}
-                  onContextMenu={
-                    isActive ? (e) => e.preventDefault() : undefined
-                  }
-                  onClick={isActive ? () => setActiveMediaId(null) : undefined}
-                >
+                <div key={`${post.id}-img-${index}`} style={wrapperStyle}>
                   <SecureImage
                     src={src}
                     alt="Post media"
@@ -113,25 +91,14 @@ export default function UserPostPanel({
                     protectContent={protectContent}
                     onClick={(e) => {
                       if (protectContent) return;
-                      if (isActive) {
-                        e.stopPropagation();
-                        return;
-                      }
-                      setActiveMediaId(mediaId);
+                      e.preventDefault();
+                      setActiveMedia({ type: "image", src });
                     }}
                     style={{
-                      width: isActive ? "auto" : "100%",
-                      maxWidth: isActive ? "min(96vw, 1100px)" : undefined,
-                      maxHeight: isActive ? "88vh" : "260px",
-                      objectFit: isActive ? "contain" : "cover",
-                      borderRadius: isActive
-                        ? "12px"
-                        : protectContent
-                        ? undefined
-                        : "0.5rem",
-                      boxShadow: isActive
-                        ? "0 20px 60px rgba(0,0,0,0.6)"
-                        : undefined,
+                      width: "100%",
+                      maxHeight: "260px",
+                      objectFit: "cover",
+                      borderRadius: protectContent ? undefined : "0.5rem",
                     }}
                   />
                   {protectContent && (
@@ -147,14 +114,7 @@ export default function UserPostPanel({
               }thumbnail=1`;
 
               return (
-                <div
-                  key={`${post.id}-vid-${index}`}
-                  style={{ ...wrapperStyle, ...lightboxActiveStyle }}
-                  onContextMenu={
-                    isActive ? (e) => e.preventDefault() : undefined
-                  }
-                  onClick={isActive ? () => setActiveMediaId(null) : undefined}
-                >
+                <div key={`${post.id}-vid-${index}`} style={wrapperStyle}>
                   {protectContent ? (
                     <SecureImage
                       src={thumbSrc}
@@ -173,31 +133,20 @@ export default function UserPostPanel({
                       src={src}
                       isOwner={isOwner}
                       protectContent={protectContent}
-                      disablePictureInPicture={isActive}
                       onClick={(e) => {
-                        if (isActive) {
-                          e.stopPropagation();
-                        }
+                        e.stopPropagation();
                       }}
                       style={{
-                        width: isActive ? "auto" : "100%",
-                        maxWidth: isActive ? "min(96vw, 1100px)" : undefined,
-                        maxHeight: isActive ? "88vh" : "320px",
-                        borderRadius: isActive
-                          ? "12px"
-                          : protectContent
-                          ? undefined
-                          : "0.5rem",
-                        boxShadow: isActive
-                          ? "0 20px 60px rgba(0,0,0,0.6)"
-                          : undefined,
+                        width: "100%",
+                        maxHeight: "320px",
+                        borderRadius: protectContent ? undefined : "0.5rem",
                       }}
                     />
                   )}
                   {!protectContent ? (
                     <button
                       type="button"
-                      onClick={() => setActiveMediaId(mediaId)}
+                      onClick={() => setActiveMedia({ type: "video", src })}
                       aria-label="Open video"
                       title="Open"
                       style={{
@@ -267,10 +216,38 @@ export default function UserPostPanel({
         Posted on {new Date(post.createdAt).toLocaleString()}
       </p>
 
-      <Lightbox
-        isOpen={isLightboxOpen}
-        onClose={() => setActiveMediaId(null)}
-      />
+      <Lightbox isOpen={isLightboxOpen} onClose={() => setActiveMedia(null)}>
+        {activeMedia?.type === "image" ? (
+          <SecureImage
+            src={activeMedia.src}
+            alt="Post media"
+            isOwner={isOwner}
+            protectContent={false}
+            style={{
+              width: "auto",
+              maxWidth: "min(96vw, 1100px)",
+              maxHeight: "88vh",
+              objectFit: "contain",
+              borderRadius: "12px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+            }}
+          />
+        ) : activeMedia?.type === "video" ? (
+          <SecureVideo
+            src={activeMedia.src}
+            isOwner={isOwner}
+            protectContent={false}
+            disablePictureInPicture
+            style={{
+              width: "auto",
+              maxWidth: "min(96vw, 1100px)",
+              maxHeight: "88vh",
+              borderRadius: "12px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+            }}
+          />
+        ) : null}
+      </Lightbox>
     </li>
   );
 }
