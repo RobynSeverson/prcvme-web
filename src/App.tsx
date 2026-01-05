@@ -17,6 +17,8 @@ import MessageThread from "./pages/MessageThread";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import RefundPolicy from "./pages/RefundPolicy";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 import { getUserByUserName } from "./helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "./helpers/userHelpers";
@@ -208,6 +210,8 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
           <Route path="/messages/:userName" element={<UserMessageRoute />} />
           <Route path="/:userName" element={<UserProfileRoute />} />
           <Route path="/profile/edit" element={<EditProfile />} />
