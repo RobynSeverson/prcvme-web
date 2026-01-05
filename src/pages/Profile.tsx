@@ -9,6 +9,7 @@ import {
   subscribeToUser,
   unsubscribeFromUser,
 } from "../helpers/api/apiHelpers";
+import SubscribePaymentModal from "../components/SubscribePaymentModal";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import {
   getLoggedInUserFromStorage,
@@ -23,6 +24,7 @@ export default function Profile({ userName }: { userName?: string }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [subError, setSubError] = useState<string | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [postsReloadToken, setPostsReloadToken] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
@@ -193,6 +195,16 @@ export default function Profile({ userName }: { userName?: string }) {
   const handleSubscribeToggle = async () => {
     if (!user) return;
     if (isOwner) return;
+    if (!isLoggedIn) {
+      navigate(loginLink);
+      return;
+    }
+
+    if (!isSubscribed) {
+      setSubError(null);
+      setIsPaymentModalOpen(true);
+      return;
+    }
 
     try {
       setSubError(null);
@@ -209,6 +221,30 @@ export default function Profile({ userName }: { userName?: string }) {
       const message =
         (err instanceof Error && err.message) ||
         (isSubscribed ? "Failed to unsubscribe." : "Failed to subscribe.");
+      setSubError(message);
+    } finally {
+      setIsSubLoading(false);
+    }
+  };
+
+  const handleConfirmSubscribe = async () => {
+    if (!user) return;
+    if (isOwner) return;
+    if (!isLoggedIn) {
+      navigate(loginLink);
+      return;
+    }
+
+    try {
+      setSubError(null);
+      setIsSubLoading(true);
+      await subscribeToUser(user.id);
+      setIsSubscribed(true);
+      setPostsReloadToken((prev) => prev + 1);
+      setIsPaymentModalOpen(false);
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) || "Failed to subscribe.";
       setSubError(message);
     } finally {
       setIsSubLoading(false);
@@ -346,7 +382,7 @@ export default function Profile({ userName }: { userName?: string }) {
           marginBottom: "1.5rem",
         }}
       >
-        {!isOwner && isLoggedIn && (
+        {!isOwner && (
           <button
             type="button"
             onClick={handleSubscribeToggle}
@@ -354,7 +390,9 @@ export default function Profile({ userName }: { userName?: string }) {
             disabled={isSubLoading}
             style={{ width: "auto", marginRight: "0.5rem" }}
           >
-            {isSubLoading
+            {!isLoggedIn
+              ? "Subscribe"
+              : isSubLoading
               ? isSubscribed
                 ? "Unsubscribing..."
                 : "Subscribing..."
@@ -395,6 +433,16 @@ export default function Profile({ userName }: { userName?: string }) {
           reloadToken={postsReloadToken}
         />
       </section>
+
+      <SubscribePaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        isConfirmLoading={isSubLoading}
+        errorMessage={isPaymentModalOpen ? subError : null}
+        onConfirm={() => {
+          void handleConfirmSubscribe();
+        }}
+      />
     </main>
   );
 }
