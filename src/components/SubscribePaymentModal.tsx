@@ -35,7 +35,13 @@ export default function SubscribePaymentModal({
   const [storeMethod, setStoreMethod] = useState(true);
 
   const handleNewMethodChange = useCallback(
-    ({ isValid, summary }: { isValid: boolean; summary: NewPaymentMethodSummary | null }) => {
+    ({
+      isValid,
+      summary,
+    }: {
+      isValid: boolean;
+      summary: NewPaymentMethodSummary | null;
+    }) => {
       setIsNewMethodValid(isValid);
       setNewMethodSummary(summary);
     },
@@ -186,9 +192,7 @@ export default function SubscribePaymentModal({
               gap: "0.75rem",
             }}
           >
-            <PaymentMethodForm
-              onChange={handleNewMethodChange}
-            />
+            <PaymentMethodForm onChange={handleNewMethodChange} />
 
             <label
               style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}

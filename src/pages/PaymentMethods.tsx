@@ -35,12 +35,12 @@ export default function PaymentMethods() {
     setDefaultId(loaded.defaultId);
   }, []);
 
-  const handleFormChange = useCallback((change: {
-    isValid: boolean;
-    summary: NewPaymentMethodSummary | null;
-  }) => {
-    setFormState(change);
-  }, []);
+  const handleFormChange = useCallback(
+    (change: { isValid: boolean; summary: NewPaymentMethodSummary | null }) => {
+      setFormState(change);
+    },
+    []
+  );
 
   const handleAdd = () => {
     if (!formState.isValid || !formState.summary) return;
