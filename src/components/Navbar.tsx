@@ -53,6 +53,9 @@ export default function Navbar({
             <NavLink to="/account" onClick={closeNav}>
               Account
             </NavLink>
+            <NavLink to="/payment" onClick={closeNav}>
+              Payment Methods
+            </NavLink>
           </>
         )}
         <button

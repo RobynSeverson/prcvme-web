@@ -594,6 +594,9 @@ body {
 }
 
 .auth-field input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 0.6rem;
   border: 1px solid rgba(148, 163, 184, 0.7);
   padding: 0.6rem 0.75rem;
