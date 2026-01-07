@@ -1,3 +1,8 @@
+export type SubscriptionDeal = {
+  months: number;
+  price: number;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -10,6 +15,8 @@ export type User = {
   profileBackgroundUrl?: string;
   isActive: boolean;
   isCreator: boolean;
+  subscriptionPrice?: number;
+  subscriptionDeals?: SubscriptionDeal[];
   identityVerified: boolean;
   isAdmin: boolean;
 };

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import type { User } from "../models/user";
+import type { SubscriptionDeal, User } from "../models/user";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -10,6 +10,10 @@ export default function EditProfile() {
   const [userName, setUserName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [subscriptionPrice, setSubscriptionPrice] = useState<string>("");
+  const [subscriptionDeals, setSubscriptionDeals] = useState<
+    Array<{ months: string; price: string }>
+  >([]);
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profileBackgroundUrl, setProfileBackgroundUrl] = useState("");
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(
@@ -75,6 +79,26 @@ export default function EditProfile() {
           setBio(loadedUser.bio ?? "");
           setProfilePictureUrl(loadedUser.profilePictureUrl ?? "");
           setProfileBackgroundUrl(loadedUser.profileBackgroundUrl ?? "");
+
+          const loadedPrice =
+            typeof loadedUser.subscriptionPrice === "number"
+              ? String(loadedUser.subscriptionPrice)
+              : "";
+          setSubscriptionPrice(loadedPrice);
+
+          const loadedDeals: SubscriptionDeal[] = Array.isArray(
+            loadedUser.subscriptionDeals
+          )
+            ? loadedUser.subscriptionDeals
+            : [];
+
+          setSubscriptionDeals(
+            loadedDeals.map((d) => ({
+              months: String(d.months),
+              price: String(d.price),
+            }))
+          );
+
           setProfilePicturePreview(null);
           setProfileBackgroundPreview(null);
           window.localStorage.setItem("authUser", JSON.stringify(loadedUser));
@@ -105,13 +129,50 @@ export default function EditProfile() {
     setIsSaving(true);
 
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         userName,
         displayName: displayName || undefined,
         bio: bio || undefined,
         profilePictureUrl: profilePictureUrl || undefined,
         profileBackgroundUrl: profileBackgroundUrl || undefined,
       };
+
+      if (user?.isCreator) {
+        const trimmedPrice = subscriptionPrice.trim();
+        if (trimmedPrice) {
+          const parsed = Number(trimmedPrice);
+          if (!Number.isFinite(parsed) || parsed < 0) {
+            setError("Subscription price must be a number >= 0.");
+            return;
+          }
+          payload.subscriptionPrice = parsed;
+        } else {
+          payload.subscriptionPrice = null;
+        }
+
+        const deals: SubscriptionDeal[] = [];
+        for (const deal of subscriptionDeals) {
+          const monthsRaw = deal.months.trim();
+          const priceRaw = deal.price.trim();
+          if (!monthsRaw && !priceRaw) continue;
+
+          const months = Number.parseInt(monthsRaw, 10);
+          const price = Number(priceRaw);
+
+          if (!Number.isFinite(months) || months <= 0) {
+            setError("Deal months must be an integer > 0.");
+            return;
+          }
+          if (!Number.isFinite(price) || price < 0) {
+            setError("Deal price must be a number >= 0.");
+            return;
+          }
+
+          deals.push({ months, price });
+        }
+
+        payload.subscriptionDeals = deals;
+      }
 
       const response = await fetch(`${API_BASE}/users/me`, {
         method: "PATCH",
@@ -193,6 +254,14 @@ export default function EditProfile() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAddDealRow = () => {
+    setSubscriptionDeals((prev) => [...prev, { months: "", price: "" }]);
+  };
+
+  const handleRemoveDealRow = (index: number) => {
+    setSubscriptionDeals((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleBackToProfile = () => {
@@ -383,6 +452,110 @@ export default function EditProfile() {
               className="new-post-textarea"
             />
           </label>
+
+          {user.isCreator && (
+            <div className="app-card" style={{ padding: "1rem" }}>
+              <h2 style={{ marginTop: 0 }}>Subscription pricing</h2>
+              <label className="auth-field">
+                <span>Monthly price (USD)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={subscriptionPrice}
+                  onChange={(event) => setSubscriptionPrice(event.target.value)}
+                />
+              </label>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                }}
+              >
+                <h3 style={{ margin: 0 }}>Deals</h3>
+                <button
+                  type="button"
+                  className="auth-toggle"
+                  style={{ marginTop: 0 }}
+                  onClick={handleAddDealRow}
+                >
+                  Add deal
+                </button>
+              </div>
+
+              {subscriptionDeals.length === 0 ? (
+                <p style={{ color: "var(--text-muted)", marginBottom: 0 }}>
+                  No deals yet. Add one if you want discounted multi-month
+                  pricing.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "0.75rem",
+                    marginTop: "0.75rem",
+                  }}
+                >
+                  {subscriptionDeals.map((deal, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr auto",
+                        gap: "0.75rem",
+                        alignItems: "end",
+                      }}
+                    >
+                      <label className="auth-field" style={{ margin: 0 }}>
+                        <span>Months</span>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={deal.months}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setSubscriptionDeals((prev) =>
+                              prev.map((d, i) =>
+                                i === index ? { ...d, months: value } : d
+                              )
+                            );
+                          }}
+                        />
+                      </label>
+                      <label className="auth-field" style={{ margin: 0 }}>
+                        <span>Price (USD)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={deal.price}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setSubscriptionDeals((prev) =>
+                              prev.map((d, i) =>
+                                i === index ? { ...d, price: value } : d
+                              )
+                            );
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="auth-toggle"
+                        style={{ marginTop: 0 }}
+                        onClick={() => handleRemoveDealRow(index)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <input
             ref={profileBackgroundInputRef}

@@ -287,6 +287,21 @@ export default function Profile({ userName }: { userName?: string }) {
     user.profileBackgroundUrl
   );
 
+  const formatMonthlyPrice = (price: number) => {
+    if (!Number.isFinite(price)) return null;
+    return `$${price.toFixed(2)}/mo`;
+  };
+
+  const subscribeLabel = () => {
+    const priceLabel =
+      typeof user.subscriptionPrice === "number"
+        ? formatMonthlyPrice(user.subscriptionPrice)
+        : null;
+
+    if (!priceLabel) return "Subscribe";
+    return `Subscribe (${priceLabel})`;
+  };
+
   return (
     <main style={{ position: "relative" }}>
       {!isOwner && (
@@ -391,14 +406,14 @@ export default function Profile({ userName }: { userName?: string }) {
             style={{ width: "auto", marginRight: "0.5rem" }}
           >
             {!isLoggedIn
-              ? "Subscribe"
+              ? subscribeLabel()
               : isSubLoading
               ? isSubscribed
                 ? "Unsubscribing..."
                 : "Subscribing..."
               : isSubscribed
               ? "Unsubscribe"
-              : "Subscribe"}
+              : subscribeLabel()}
           </button>
         )}
         {loggedInUser?.id === user.id && (
