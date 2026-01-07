@@ -14,6 +14,8 @@ import EditProfile from "./pages/EditProfile";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import MessageThread from "./pages/MessageThread";
+import Subscriptions from "./pages/Subscriptions";
+import Profit from "./pages/Profit";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
@@ -134,6 +136,7 @@ function App() {
       typeof window !== "undefined" &&
       !!window.localStorage.getItem("authToken")
   );
+  const [isCreator, setIsCreator] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") {
       return "dark";
@@ -157,6 +160,14 @@ function App() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     setIsLoggedIn(isUserLoggedIn());
+
+    try {
+      const raw = window.localStorage.getItem("authUser");
+      const parsed = raw ? (JSON.parse(raw) as { isCreator?: boolean }) : null;
+      setIsCreator(Boolean(parsed && parsed.isCreator === true));
+    } catch {
+      setIsCreator(false);
+    }
   }, [location]);
 
   useEffect(() => {
@@ -193,6 +204,7 @@ function App() {
     <div className="app-shell">
       <Navbar
         isLoggedIn={isLoggedIn}
+        isCreator={isCreator}
         theme={theme}
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}
@@ -209,6 +221,8 @@ function App() {
           <Route path="/payment" element={<PaymentMethods />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/subscriptions" element={<Subscriptions />} />
+          <Route path="/profit" element={<Profit />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy" element={<Privacy />} />

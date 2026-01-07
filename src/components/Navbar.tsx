@@ -3,6 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 
 type NavbarProps = {
   isLoggedIn: boolean;
+  isCreator: boolean;
   theme: "light" | "dark";
   onToggleTheme: () => void;
   onLogout: () => void;
@@ -11,6 +12,7 @@ type NavbarProps = {
 
 export default function Navbar({
   isLoggedIn,
+  isCreator,
   theme,
   onToggleTheme,
   onLogout,
@@ -50,6 +52,14 @@ export default function Navbar({
             <NavLink to="/messages" onClick={closeNav} end>
               Messages
             </NavLink>
+            <NavLink to="/subscriptions" onClick={closeNav} end>
+              Subscriptions
+            </NavLink>
+            {isCreator ? (
+              <NavLink to="/profit" onClick={closeNav} end>
+                Profit
+              </NavLink>
+            ) : null}
             <NavLink to="/account" onClick={closeNav}>
               Account
             </NavLink>

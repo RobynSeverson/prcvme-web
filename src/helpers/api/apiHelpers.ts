@@ -102,6 +102,16 @@ export type MessageThread = {
   lastText: string;
 };
 
+export type ProfitSummaryResponse = {
+  currency: string;
+  total: number;
+  day: number;
+  week: number;
+  month: number;
+  activeSubscriptions: number;
+  subscriptionPrice?: number;
+};
+
 export type PaymentMethod = {
   id: string;
   label: string;
@@ -441,6 +451,33 @@ const deleteMyPost = async (postId: string): Promise<void> => {
   }
 };
 
+const getMyProfit = async (): Promise<ProfitSummaryResponse> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to view profit.");
+  }
+
+  const response = await fetch(`${API_BASE}/me/profit`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load profit.";
+    throw new Error(message);
+  }
+
+  if (data && data.summary) {
+    return data.summary as ProfitSummaryResponse;
+  }
+
+  throw new Error("Profit data is missing.");
+};
+
 const getDirectMessages = async (
   userId: string,
   before?: string
@@ -615,6 +652,7 @@ export {
   subscribeToUser,
   unsubscribeFromUser,
   deleteMyPost,
+  getMyProfit,
   getMyMessageThreads,
   getDirectMessages,
   sendDirectMessage,
