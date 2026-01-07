@@ -14,6 +14,7 @@ type SubscriptionRow = {
   subscribedToUserId: string;
   isActive: boolean;
   createdAt: string;
+  accessUntil?: string;
   user: User | null;
 };
 
@@ -50,6 +51,7 @@ export default function Subscriptions() {
             subscribedToUserId: s.subscribedToUserId,
             isActive: s.isActive !== false,
             createdAt: s.createdAt,
+            accessUntil: typeof s.accessUntil === "string" ? s.accessUntil : undefined,
           }))
           .filter((s) => typeof s.subscribedToUserId === "string");
 
@@ -119,7 +121,7 @@ export default function Subscriptions() {
       <section style={{ marginBottom: "1rem" }}>
         <h2 style={{ marginBottom: "0.5rem" }}>Subscriptions</h2>
         <p className="text-muted" style={{ marginTop: 0 }}>
-          Manage your active creator subscriptions.
+          Manage your creator subscriptions (including paid-through cancellations).
         </p>
       </section>
 
@@ -143,6 +145,20 @@ export default function Subscriptions() {
               const avatarSrc = r.user
                 ? buildProfileImageUrl(r.user.id, r.user.profilePictureUrl)
                 : null;
+
+              const now = new Date();
+              const accessUntilDate = r.accessUntil ? new Date(r.accessUntil) : null;
+              const hasAccess =
+                r.isActive ||
+                (accessUntilDate instanceof Date &&
+                  !Number.isNaN(accessUntilDate.getTime()) &&
+                  accessUntilDate.getTime() > now.getTime());
+
+              const statusText = r.isActive
+                ? "Active"
+                : hasAccess && accessUntilDate
+                  ? `Cancelled • active until ${accessUntilDate.toLocaleDateString()}`
+                  : "Inactive";
 
               return (
                 <div
@@ -268,12 +284,12 @@ export default function Subscriptions() {
                           User unavailable
                         </span>
                       )}
-                      {!r.isActive ? (
+                      {statusText ? (
                         <span
                           className="text-muted"
                           style={{ fontSize: "0.85rem" }}
                         >
-                          Inactive
+                          {statusText}
                         </span>
                       ) : null}
                     </span>
@@ -291,7 +307,7 @@ export default function Subscriptions() {
                         setConfirmOpen(true);
                       }}
                     >
-                      Unsubscribe
+                      {r.isActive ? "Unsubscribe" : "Cancelled"}
                     </button>
                   </div>
                 </div>

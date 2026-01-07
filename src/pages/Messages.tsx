@@ -52,7 +52,17 @@ export default function Messages() {
         setIsLoadingSubscribedUsers(true);
 
         const subs = await getMySubscriptions();
-        const active = subs.filter((s) => s.isActive !== false);
+        const now = new Date();
+        const active = subs.filter((s) => {
+          const isActive = s.isActive !== false;
+          const accessUntil = typeof s.accessUntil === "string" ? new Date(s.accessUntil) : null;
+          const hasAccess =
+            isActive ||
+            (accessUntil instanceof Date &&
+              !Number.isNaN(accessUntil.getTime()) &&
+              accessUntil.getTime() > now.getTime());
+          return hasAccess;
+        });
 
         const uniqueIds = Array.from(
           new Set(active.map((s) => s.subscribedToUserId).filter(Boolean))

@@ -266,24 +266,6 @@ export default function SubscribePaymentModal({
             }}
           >
             <PaymentMethodForm onChange={handleNewMethodChange} />
-
-            <label
-              style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
-            >
-              <input
-                type="checkbox"
-                checked={storeMethod}
-                onChange={(e) => setStoreMethod(e.target.checked)}
-              />
-              <span className="text-muted">Store payment method</span>
-            </label>
-
-            <p
-              className="text-muted"
-              style={{ margin: 0, fontSize: "0.85rem" }}
-            >
-              Note: saving stores this method to your account.
-            </p>
           </div>
         ) : null}
 

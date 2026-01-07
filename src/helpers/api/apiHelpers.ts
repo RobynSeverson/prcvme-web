@@ -84,6 +84,7 @@ export type UserSubscription = {
   subscribedToUserId: string;
   createdAt: string;
   isActive?: boolean;
+  accessUntil?: string;
 };
 
 export type DirectMessage = {
