@@ -55,7 +55,8 @@ export default function Messages() {
         const now = new Date();
         const active = subs.filter((s) => {
           const isActive = s.isActive !== false;
-          const accessUntil = typeof s.accessUntil === "string" ? new Date(s.accessUntil) : null;
+          const accessUntil =
+            typeof s.accessUntil === "string" ? new Date(s.accessUntil) : null;
           const hasAccess =
             isActive ||
             (accessUntil instanceof Date &&
