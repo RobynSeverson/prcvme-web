@@ -1,26 +1,131 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import type { UserPost } from "../models/userPost";
 import Lightbox from "./Lightbox";
 import SecureImage from "./SecureImage";
 import SecureVideo from "./SecureVideo";
+import { buildProfileImageUrl } from "../helpers/userHelpers";
+import { deleteMyPost } from "../helpers/api/apiHelpers";
 
 export type UserPostProps = {
   post: UserPost;
   protectContent?: boolean;
   isOwner?: boolean;
+  currentUserId?: string;
+  onDeleted?: (postId: string) => void;
 };
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
+type PublicAuthor = {
+  id: string;
+  userName: string;
+  displayName?: string;
+  profilePictureUrl?: string;
+};
+
+const authorCache = new Map<string, PublicAuthor>();
+const authorInFlight = new Map<string, Promise<PublicAuthor | null>>();
+
+const loadAuthor = (userId: string): Promise<PublicAuthor | null> => {
+  if (authorCache.has(userId)) {
+    return Promise.resolve(authorCache.get(userId)!);
+  }
+
+  const existing = authorInFlight.get(userId);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE}/users/${encodeURIComponent(userId)}`
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) return null;
+
+      const user =
+        data && data.user ? (data.user as Partial<PublicAuthor>) : null;
+      if (
+        !user ||
+        typeof user.userName !== "string" ||
+        typeof user.id !== "string"
+      ) {
+        return null;
+      }
+
+      const normalized: PublicAuthor = {
+        id: user.id,
+        userName: user.userName,
+        displayName:
+          typeof user.displayName === "string" ? user.displayName : undefined,
+        profilePictureUrl:
+          typeof user.profilePictureUrl === "string"
+            ? user.profilePictureUrl
+            : undefined,
+      };
+
+      authorCache.set(userId, normalized);
+      return normalized;
+    } catch {
+      return null;
+    } finally {
+      authorInFlight.delete(userId);
+    }
+  })();
+
+  authorInFlight.set(userId, promise);
+  return promise;
+};
 
 export default function UserPostPanel({
   post,
   protectContent,
   isOwner,
+  currentUserId,
+  onDeleted,
 }: UserPostProps) {
+  const [author, setAuthor] = useState<PublicAuthor | null>(() => {
+    return authorCache.get(post.userId) ?? null;
+  });
   const [activeMedia, setActiveMedia] = useState<{
     type: "image" | "video";
     src: string;
   } | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const isPostOwner = Boolean(
+    isOwner || (currentUserId && currentUserId === post.userId)
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setAuthor(authorCache.get(post.userId) ?? null);
+
+    void (async () => {
+      const loaded = await loadAuthor(post.userId);
+      if (cancelled) return;
+      if (loaded) setAuthor(loaded);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [post.userId]);
+
+  const authorHref = useMemo(() => {
+    if (!author?.userName) return undefined;
+    return `/${encodeURIComponent(author.userName)}`;
+  }, [author?.userName]);
+
+  const authorDisplay =
+    (author?.displayName && author.displayName.trim()) ||
+    (author?.userName ? `@${author.userName}` : "User");
+
+  const authorAvatarSrc = author?.profilePictureUrl
+    ? buildProfileImageUrl(post.userId, author.profilePictureUrl)
+    : undefined;
 
   const isLightboxOpen = Boolean(activeMedia);
 
@@ -34,6 +139,174 @@ export default function UserPostPanel({
 
   return (
     <li className="app-card user-post-card">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "0.6rem",
+          marginBottom: "0.5rem",
+        }}
+      >
+        {authorHref ? (
+          <Link
+            to={authorHref}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              textDecoration: "none",
+              color: "inherit",
+              minWidth: 0,
+              flex: "1 1 auto",
+            }}
+          >
+            {authorAvatarSrc ? (
+              <img
+                src={authorAvatarSrc}
+                alt={authorDisplay}
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "999px",
+                  objectFit: "cover",
+                  border: "1px solid rgba(148, 163, 184, 0.35)",
+                  background: "rgba(15, 23, 42, 0.4)",
+                  flex: "0 0 auto",
+                }}
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "999px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid rgba(148, 163, 184, 0.35)",
+                  background: "rgba(15, 23, 42, 0.4)",
+                  color: "rgba(255,255,255,0.9)",
+                  fontWeight: 700,
+                  flex: "0 0 auto",
+                }}
+              >
+                {(
+                  author?.displayName?.trim()?.[0] ||
+                  author?.userName?.[0] ||
+                  "U"
+                ).toUpperCase()}
+              </div>
+            )}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                lineHeight: 1.1,
+                minWidth: 0,
+              }}
+            >
+              <span style={{ fontWeight: 700, color: "var(--text-color)" }}>
+                {authorDisplay}
+              </span>
+              {author?.userName ? (
+                <span className="text-muted" style={{ fontSize: "0.85rem" }}>
+                  @{author.userName}
+                </span>
+              ) : null}
+            </div>
+          </Link>
+        ) : (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              flex: "1 1 auto",
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                width: "34px",
+                height: "34px",
+                borderRadius: "999px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid rgba(148, 163, 184, 0.35)",
+                background: "rgba(15, 23, 42, 0.4)",
+                color: "rgba(255,255,255,0.9)",
+                fontWeight: 700,
+                flex: "0 0 auto",
+              }}
+            >
+              U
+            </div>
+            <span style={{ fontWeight: 700, color: "var(--text-color)" }}>
+              {authorDisplay}
+            </span>
+          </div>
+        )}
+
+        {isPostOwner ? (
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => {
+              setDeleteError(null);
+              setIsDeleteOpen(true);
+            }}
+            title="Delete post"
+            aria-label="Delete post"
+            style={{ width: "44px", flex: "0 0 auto" }}
+            disabled={isDeleting}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              fill="none"
+            >
+              <path
+                d="M4 7h16"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M10 11v7"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M14 11v7"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M6 7l1 14h10l1-14"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M9 7V4h6v3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        ) : null}
+      </div>
+
       {post.text && <p style={{ marginBottom: "0.5rem" }}>{post.text}</p>}
       {post.mediaItems && post.mediaItems.length > 0 && (
         <div
@@ -247,6 +520,73 @@ export default function UserPostPanel({
             }}
           />
         ) : null}
+      </Lightbox>
+
+      <Lightbox
+        isOpen={isDeleteOpen}
+        onClose={() => {
+          if (isDeleting) return;
+          setIsDeleteOpen(false);
+        }}
+        zIndex={2500}
+      >
+        <div
+          className="app-card"
+          style={{
+            width: "min(520px, 100%)",
+            padding: "1.25rem",
+            borderRadius: "1rem",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: "0.5rem" }}>Delete post?</h3>
+          <p className="text-muted" style={{ marginTop: 0 }}>
+            Are you sure you want to delete this post? This can’t be undone.
+          </p>
+
+          {deleteError ? <p className="auth-error">{deleteError}</p> : null}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "0.5rem",
+            }}
+          >
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setIsDeleteOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="auth-submit"
+              onClick={async () => {
+                if (isDeleting) return;
+                try {
+                  setDeleteError(null);
+                  setIsDeleting(true);
+                  await deleteMyPost(post.id);
+                  setIsDeleteOpen(false);
+                  onDeleted?.(post.id);
+                } catch (err) {
+                  const message =
+                    (err instanceof Error && err.message) ||
+                    "Failed to delete post.";
+                  setDeleteError(message);
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting}
+              style={{ width: "auto", marginTop: 0 }}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </div>
       </Lightbox>
     </li>
   );

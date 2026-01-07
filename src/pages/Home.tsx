@@ -365,14 +365,8 @@ export default function Home() {
         </form>
       </section>
 
-      <section>
-        {userId && (
-          <UserPosts
-            key={`${userId}-${postsRefreshKey}`}
-            userId={userId}
-            isOwner={true}
-          />
-        )}
+      <section style={{ marginBottom: "2rem" }}>
+        <UserPosts key={`feed-${postsRefreshKey}`} feed />
       </section>
     </main>
   );

@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 export type UserPostsProps = {
   userId?: string;
   userName?: string;
+  feed?: boolean;
   protectContent?: boolean;
   isOwner?: boolean;
   reloadToken?: number;
@@ -15,6 +16,7 @@ export type UserPostsProps = {
 export default function UserPosts({
   userId,
   userName,
+  feed,
   protectContent,
   isOwner,
   reloadToken,
@@ -30,6 +32,9 @@ export default function UserPosts({
   const inFlightRef = useRef(false);
 
   const apiPathBase = useMemo(() => {
+    if (feed) {
+      return `${API_BASE}/me/feed`;
+    }
     if (userName) {
       return `${API_BASE}/users/${encodeURIComponent(
         userName
@@ -39,7 +44,7 @@ export default function UserPosts({
       return `${API_BASE}/users/${encodeURIComponent(userId)}/posts`;
     }
     return null;
-  }, [userId, userName]);
+  }, [feed, userId, userName]);
 
   const buildApiUrl = (cursor?: string | null) => {
     if (!apiPathBase) return null;
@@ -156,6 +161,18 @@ export default function UserPosts({
     return () => observer.disconnect();
   }, [apiPathBase, hasMore, isLoading, isLoadingMore, nextCursor]);
 
+  const currentUserId = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem("authUser");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { id?: string };
+      return typeof parsed.id === "string" ? parsed.id : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   return (
     <section>
       {isLoading && <p className="text-muted">Loading posts...</p>}
@@ -170,6 +187,10 @@ export default function UserPosts({
             post={post}
             protectContent={protectContent}
             isOwner={isOwner}
+            currentUserId={currentUserId ?? undefined}
+            onDeleted={(postId) => {
+              setPosts((prev) => prev.filter((p) => p.id !== postId));
+            }}
           />
         ))}
       </ul>

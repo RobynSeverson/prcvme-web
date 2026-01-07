@@ -11,6 +11,7 @@ export type UserPost = {
   text?: string;
   expiresAt?: string | null;
   mediaItems: UserPostMediaItem[];
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 };

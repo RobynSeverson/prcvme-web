@@ -416,6 +416,31 @@ const unsubscribeFromUser = async (
   throw new Error("Subscription data is missing.");
 };
 
+const deleteMyPost = async (postId: string): Promise<void> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to delete posts.");
+  }
+
+  const response = await fetch(
+    `${API_BASE}/users/me/post/${encodeURIComponent(postId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to delete post.";
+    throw new Error(message);
+  }
+};
+
 const getDirectMessages = async (
   userId: string,
   before?: string
@@ -589,6 +614,7 @@ export {
   getMySubscriptionStatus,
   subscribeToUser,
   unsubscribeFromUser,
+  deleteMyPost,
   getMyMessageThreads,
   getDirectMessages,
   sendDirectMessage,
