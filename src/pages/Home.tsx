@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useLocation } from "react-router-dom";
 import Login from "./Login";
 import UserPosts from "../components/UserPosts";
+import { getLoggedInUserFromStorage } from "../helpers/auth/authHelpers";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -13,6 +14,7 @@ export default function Home() {
       !!window.localStorage.getItem("authToken")
   );
   const [userId, setUserId] = useState<string | null>(null);
+  const [canUploadMedia, setCanUploadMedia] = useState(false);
   const [postsRefreshKey, setPostsRefreshKey] = useState(0);
   const [newText, setNewText] = useState("");
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
@@ -47,21 +49,27 @@ export default function Home() {
 
     if (hasToken) {
       try {
-        const raw = window.localStorage.getItem("authUser");
-        if (raw) {
-          const parsed = JSON.parse(raw) as { id?: string };
-          if (parsed && typeof parsed.id === "string") {
-            setUserId(parsed.id);
-            return;
-          }
-        }
+        const me = getLoggedInUserFromStorage();
+        setUserId(me?.id ?? null);
+        setCanUploadMedia(me?.isCreator === true);
+        return;
       } catch {
         // ignore parse errors, userId will remain null
       }
     } else {
       setUserId(null);
+      setCanUploadMedia(false);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (canUploadMedia) return;
+    if (newMediaFiles.length === 0) return;
+    setNewMediaFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [canUploadMedia, newMediaFiles.length]);
 
   useEffect(() => {
     setPostsRefreshKey(0);
@@ -74,7 +82,8 @@ export default function Home() {
     const token = window.localStorage.getItem("authToken");
     if (!token) return;
 
-    if (!newText.trim() && newMediaFiles.length === 0) {
+    const hasMedia = canUploadMedia && newMediaFiles.length > 0;
+    if (!newText.trim() && !hasMedia) {
       return;
     }
 
@@ -85,7 +94,7 @@ export default function Home() {
       if (newText.trim()) {
         formData.append("text", newText.trim());
       }
-      if (newMediaFiles.length > 0) {
+      if (canUploadMedia && newMediaFiles.length > 0) {
         newMediaFiles.forEach((file) => {
           formData.append("media", file);
         });
@@ -125,6 +134,7 @@ export default function Home() {
   };
 
   const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUploadMedia) return;
     const files = event.target.files ? Array.from(event.target.files) : [];
     setNewMediaFiles(files);
   };
@@ -160,59 +170,65 @@ export default function Home() {
               gap: "0.75rem",
             }}
           >
-            <div
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => fileInputRef.current?.click()}
-                style={{ width: "48px" }}
+            {canUploadMedia ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ width: "48px" }}
                 >
-                  <rect
-                    x="3"
-                    y="5"
-                    width="18"
-                    height="14"
-                    rx="2"
-                    ry="2"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <circle
-                    cx="9"
-                    cy="10"
-                    r="1.6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path
-                    d="M5 17l4-4 3 3 3-3 4 4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleMediaChange}
-                style={{ display: "none" }}
-                accept="image/*,video/*,audio/*"
-              />
-            </div>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="3"
+                      y="5"
+                      width="18"
+                      height="14"
+                      rx="2"
+                      ry="2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                    <circle
+                      cx="9"
+                      cy="10"
+                      r="1.6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                    <path
+                      d="M5 17l4-4 3 3 3-3 4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleMediaChange}
+                  style={{ display: "none" }}
+                  accept="image/*,video/*,audio/*"
+                />
+              </div>
+            ) : null}
 
             <button
               type="submit"
@@ -224,7 +240,7 @@ export default function Home() {
             </button>
           </div>
 
-          {mediaPreviews.length > 0 ? (
+          {canUploadMedia && mediaPreviews.length > 0 ? (
             <div
               style={{
                 display: "flex",

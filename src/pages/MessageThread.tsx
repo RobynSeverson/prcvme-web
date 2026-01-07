@@ -63,6 +63,7 @@ export default function MessageThread() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => isUserLoggedIn());
   const [meUserId, setMeUserId] = useState<string | null>(null);
+  const [canUploadMedia, setCanUploadMedia] = useState(false);
 
   const [otherUser, setOtherUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
@@ -134,7 +135,17 @@ export default function MessageThread() {
     setIsLoggedIn(isUserLoggedIn());
     const me = getLoggedInUserFromStorage();
     setMeUserId(me?.id ?? null);
+    setCanUploadMedia(me?.isCreator === true);
   }, []);
+
+  useEffect(() => {
+    if (canUploadMedia) return;
+    if (newMediaFiles.length === 0) return;
+    setNewMediaFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [canUploadMedia, newMediaFiles.length]);
 
   useEffect(() => {
     const loadOtherUser = async () => {
@@ -374,7 +385,7 @@ export default function MessageThread() {
     e.preventDefault();
     if (!otherUser) return;
 
-    const hasMedia = newMediaFiles.length > 0;
+    const hasMedia = canUploadMedia && newMediaFiles.length > 0;
     if (!draft.trim() && !hasMedia) return;
 
     try {
@@ -383,7 +394,8 @@ export default function MessageThread() {
 
       const created = await sendDirectMessage(otherUser.id, {
         text: draft,
-        mediaFiles: newMediaFiles.length > 0 ? newMediaFiles : null,
+        mediaFiles:
+          canUploadMedia && newMediaFiles.length > 0 ? newMediaFiles : null,
       });
 
       if (!messageIdsRef.current.has(created.id)) {
@@ -418,6 +430,7 @@ export default function MessageThread() {
   };
 
   const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUploadMedia) return;
     const files = event.target.files ? Array.from(event.target.files) : [];
     setNewMediaFiles(files);
   };
@@ -609,50 +622,59 @@ export default function MessageThread() {
           className="auth-form message-form"
           style={{ marginTop: "1rem" }}
         >
-          <button
-            type="button"
-            className="icon-button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Add media"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-              <rect
-                x="3"
-                y="5"
-                width="18"
-                height="14"
-                rx="2"
-                ry="2"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
+          {canUploadMedia ? (
+            <>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Add media"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="3"
+                    y="5"
+                    width="18"
+                    height="14"
+                    rx="2"
+                    ry="2"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <circle
+                    cx="9"
+                    cy="10"
+                    r="1.6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M5 17l4-4 3 3 3-3 4 4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleMediaChange}
+                style={{ display: "none" }}
+                accept="image/*,video/*,audio/*"
               />
-              <circle
-                cx="9"
-                cy="10"
-                r="1.6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-              <path
-                d="M5 17l4-4 3 3 3-3 4 4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleMediaChange}
-            style={{ display: "none" }}
-            accept="image/*,video/*,audio/*"
-          />
+            </>
+          ) : null}
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -664,7 +686,7 @@ export default function MessageThread() {
           </button>
         </form>
 
-        {mediaPreviews.length > 0 ? (
+        {canUploadMedia && mediaPreviews.length > 0 ? (
           <div
             style={{
               display: "flex",

@@ -114,6 +114,22 @@ export default function EditProfile() {
     void loadUser();
   }, []);
 
+  const normalizeCurrencyInput = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const withLeadingZero = trimmed.startsWith(".") ? `0${trimmed}` : trimmed;
+    return withLeadingZero.endsWith(".")
+      ? withLeadingZero.slice(0, -1)
+      : withLeadingZero;
+  };
+
+  const isValidCurrency = (value: string): boolean => {
+    const normalized = normalizeCurrencyInput(value);
+    if (!normalized) return false;
+    // Currency with max 2 decimal places.
+    return /^\d+(\.\d{1,2})?$/.test(normalized);
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -140,9 +156,18 @@ export default function EditProfile() {
       if (user?.isCreator) {
         const trimmedPrice = subscriptionPrice.trim();
         if (trimmedPrice) {
-          const parsed = Number(trimmedPrice);
+          if (!isValidCurrency(trimmedPrice)) {
+            setError("Subscription price must have at most 2 decimal places.");
+            return;
+          }
+          const normalizedPrice = normalizeCurrencyInput(trimmedPrice);
+          const parsed = Number(normalizedPrice);
           if (!Number.isFinite(parsed) || parsed < 0) {
             setError("Subscription price must be a number >= 0.");
+            return;
+          }
+          if (parsed > 100) {
+            setError("Subscription price must be <= 100.00.");
             return;
           }
           payload.subscriptionPrice = parsed;
@@ -157,7 +182,12 @@ export default function EditProfile() {
           if (!monthsRaw && !priceRaw) continue;
 
           const months = Number.parseInt(monthsRaw, 10);
-          const price = Number(priceRaw);
+          if (!isValidCurrency(priceRaw)) {
+            setError("Deal price must have at most 2 decimal places.");
+            return;
+          }
+          const normalizedDealPrice = normalizeCurrencyInput(priceRaw);
+          const price = Number(normalizedDealPrice);
 
           if (!Number.isFinite(months) || months <= 0) {
             setError("Deal months must be an integer > 0.");
@@ -165,6 +195,10 @@ export default function EditProfile() {
           }
           if (!Number.isFinite(price) || price < 0) {
             setError("Deal price must be a number >= 0.");
+            return;
+          }
+          if (price > 100) {
+            setError("Deal price must be <= 100.00.");
             return;
           }
 
@@ -461,6 +495,7 @@ export default function EditProfile() {
                 <input
                   type="number"
                   min={0}
+                  max={100}
                   step={0.01}
                   value={subscriptionPrice}
                   onChange={(event) => setSubscriptionPrice(event.target.value)}
@@ -530,6 +565,7 @@ export default function EditProfile() {
                         <input
                           type="number"
                           min={0}
+                          max={100}
                           step={0.01}
                           value={deal.price}
                           onChange={(event) => {
