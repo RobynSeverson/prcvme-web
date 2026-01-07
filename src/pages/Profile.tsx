@@ -4,12 +4,13 @@ import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
 import {
   getCurrentUser,
-  getMySubscriptionStatus,
+  getMySubscription,
   getUserByUserName,
   subscribeToUser,
   unsubscribeFromUser,
 } from "../helpers/api/apiHelpers";
 import SubscribePaymentModal from "../components/SubscribePaymentModal";
+import Lightbox from "../components/Lightbox";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import {
   getLoggedInUserFromStorage,
@@ -22,9 +23,14 @@ export default function Profile({ userName }: { userName?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscriptionActive, setIsSubscriptionActive] = useState(false);
+  const [accessUntil, setAccessUntil] = useState<string | null>(null);
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [subError, setSubError] = useState<string | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isUnsubscribeModalOpen, setIsUnsubscribeModalOpen] = useState(false);
+  const [isUnsubscribing, setIsUnsubscribing] = useState(false);
+  const [unsubscribeError, setUnsubscribeError] = useState<string | null>(null);
   const [postsReloadToken, setPostsReloadToken] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
@@ -102,13 +108,29 @@ export default function Profile({ userName }: { userName?: string }) {
       try {
         setSubError(null);
         setIsSubLoading(true);
-        const subscribed = await getMySubscriptionStatus(user.id);
+
+        const result = await getMySubscription(user.id);
+        const subscribed = !!result.subscribed;
+        const isActive = !!(result.subscription
+          ? result.subscription.isActive !== false
+          : subscribed);
+        const nextAccessUntil =
+          result.subscription &&
+          typeof result.subscription.accessUntil === "string"
+            ? result.subscription.accessUntil
+            : null;
+
         setIsSubscribed(subscribed);
+        setIsSubscriptionActive(subscribed && isActive);
+        setAccessUntil(nextAccessUntil);
       } catch (err) {
         const message =
           (err instanceof Error && err.message) ||
           "Failed to load subscription status.";
         setSubError(message);
+        setIsSubscribed(false);
+        setIsSubscriptionActive(false);
+        setAccessUntil(null);
       } finally {
         setIsSubLoading(false);
       }
@@ -116,6 +138,26 @@ export default function Profile({ userName }: { userName?: string }) {
 
     void loadSubscriptionStatus();
   }, [user, isLoggedIn, isOwner]);
+
+  const refreshSubscriptionStatus = async () => {
+    if (!user) return;
+    if (!isLoggedIn) return;
+    if (isOwner) return;
+
+    const result = await getMySubscription(user.id);
+    const subscribed = !!result.subscribed;
+    const isActive = !!(result.subscription
+      ? result.subscription.isActive !== false
+      : subscribed);
+    const nextAccessUntil =
+      result.subscription && typeof result.subscription.accessUntil === "string"
+        ? result.subscription.accessUntil
+        : null;
+
+    setIsSubscribed(subscribed);
+    setIsSubscriptionActive(subscribed && isActive);
+    setAccessUntil(nextAccessUntil);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -206,25 +248,16 @@ export default function Profile({ userName }: { userName?: string }) {
       return;
     }
 
-    try {
-      setSubError(null);
-      setIsSubLoading(true);
-      if (isSubscribed) {
-        await unsubscribeFromUser(user.id);
-        setIsSubscribed(false);
-      } else {
-        await subscribeToUser(user.id);
-        setIsSubscribed(true);
-        setPostsReloadToken((prev) => prev + 1);
-      }
-    } catch (err) {
-      const message =
-        (err instanceof Error && err.message) ||
-        (isSubscribed ? "Failed to unsubscribe." : "Failed to subscribe.");
-      setSubError(message);
-    } finally {
-      setIsSubLoading(false);
+    // If they're currently active, confirm before cancel.
+    if (isSubscriptionActive) {
+      setUnsubscribeError(null);
+      setIsUnsubscribeModalOpen(true);
+      return;
     }
+
+    // Cancelled-but-paid-through: show "Resubscribe" and reopen the payment modal.
+    setSubError(null);
+    setIsPaymentModalOpen(true);
   };
 
   const handleConfirmSubscribe = async (args?: {
@@ -247,7 +280,7 @@ export default function Profile({ userName }: { userName?: string }) {
       setSubError(null);
       setIsSubLoading(true);
       await subscribeToUser(user.id, args);
-      setIsSubscribed(true);
+      await refreshSubscriptionStatus();
       setPostsReloadToken((prev) => prev + 1);
       setIsPaymentModalOpen(false);
     } catch (err) {
@@ -309,6 +342,15 @@ export default function Profile({ userName }: { userName?: string }) {
     if (!priceLabel) return "Subscribe";
     return `Subscribe (${priceLabel})`;
   };
+
+  const now = new Date();
+  const accessUntilDate = accessUntil ? new Date(accessUntil) : null;
+  const hasPaidThroughAccess =
+    !isSubscriptionActive &&
+    isSubscribed &&
+    accessUntilDate instanceof Date &&
+    !Number.isNaN(accessUntilDate.getTime()) &&
+    accessUntilDate.getTime() > now.getTime();
 
   return (
     <main style={{ position: "relative" }}>
@@ -410,17 +452,17 @@ export default function Profile({ userName }: { userName?: string }) {
             type="button"
             onClick={handleSubscribeToggle}
             className="auth-submit"
-            disabled={isSubLoading}
+            disabled={isSubLoading || isUnsubscribing}
             style={{ width: "auto", marginRight: "0.5rem" }}
           >
             {!isLoggedIn
               ? subscribeLabel()
               : isSubLoading
-              ? isSubscribed
-                ? "Unsubscribing..."
-                : "Subscribing..."
+              ? "Loading..."
               : isSubscribed
-              ? "Unsubscribe"
+              ? isSubscriptionActive
+                ? "Unsubscribe"
+                : "Resubscribe"
               : subscribeLabel()}
           </button>
         )}
@@ -446,6 +488,12 @@ export default function Profile({ userName }: { userName?: string }) {
 
       {subError && <p className="auth-error">{subError}</p>}
 
+      {!isOwner && hasPaidThroughAccess && accessUntilDate ? (
+        <p className="text-muted" style={{ marginTop: "0.25rem" }}>
+          Cancelled • active until {accessUntilDate.toLocaleDateString()}
+        </p>
+      ) : null}
+
       <section>
         <hr />
         <UserPosts
@@ -466,6 +514,90 @@ export default function Profile({ userName }: { userName?: string }) {
           void handleConfirmSubscribe(args);
         }}
       />
+
+      <Lightbox
+        isOpen={isUnsubscribeModalOpen}
+        onClose={() => {
+          if (isUnsubscribing) return;
+          setIsUnsubscribeModalOpen(false);
+        }}
+        zIndex={2500}
+      >
+        <div
+          className="app-card"
+          style={{
+            width: "min(520px, 100%)",
+            padding: "1.25rem",
+            borderRadius: "1rem",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: "0.5rem" }}>
+            Cancel subscription?
+          </h3>
+          <p className="text-muted" style={{ marginTop: 0 }}>
+            Are you sure you want to unsubscribe?
+          </p>
+
+          {accessUntilDate &&
+          !Number.isNaN(accessUntilDate.getTime()) &&
+          accessUntilDate.getTime() > now.getTime() ? (
+            <p className="text-muted" style={{ marginTop: 0 }}>
+              You’ll still have access until{" "}
+              {accessUntilDate.toLocaleDateString()}.
+            </p>
+          ) : null}
+
+          {unsubscribeError ? (
+            <p className="auth-error">{unsubscribeError}</p>
+          ) : null}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "0.5rem",
+            }}
+          >
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setIsUnsubscribeModalOpen(false)}
+              disabled={isUnsubscribing}
+            >
+              Keep
+            </button>
+            <button
+              type="button"
+              className="auth-submit"
+              onClick={async () => {
+                if (!user) return;
+                if (isUnsubscribing) return;
+
+                try {
+                  setUnsubscribeError(null);
+                  setIsUnsubscribing(true);
+
+                  await unsubscribeFromUser(user.id);
+                  await refreshSubscriptionStatus();
+
+                  setIsUnsubscribeModalOpen(false);
+                } catch (err) {
+                  const message =
+                    (err instanceof Error && err.message) ||
+                    "Failed to unsubscribe.";
+                  setUnsubscribeError(message);
+                } finally {
+                  setIsUnsubscribing(false);
+                }
+              }}
+              disabled={isUnsubscribing}
+              style={{ width: "auto", marginTop: 0 }}
+            >
+              {isUnsubscribing ? "Unsubscribing..." : "Unsubscribe"}
+            </button>
+          </div>
+        </div>
+      </Lightbox>
     </main>
   );
 }

@@ -349,6 +349,59 @@ const subscribeToUser = async (
 
 const subscriptionStatusInFlight = new Map<string, Promise<boolean>>();
 
+export type MySubscriptionStatus = {
+  subscribed: boolean;
+  subscription?: {
+    id?: string;
+    isActive?: boolean;
+    accessUntil?: string;
+  };
+};
+
+const getMySubscription = async (
+  userId: string
+): Promise<MySubscriptionStatus> => {
+  const token = window.localStorage.getItem("authToken");
+
+  if (!token) {
+    return { subscribed: false };
+  }
+
+  const response = await fetch(
+    `${API_BASE}/subscriptions/${encodeURIComponent(userId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load subscription status.";
+    throw new Error(message);
+  }
+
+  const subscribed = !!(
+    data &&
+    typeof data.subscribed === "boolean" &&
+    data.subscribed
+  );
+  const subscription =
+    data && data.subscription && typeof data.subscription === "object"
+      ? (data.subscription as {
+          id?: string;
+          isActive?: boolean;
+          accessUntil?: string;
+        })
+      : undefined;
+
+  return { subscribed, subscription };
+};
+
 const getMySubscriptionStatus = async (userId: string): Promise<boolean> => {
   const token = window.localStorage.getItem("authToken");
 
@@ -363,25 +416,8 @@ const getMySubscriptionStatus = async (userId: string): Promise<boolean> => {
   }
 
   const promise = (async () => {
-    const response = await fetch(
-      `${API_BASE}/subscriptions/${encodeURIComponent(userId)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const message =
-        (data && typeof data.error === "string" && data.error) ||
-        "Failed to load subscription status.";
-      throw new Error(message);
-    }
-
-    return !!(data && typeof data.subscribed === "boolean" && data.subscribed);
+    const result = await getMySubscription(userId);
+    return !!result.subscribed;
   })();
 
   subscriptionStatusInFlight.set(inFlightKey, promise);
@@ -649,6 +685,7 @@ export {
   removeMyPaymentMethod,
   setMyDefaultPaymentMethod,
   getMySubscriptions,
+  getMySubscription,
   getMySubscriptionStatus,
   subscribeToUser,
   unsubscribeFromUser,
