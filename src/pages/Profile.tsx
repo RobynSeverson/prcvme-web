@@ -22,6 +22,7 @@ export default function Profile({ userName }: { userName?: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubscriptionActive, setIsSubscriptionActive] = useState(false);
   const [accessUntil, setAccessUntil] = useState<string | null>(null);
@@ -225,11 +226,84 @@ export default function Profile({ userName }: { userName?: string }) {
     const baseUrl = window.location.origin;
     const url = `${baseUrl}/${user.userName}`;
 
-    try {
-      if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
+    const setCopiedFeedback = () => {
+      setCopyStatus("copied");
+      window.setTimeout(() => {
+        setCopyStatus("idle");
+      }, 1600);
+    };
+
+    const tryLegacyCopy = (text: string): boolean => {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        textarea.style.top = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return ok;
+      } catch {
+        return false;
       }
+    };
+
+    try {
+      // 1) Modern clipboard (often fails on mobile Safari / non-HTTPS).
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        navigator.clipboard.writeText &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(url);
+        setCopiedFeedback();
+        return;
+      }
+
+      // 2) Legacy copy fallback.
+      if (tryLegacyCopy(url)) {
+        setCopiedFeedback();
+        return;
+      }
+
+      // 3) Mobile-friendly fallback: open share sheet (includes Copy on iOS).
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: user.displayName || user.userName,
+          text: "Profile link",
+          url,
+        });
+        return;
+      }
+
+      // 4) Last resort: prompt so the user can manually copy.
+      window.prompt("Copy this profile link:", url);
     } catch (err) {
+      // If clipboard fails (common on mobile), try share sheet, then prompt.
+      try {
+        if (typeof navigator !== "undefined" && navigator.share) {
+          await navigator.share({
+            title: user.displayName || user.userName,
+            text: "Profile link",
+            url,
+          });
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        window.prompt("Copy this profile link:", url);
+      } catch {
+        // ignore
+      }
+
       console.error("Failed to copy profile link", err);
     }
   };
@@ -482,7 +556,7 @@ export default function Profile({ userName }: { userName?: string }) {
           className="auth-submit"
           style={{ width: "auto" }}
         >
-          Copy profile link
+          {copyStatus === "copied" ? "Copied" : "Copy link"}
         </button>
       </div>
 
