@@ -1,25 +1,32 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import PaymentMethodForm from "../components/PaymentMethodForm";
-import {
-  addStoredPaymentMethodFromSummary,
-  loadPaymentMethods,
-  removeStoredPaymentMethod,
-  setDefaultPaymentMethodId,
-  type NewPaymentMethodSummary,
-  type StoredPaymentMethod,
-} from "../helpers/paymentMethods/paymentMethodsStorage";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
+import {
+  addMyPaymentMethod,
+  getMyPaymentMethods,
+  removeMyPaymentMethod,
+  setMyDefaultPaymentMethod,
+  type PaymentMethod,
+} from "../helpers/api/apiHelpers";
 
 export default function PaymentMethods() {
   const location = useLocation();
 
-  const [methods, setMethods] = useState<StoredPaymentMethod[]>([]);
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [defaultId, setDefaultId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formState, setFormState] = useState<{
     isValid: boolean;
-    summary: NewPaymentMethodSummary | null;
-  }>({ isValid: false, summary: null });
+    payload: {
+      nameOnCard: string;
+      cardNumber: string;
+      expirationDate: string;
+      cardCode?: string;
+    } | null;
+  }>({ isValid: false, payload: null });
 
   const loginLink = useMemo(
     () =>
@@ -30,41 +37,96 @@ export default function PaymentMethods() {
   );
 
   useEffect(() => {
-    const loaded = loadPaymentMethods();
-    setMethods(loaded.methods);
-    setDefaultId(loaded.defaultId);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setError(null);
+        setIsLoading(true);
+        const loaded = await getMyPaymentMethods();
+        if (cancelled) return;
+        setMethods(loaded.methods);
+        setDefaultId(loaded.defaultId);
+      } catch (err) {
+        if (cancelled) return;
+        const message =
+          (err instanceof Error && err.message) ||
+          "Failed to load payment methods.";
+        setError(message);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleFormChange = useCallback(
-    (change: { isValid: boolean; summary: NewPaymentMethodSummary | null }) => {
+    (change: {
+      isValid: boolean;
+      payload: {
+        nameOnCard: string;
+        cardNumber: string;
+        expirationDate: string;
+        cardCode?: string;
+      } | null;
+    }) => {
       setFormState(change);
     },
     []
   );
 
-  const handleAdd = () => {
-    if (!formState.isValid || !formState.summary) return;
-
-    const stored = addStoredPaymentMethodFromSummary(formState.summary, {
-      makeDefaultIfNone: true,
-    });
-
-    const loaded = loadPaymentMethods();
-    setMethods(loaded.methods);
-    setDefaultId(loaded.defaultId ?? stored.id);
+  const handleAdd = async () => {
+    if (!formState.isValid || !formState.payload) return;
+    try {
+      setError(null);
+      setIsSaving(true);
+      const next = await addMyPaymentMethod(formState.payload);
+      setMethods(next.methods);
+      setDefaultId(next.defaultId);
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) ||
+        "Failed to add payment method.";
+      setError(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleRemove = (id: string) => {
-    const loaded = removeStoredPaymentMethod(id);
-    setMethods(loaded.methods);
-    setDefaultId(loaded.defaultId);
+  const handleRemove = async (id: string) => {
+    try {
+      setError(null);
+      setIsSaving(true);
+      const next = await removeMyPaymentMethod(id);
+      setMethods(next.methods);
+      setDefaultId(next.defaultId);
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) ||
+        "Failed to remove payment method.";
+      setError(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSetDefault = (id: string) => {
-    setDefaultPaymentMethodId(id);
-    const loaded = loadPaymentMethods();
-    setMethods(loaded.methods);
-    setDefaultId(loaded.defaultId);
+  const handleSetDefault = async (id: string) => {
+    try {
+      setError(null);
+      setIsSaving(true);
+      const result = await setMyDefaultPaymentMethod(id);
+      setDefaultId(result.defaultId);
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) ||
+        "Failed to set default payment method.";
+      setError(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!isUserLoggedIn()) {
@@ -83,10 +145,20 @@ export default function PaymentMethods() {
     <main>
       <h1>Payment methods</h1>
 
+      {error ? (
+        <p className="auth-error" style={{ marginTop: 0 }}>
+          {error}
+        </p>
+      ) : null}
+
       <section className="app-card" style={{ padding: "1rem" }}>
         <h2 style={{ marginTop: 0 }}>Saved methods</h2>
 
-        {methods.length === 0 ? (
+        {isLoading ? (
+          <p className="text-muted" style={{ marginBottom: 0 }}>
+            Loading...
+          </p>
+        ) : methods.length === 0 ? (
           <p className="text-muted" style={{ marginBottom: 0 }}>
             No saved payment methods yet.
           </p>
@@ -156,6 +228,7 @@ export default function PaymentMethods() {
                         type="button"
                         className="icon-button"
                         onClick={() => handleSetDefault(method.id)}
+                        disabled={isSaving}
                       >
                         Set default
                       </button>
@@ -164,6 +237,7 @@ export default function PaymentMethods() {
                       type="button"
                       className="icon-button"
                       onClick={() => handleRemove(method.id)}
+                      disabled={isSaving}
                     >
                       Remove
                     </button>
@@ -189,9 +263,9 @@ export default function PaymentMethods() {
             className="auth-submit"
             style={{ width: "auto" }}
             onClick={handleAdd}
-            disabled={!formState.isValid || !formState.summary}
+            disabled={!formState.isValid || !formState.payload || isSaving}
           >
-            Add payment method
+            {isSaving ? "Saving..." : "Add payment method"}
           </button>
         </div>
       </section>

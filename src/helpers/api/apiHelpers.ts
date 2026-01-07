@@ -102,6 +102,162 @@ export type MessageThread = {
   lastText: string;
 };
 
+export type PaymentMethod = {
+  id: string;
+  label: string;
+  last4?: string;
+  expMonth?: string;
+  expYear?: string;
+  nameOnCard?: string;
+};
+
+type PaymentMethodsResponse = {
+  methods: PaymentMethod[];
+  defaultId: string | null;
+};
+
+const getMyPaymentMethods = async (): Promise<PaymentMethodsResponse> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You need to be signed in to manage payment methods.");
+  }
+
+  const response = await fetch(`${API_BASE}/me/payment/methods`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load payment methods.";
+    throw new Error(message);
+  }
+
+  const methods =
+    data && Array.isArray(data.methods)
+      ? (data.methods as PaymentMethod[])
+      : ([] as PaymentMethod[]);
+  const defaultId =
+    data && (typeof data.defaultId === "string" || data.defaultId === null)
+      ? (data.defaultId as string | null)
+      : null;
+
+  return { methods, defaultId };
+};
+
+const addMyPaymentMethod = async (payload: {
+  nameOnCard: string;
+  cardNumber: string;
+  expirationDate: string;
+  cardCode?: string;
+}): Promise<PaymentMethodsResponse> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You need to be signed in to add payment methods.");
+  }
+
+  const response = await fetch(`${API_BASE}/me/payment/methods`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to add payment method.";
+    throw new Error(message);
+  }
+
+  const methods =
+    data && Array.isArray(data.methods)
+      ? (data.methods as PaymentMethod[])
+      : ([] as PaymentMethod[]);
+  const defaultId =
+    data && (typeof data.defaultId === "string" || data.defaultId === null)
+      ? (data.defaultId as string | null)
+      : null;
+
+  return { methods, defaultId };
+};
+
+const removeMyPaymentMethod = async (
+  paymentProfileId: string
+): Promise<PaymentMethodsResponse> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You need to be signed in to remove payment methods.");
+  }
+
+  const response = await fetch(
+    `${API_BASE}/me/payment/methods/${encodeURIComponent(paymentProfileId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to remove payment method.";
+    throw new Error(message);
+  }
+
+  const methods =
+    data && Array.isArray(data.methods)
+      ? (data.methods as PaymentMethod[])
+      : ([] as PaymentMethod[]);
+  const defaultId =
+    data && (typeof data.defaultId === "string" || data.defaultId === null)
+      ? (data.defaultId as string | null)
+      : null;
+
+  return { methods, defaultId };
+};
+
+const setMyDefaultPaymentMethod = async (
+  paymentProfileId: string | null
+): Promise<{ defaultId: string | null }> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You need to be signed in to update payment methods.");
+  }
+
+  const response = await fetch(`${API_BASE}/me/payment/default`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ paymentProfileId }),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to set default payment method.";
+    throw new Error(message);
+  }
+
+  const defaultId =
+    data && (typeof data.defaultId === "string" || data.defaultId === null)
+      ? (data.defaultId as string | null)
+      : null;
+  return { defaultId };
+};
+
 const getMySubscriptions = async (): Promise<UserSubscription[]> => {
   const token = window.localStorage.getItem("authToken");
 
@@ -409,6 +565,10 @@ export {
   getWebSocketBase,
   getUserByUserName,
   getCurrentUser,
+  getMyPaymentMethods,
+  addMyPaymentMethod,
+  removeMyPaymentMethod,
+  setMyDefaultPaymentMethod,
   getMySubscriptions,
   getMySubscriptionStatus,
   subscribeToUser,

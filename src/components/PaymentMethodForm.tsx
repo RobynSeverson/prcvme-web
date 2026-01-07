@@ -1,10 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { NewPaymentMethodSummary } from "../helpers/paymentMethods/paymentMethodsStorage";
 import { buildPaymentMethodLabel } from "../helpers/paymentMethods/paymentMethodsStorage";
+
+export type NewPaymentMethodSummary = {
+  label: string;
+  last4: string;
+  expMonth: string;
+  expYear: string;
+  nameOnCard?: string;
+};
+
+export type NewPaymentMethodPayload = {
+  // Matches the prcvme-api POST /me/payment/methods contract.
+  nameOnCard: string;
+  cardNumber: string;
+  expirationDate: string; // MMYY
+  cardCode?: string;
+};
 
 export type PaymentMethodFormChange = {
   isValid: boolean;
   summary: NewPaymentMethodSummary | null;
+  payload: NewPaymentMethodPayload | null;
 };
 
 export type PaymentMethodFormProps = {
@@ -38,6 +54,13 @@ function normalizeExpYear(value: string) {
   const digits = digitsOnly(value).slice(0, 4);
   if (digits.length <= 2) return digits;
   return digits;
+}
+
+function toExpirationDateMMYY(expMonth: string, expYear: string): string {
+  const month = normalizeExpMonth(expMonth);
+  const yearRaw = digitsOnly(expYear);
+  const yy = yearRaw.length === 4 ? yearRaw.slice(-2) : yearRaw;
+  return `${month}${yy}`;
 }
 
 function isValidNewPaymentForm(form: {
@@ -105,9 +128,23 @@ export default function PaymentMethodForm({
     };
   }, [isValid, nameOnCard, cardNumber, expMonth, expYear]);
 
+  const payload = useMemo<NewPaymentMethodPayload | null>(() => {
+    if (!isValid) return null;
+    const expirationDate = toExpirationDateMMYY(expMonth, expYear);
+    const cardDigits = digitsOnly(cardNumber);
+    const cvcDigits = digitsOnly(cvc);
+
+    return {
+      nameOnCard: nameOnCard.trim(),
+      cardNumber: cardDigits,
+      expirationDate,
+      cardCode: cvcDigits ? cvcDigits : undefined,
+    };
+  }, [isValid, nameOnCard, cardNumber, expMonth, expYear, cvc]);
+
   useEffect(() => {
-    onChangeRef.current({ isValid, summary });
-  }, [isValid, summary]);
+    onChangeRef.current({ isValid, summary, payload });
+  }, [isValid, summary, payload]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

@@ -2,19 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import Lightbox from "./Lightbox";
 import PaymentMethodForm from "./PaymentMethodForm";
 import {
-  addStoredPaymentMethodFromSummary,
-  getDefaultPaymentMethodId,
-  loadPaymentMethods,
-  type NewPaymentMethodSummary,
-  type StoredPaymentMethod,
-} from "../helpers/paymentMethods/paymentMethodsStorage";
+  addMyPaymentMethod,
+  getMyPaymentMethods,
+  type PaymentMethod,
+} from "../helpers/api/apiHelpers";
+import type {
+  NewPaymentMethodPayload,
+  NewPaymentMethodSummary,
+} from "./PaymentMethodForm";
 
 export type SubscribePaymentModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (
-    paymentMethod: StoredPaymentMethod | NewPaymentMethodSummary
-  ) => void;
+  onConfirm: (paymentMethod?: PaymentMethod | NewPaymentMethodSummary) => void;
   isConfirmLoading?: boolean;
   errorMessage?: string | null;
 };
@@ -26,11 +26,16 @@ export default function SubscribePaymentModal({
   isConfirmLoading,
   errorMessage,
 }: SubscribePaymentModalProps) {
-  const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
+  const [storedMethods, setStoredMethods] = useState<PaymentMethod[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isLoadingMethods, setIsLoadingMethods] = useState(false);
+  const [isSavingMethod, setIsSavingMethod] = useState(false);
 
   const [newMethodSummary, setNewMethodSummary] =
     useState<NewPaymentMethodSummary | null>(null);
+  const [newMethodPayload, setNewMethodPayload] =
+    useState<NewPaymentMethodPayload | null>(null);
   const [isNewMethodValid, setIsNewMethodValid] = useState(false);
   const [storeMethod, setStoreMethod] = useState(true);
 
@@ -38,12 +43,15 @@ export default function SubscribePaymentModal({
     ({
       isValid,
       summary,
+      payload,
     }: {
       isValid: boolean;
       summary: NewPaymentMethodSummary | null;
+      payload: NewPaymentMethodPayload | null;
     }) => {
       setIsNewMethodValid(isValid);
       setNewMethodSummary(summary);
+      setNewMethodPayload(payload);
     },
     []
   );
@@ -51,49 +59,99 @@ export default function SubscribePaymentModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const loaded = loadPaymentMethods();
-    setStoredMethods(loaded.methods);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setPaymentError(null);
+        setIsLoadingMethods(true);
+        const loaded = await getMyPaymentMethods();
+        if (cancelled) return;
 
-    if (loaded.methods.length > 0) {
-      const preferred = getDefaultPaymentMethodId();
-      setSelectedMethodId(preferred ?? loaded.methods[0].id);
-    } else {
-      setSelectedMethodId("new");
-    }
+        setStoredMethods(loaded.methods);
+
+        if (loaded.methods.length > 0) {
+          setSelectedMethodId(loaded.defaultId ?? loaded.methods[0].id);
+        } else {
+          setSelectedMethodId("new");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const message =
+          (err instanceof Error && err.message) ||
+          "Failed to load payment methods.";
+        setPaymentError(message);
+        setStoredMethods([]);
+        setSelectedMethodId("new");
+      } finally {
+        if (!cancelled) setIsLoadingMethods(false);
+      }
+    };
+
+    void load();
 
     setNewMethodSummary(null);
+    setNewMethodPayload(null);
     setIsNewMethodValid(false);
     setStoreMethod(true);
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
 
   const isAddingNew = selectedMethodId === "new";
 
   const canConfirm =
     !isConfirmLoading &&
+    !isLoadingMethods &&
+    !isSavingMethod &&
     !!selectedMethodId &&
     (isAddingNew ? isNewMethodValid : true);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!canConfirm) return;
 
     if (selectedMethodId !== "new") {
       const selected = storedMethods.find((m) => m.id === selectedMethodId);
-      if (selected) onConfirm(selected);
+      onConfirm(selected);
       return;
     }
 
     if (!newMethodSummary) return;
 
-    if (storeMethod) {
-      const stored = addStoredPaymentMethodFromSummary(newMethodSummary, {
-        makeDefaultIfNone: true,
-      });
-      setStoredMethods((prev) => [stored, ...prev]);
-      onConfirm(stored);
+    if (!storeMethod) {
+      // Not storing: keep local-only flow for now (caller may ignore the value).
+      onConfirm(newMethodSummary);
       return;
     }
 
-    onConfirm(newMethodSummary);
+    if (!newMethodPayload) {
+      setPaymentError("Payment details are incomplete.");
+      return;
+    }
+
+    try {
+      setPaymentError(null);
+      setIsSavingMethod(true);
+      const result = await addMyPaymentMethod(newMethodPayload);
+      setStoredMethods(result.methods);
+
+      if (result.methods.length > 0) {
+        setSelectedMethodId(result.defaultId ?? result.methods[0].id);
+      }
+
+      const selected =
+        result.methods.find((m) => m.id === (result.defaultId ?? "")) ??
+        result.methods[0];
+      onConfirm(selected);
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) ||
+        "Failed to add payment method.";
+      setPaymentError(message);
+    } finally {
+      setIsSavingMethod(false);
+    }
   };
 
   return (
@@ -121,6 +179,12 @@ export default function SubscribePaymentModal({
           </p>
         ) : null}
 
+        {paymentError ? (
+          <p className="auth-error" style={{ marginTop: 0 }}>
+            {paymentError}
+          </p>
+        ) : null}
+
         <div
           style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
         >
@@ -144,6 +208,7 @@ export default function SubscribePaymentModal({
                 value={method.id}
                 checked={selectedMethodId === method.id}
                 onChange={() => setSelectedMethodId(method.id)}
+                disabled={isLoadingMethods || isSavingMethod}
               />
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <span style={{ fontWeight: 600, color: "var(--text-color)" }}>
@@ -176,6 +241,7 @@ export default function SubscribePaymentModal({
               value="new"
               checked={selectedMethodId === "new"}
               onChange={() => setSelectedMethodId("new")}
+              disabled={isLoadingMethods || isSavingMethod}
             />
             <span style={{ fontWeight: 600, color: "var(--text-color)" }}>
               Add new payment method
@@ -209,8 +275,7 @@ export default function SubscribePaymentModal({
               className="text-muted"
               style={{ margin: 0, fontSize: "0.85rem" }}
             >
-              Note: for now we only store a masked summary locally (no full card
-              number).
+              Note: saving stores this method to your account.
             </p>
           </div>
         ) : null}
@@ -227,7 +292,7 @@ export default function SubscribePaymentModal({
             type="button"
             onClick={onClose}
             className="icon-button"
-            disabled={isConfirmLoading}
+            disabled={isConfirmLoading || isLoadingMethods || isSavingMethod}
           >
             Cancel
           </button>
@@ -238,7 +303,11 @@ export default function SubscribePaymentModal({
             disabled={!canConfirm}
             style={{ width: "auto", marginTop: 0 }}
           >
-            {isConfirmLoading ? "Subscribing..." : "Subscribe"}
+            {isConfirmLoading
+              ? "Subscribing..."
+              : isSavingMethod
+              ? "Saving..."
+              : "Subscribe"}
           </button>
         </div>
       </div>
