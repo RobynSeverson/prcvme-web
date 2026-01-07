@@ -227,7 +227,15 @@ export default function Profile({ userName }: { userName?: string }) {
     }
   };
 
-  const handleConfirmSubscribe = async () => {
+  const handleConfirmSubscribe = async (args?: {
+    paymentProfileId?: string;
+    cardInfo?: {
+      nameOnCard: string;
+      cardNumber: string;
+      expirationDate: string;
+      cardCode?: string;
+    };
+  }) => {
     if (!user) return;
     if (isOwner) return;
     if (!isLoggedIn) {
@@ -238,7 +246,7 @@ export default function Profile({ userName }: { userName?: string }) {
     try {
       setSubError(null);
       setIsSubLoading(true);
-      await subscribeToUser(user.id);
+      await subscribeToUser(user.id, args);
       setIsSubscribed(true);
       setPostsReloadToken((prev) => prev + 1);
       setIsPaymentModalOpen(false);
@@ -454,8 +462,8 @@ export default function Profile({ userName }: { userName?: string }) {
         onClose={() => setIsPaymentModalOpen(false)}
         isConfirmLoading={isSubLoading}
         errorMessage={isPaymentModalOpen ? subError : null}
-        onConfirm={() => {
-          void handleConfirmSubscribe();
+        onConfirm={(args) => {
+          void handleConfirmSubscribe(args);
         }}
       />
     </main>

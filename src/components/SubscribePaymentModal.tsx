@@ -14,7 +14,10 @@ import type {
 export type SubscribePaymentModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (paymentMethod?: PaymentMethod | NewPaymentMethodSummary) => void;
+  onConfirm: (args: {
+    paymentProfileId?: string;
+    cardInfo?: NewPaymentMethodPayload;
+  }) => void;
   isConfirmLoading?: boolean;
   errorMessage?: string | null;
 };
@@ -113,15 +116,19 @@ export default function SubscribePaymentModal({
 
     if (selectedMethodId !== "new") {
       const selected = storedMethods.find((m) => m.id === selectedMethodId);
-      onConfirm(selected);
+      onConfirm({ paymentProfileId: selected?.id });
       return;
     }
 
     if (!newMethodSummary) return;
 
     if (!storeMethod) {
-      // Not storing: keep local-only flow for now (caller may ignore the value).
-      onConfirm(newMethodSummary);
+      // Not storing: use the one-time card info for the subscription.
+      if (!newMethodPayload) {
+        setPaymentError("Payment details are incomplete.");
+        return;
+      }
+      onConfirm({ cardInfo: newMethodPayload });
       return;
     }
 
@@ -143,7 +150,7 @@ export default function SubscribePaymentModal({
       const selected =
         result.methods.find((m) => m.id === (result.defaultId ?? "")) ??
         result.methods[0];
-      onConfirm(selected);
+      onConfirm({ paymentProfileId: selected?.id });
     } catch (err) {
       const message =
         (err instanceof Error && err.message) ||

@@ -287,7 +287,18 @@ const getMySubscriptions = async (): Promise<UserSubscription[]> => {
   return [];
 };
 
-const subscribeToUser = async (userId: string): Promise<UserSubscription> => {
+const subscribeToUser = async (
+  userId: string,
+  args?: {
+    paymentProfileId?: string;
+    cardInfo?: {
+      nameOnCard: string;
+      cardNumber: string;
+      expirationDate: string;
+      cardCode?: string;
+    };
+  }
+): Promise<UserSubscription> => {
   const token = window.localStorage.getItem("authToken");
 
   if (!token) {
@@ -299,8 +310,13 @@ const subscribeToUser = async (userId: string): Promise<UserSubscription> => {
     {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      body: JSON.stringify({
+        paymentProfileId: args?.paymentProfileId,
+        cardInfo: args?.cardInfo,
+      }),
     }
   );
 
