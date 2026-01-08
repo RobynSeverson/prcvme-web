@@ -18,6 +18,7 @@ export default function PaymentMethods() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentFormKey, setPaymentFormKey] = useState(0);
   const [formState, setFormState] = useState<{
     isValid: boolean;
     payload: {
@@ -86,6 +87,10 @@ export default function PaymentMethods() {
       const next = await addMyPaymentMethod(formState.payload);
       setMethods(next.methods);
       setDefaultId(next.defaultId);
+
+      // Clear the form after a successful save.
+      setFormState({ isValid: false, payload: null });
+      setPaymentFormKey((k) => k + 1);
     } catch (err) {
       const message =
         (err instanceof Error && err.message) ||
@@ -255,7 +260,7 @@ export default function PaymentMethods() {
       >
         <h2 style={{ marginTop: 0 }}>Add a new method</h2>
 
-        <PaymentMethodForm onChange={handleFormChange} />
+        <PaymentMethodForm key={paymentFormKey} onChange={handleFormChange} />
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button
