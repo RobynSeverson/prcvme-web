@@ -12,6 +12,8 @@ import { getMyFavorites } from "../helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import SecureImage from "../components/SecureImage";
+import SecureVideo from "../components/SecureVideo";
+import Lightbox from "../components/Lightbox";
 import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
@@ -492,6 +494,12 @@ function PostFavoriteCard({
   onRemove: () => void;
 }) {
   const post = favorite.target;
+  const [activeMedia, setActiveMedia] = useState<{
+    type: "image" | "video";
+    src: string;
+    mediaKey: string;
+    mediaType: "image" | "video";
+  } | null>(null);
   if (!post) {
     return (
       <div className="app-card" style={{ padding: "1rem" }}>
@@ -509,6 +517,8 @@ function PostFavoriteCard({
     }
     return `${API_BASE}/users/${userId}/media/${mediaKey}`;
   };
+
+  const isLightboxOpen = Boolean(activeMedia);
 
   return (
     <div className="app-card" style={{ padding: "1rem" }}>
@@ -543,18 +553,41 @@ function PostFavoriteCard({
       </div>
       {firstMedia && (
         <div style={{ marginTop: "0.75rem" }}>
-          <SecureImage
-            src={buildMediaUrl(firstMedia.mediaKey, post.userId)}
-            alt="Post media"
-            isOwner={false}
-            protectContent={false}
-            style={{
-              width: "100%",
-              maxHeight: "200px",
-              objectFit: "cover",
-              borderRadius: "0.5rem",
-            }}
-          />
+          {(() => {
+            const src = buildMediaUrl(firstMedia.mediaKey, post.userId);
+            const type = firstMedia.mediaType;
+            const isVideo = type === "video";
+            const thumbSrc = isVideo
+              ? `${src}${src.includes("?") ? "&" : "?"}thumbnail=1`
+              : src;
+
+            return (
+              <div
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  setActiveMedia({
+                    type: isVideo ? "video" : "image",
+                    src,
+                    mediaKey: firstMedia.mediaKey,
+                    mediaType: isVideo ? "video" : "image",
+                  });
+                }}
+              >
+                <SecureImage
+                  src={thumbSrc}
+                  alt="Post media"
+                  isOwner={false}
+                  protectContent={false}
+                  style={{
+                    width: "100%",
+                    maxHeight: "200px",
+                    objectFit: "cover",
+                    borderRadius: "0.5rem",
+                  }}
+                />
+              </div>
+            );
+          })()}
           {post.mediaItems.length > 1 && (
             <p
               className="text-muted"
@@ -571,6 +604,77 @@ function PostFavoriteCard({
       >
         {new Date(post.createdAt).toLocaleDateString()}
       </p>
+
+      <Lightbox isOpen={isLightboxOpen} onClose={() => setActiveMedia(null)}>
+        {activeMedia ? (
+          <div
+            style={{
+              position: "relative",
+              width: "auto",
+              maxWidth: "min(96vw, 1100px)",
+              maxHeight: "88vh",
+            }}
+          >
+            {activeMedia.type === "image" ? (
+              <SecureImage
+                src={activeMedia.src}
+                alt="Post media"
+                isOwner={false}
+                protectContent={false}
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  objectFit: "contain",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            ) : (
+              <SecureVideo
+                src={activeMedia.src}
+                isOwner={false}
+                protectContent={false}
+                disablePictureInPicture
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            )}
+
+            <div
+              style={
+                {
+                  position: "absolute",
+                  top: "12px",
+                  left: "12px",
+                  padding: "0.3rem 0.5rem",
+                  borderRadius: "999px",
+                  background: "rgba(0,0,0,0.45)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  zIndex: 1,
+                  ["--text-muted" as any]: "rgba(255,255,255,0.72)",
+                } as React.CSSProperties
+              }
+            >
+              <LikeBookmarkButtons
+                targetType="media"
+                targetId={favorite.targetId}
+                mediaKey={activeMedia.mediaKey}
+                mediaType={activeMedia.mediaType}
+                size={22}
+                showCounts={true}
+              />
+            </div>
+          </div>
+        ) : null}
+      </Lightbox>
     </div>
   );
 }
@@ -586,6 +690,13 @@ function MediaFavoriteCard({
 }) {
   const post = favorite.target;
   const mediaKey = favorite.mediaKey;
+  const mediaType = favorite.mediaType;
+  const [activeMedia, setActiveMedia] = useState<{
+    type: "image" | "video";
+    src: string;
+    mediaKey: string;
+    mediaType: "image" | "video";
+  } | null>(null);
 
   if (!post || !mediaKey) {
     return (
@@ -613,6 +724,11 @@ function MediaFavoriteCard({
   };
 
   const mediaSrc = buildMediaUrl(mediaKey, post.userId);
+  const isVideo = mediaType === "video";
+  const thumbSrc = isVideo
+    ? `${mediaSrc}${mediaSrc.includes("?") ? "&" : "?"}thumbnail=1`
+    : mediaSrc;
+  const isLightboxOpen = Boolean(activeMedia);
 
   return (
     <div
@@ -625,14 +741,23 @@ function MediaFavoriteCard({
       }}
     >
       <SecureImage
-        src={mediaSrc}
+        src={thumbSrc}
         alt="Saved media"
         isOwner={false}
         protectContent={false}
+        onClick={() => {
+          setActiveMedia({
+            type: isVideo ? "video" : "image",
+            src: mediaSrc,
+            mediaKey,
+            mediaType: isVideo ? "video" : "image",
+          });
+        }}
         style={{
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          cursor: "pointer",
         }}
       />
       <div
@@ -659,6 +784,77 @@ function MediaFavoriteCard({
           style={{ color: "white" }}
         />
       </div>
+
+      <Lightbox isOpen={isLightboxOpen} onClose={() => setActiveMedia(null)}>
+        {activeMedia ? (
+          <div
+            style={{
+              position: "relative",
+              width: "auto",
+              maxWidth: "min(96vw, 1100px)",
+              maxHeight: "88vh",
+            }}
+          >
+            {activeMedia.type === "image" ? (
+              <SecureImage
+                src={activeMedia.src}
+                alt="Saved media"
+                isOwner={false}
+                protectContent={false}
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  objectFit: "contain",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            ) : (
+              <SecureVideo
+                src={activeMedia.src}
+                isOwner={false}
+                protectContent={false}
+                disablePictureInPicture
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            )}
+
+            <div
+              style={
+                {
+                  position: "absolute",
+                  top: "12px",
+                  left: "12px",
+                  padding: "0.3rem 0.5rem",
+                  borderRadius: "999px",
+                  background: "rgba(0,0,0,0.45)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  zIndex: 1,
+                  ["--text-muted" as any]: "rgba(255,255,255,0.72)",
+                } as React.CSSProperties
+              }
+            >
+              <LikeBookmarkButtons
+                targetType="media"
+                targetId={favorite.targetId}
+                mediaKey={activeMedia.mediaKey}
+                mediaType={activeMedia.mediaType}
+                size={22}
+                showCounts={true}
+              />
+            </div>
+          </div>
+        ) : null}
+      </Lightbox>
     </div>
   );
 }

@@ -91,6 +91,8 @@ export default function UserPostPanel({
   const [activeMedia, setActiveMedia] = useState<{
     type: "image" | "video";
     src: string;
+    mediaKey: string;
+    mediaType: "image" | "video";
   } | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -366,7 +368,12 @@ export default function UserPostPanel({
                     onClick={(e) => {
                       if (protectContent) return;
                       e.preventDefault();
-                      setActiveMedia({ type: "image", src });
+                      setActiveMedia({
+                        type: "image",
+                        src,
+                        mediaKey: item.mediaKey,
+                        mediaType: "image",
+                      });
                     }}
                     style={{
                       width: "100%",
@@ -420,7 +427,14 @@ export default function UserPostPanel({
                   {!protectContent ? (
                     <button
                       type="button"
-                      onClick={() => setActiveMedia({ type: "video", src })}
+                      onClick={() =>
+                        setActiveMedia({
+                          type: "video",
+                          src,
+                          mediaKey: item.mediaKey,
+                          mediaType: "video",
+                        })
+                      }
                       aria-label="Open video"
                       title="Open"
                       style={{
@@ -510,35 +524,74 @@ export default function UserPostPanel({
       </div>
 
       <Lightbox isOpen={isLightboxOpen} onClose={() => setActiveMedia(null)}>
-        {activeMedia?.type === "image" ? (
-          <SecureImage
-            src={activeMedia.src}
-            alt="Post media"
-            isOwner={isOwner}
-            protectContent={false}
+        {activeMedia ? (
+          <div
             style={{
+              position: "relative",
               width: "auto",
               maxWidth: "min(96vw, 1100px)",
               maxHeight: "88vh",
-              objectFit: "contain",
-              borderRadius: "12px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
             }}
-          />
-        ) : activeMedia?.type === "video" ? (
-          <SecureVideo
-            src={activeMedia.src}
-            isOwner={isOwner}
-            protectContent={false}
-            disablePictureInPicture
-            style={{
-              width: "auto",
-              maxWidth: "min(96vw, 1100px)",
-              maxHeight: "88vh",
-              borderRadius: "12px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-            }}
-          />
+          >
+            {activeMedia.type === "image" ? (
+              <SecureImage
+                src={activeMedia.src}
+                alt="Post media"
+                isOwner={isOwner}
+                protectContent={false}
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  objectFit: "contain",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            ) : (
+              <SecureVideo
+                src={activeMedia.src}
+                isOwner={isOwner}
+                protectContent={false}
+                disablePictureInPicture
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            )}
+
+            <div
+              style={
+                {
+                  position: "absolute",
+                  top: "12px",
+                  left: "12px",
+                  padding: "0.3rem 0.5rem",
+                  borderRadius: "999px",
+                  background: "rgba(0,0,0,0.15)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  zIndex: 1,
+                  // Make LikeBookmarkButtons' inactive color readable on dark background.
+                  ["--text-muted" as any]: "rgba(255,255,255,0.72)",
+                } as React.CSSProperties
+              }
+            >
+              <LikeBookmarkButtons
+                targetType="media"
+                targetId={post.id}
+                mediaKey={activeMedia.mediaKey}
+                mediaType={activeMedia.mediaType}
+                size={22}
+                showCounts={true}
+              />
+            </div>
+          </div>
         ) : null}
       </Lightbox>
 
