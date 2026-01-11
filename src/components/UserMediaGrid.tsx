@@ -372,7 +372,7 @@ export default function UserMediaGrid({
       {!error && items.length > 0 ? (
         <div style={{ padding: "0.5rem 0" }}>
           {isLoadingMore && <p className="text-muted">Loading more...</p>}
-          {!hasMore && <p className="text-muted">That's all!</p>}
+          {!hasMore && <p className="text-muted">That's all for now ;)</p>}
           <div ref={loadMoreRef} style={{ height: "1px" }} />
         </div>
       ) : null}
