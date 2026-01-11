@@ -4,6 +4,7 @@ import type { UserPost } from "../models/userPost";
 import Lightbox from "./Lightbox";
 import SecureImage from "./SecureImage";
 import SecureVideo from "./SecureVideo";
+import LikeBookmarkButtons from "./LikeBookmarkButtons";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import { deleteMyPost } from "../helpers/api/apiHelpers";
 
@@ -488,6 +489,25 @@ export default function UserPostPanel({
       <p className="post-meta text-muted" style={{ marginTop: "0.25rem" }}>
         Posted on {new Date(post.createdAt).toLocaleString()}
       </p>
+
+      {/* Like and Bookmark buttons */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          marginTop: "0.5rem",
+          paddingTop: "0.5rem",
+          borderTop: "1px solid rgba(148, 163, 184, 0.15)",
+        }}
+      >
+        <LikeBookmarkButtons
+          targetType="post"
+          targetId={post.id}
+          size={20}
+          showCounts={true}
+        />
+      </div>
 
       <Lightbox isOpen={isLightboxOpen} onClose={() => setActiveMedia(null)}>
         {activeMedia?.type === "image" ? (

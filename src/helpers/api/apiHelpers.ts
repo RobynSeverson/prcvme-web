@@ -1,4 +1,10 @@
 import type { User } from "../../models/user";
+import type {
+  FavoriteKind,
+  FavoriteTargetType,
+  EnrichedFavorite,
+} from "../../models/favorite";
+import type { MediaType } from "../../models/userPost";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -675,6 +681,247 @@ const getMessagesWebSocketUrl = (userId: string): string | null => {
   return url.toString();
 };
 
+// ==================== Favorites (Likes & Bookmarks) ====================
+
+export type CreateFavoriteArgs = {
+  kind: FavoriteKind;
+  targetType: FavoriteTargetType;
+  targetId: string;
+  mediaKey?: string;
+  mediaType?: MediaType;
+};
+
+/**
+ * Create a favorite (like or bookmark) for a target.
+ */
+const createFavorite = async (args: CreateFavoriteArgs): Promise<void> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to like or bookmark.");
+  }
+
+  const response = await fetch(`${API_BASE}/favorites`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(args),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to create favorite.";
+    throw new Error(message);
+  }
+};
+
+export type DeleteFavoriteArgs = {
+  kind: FavoriteKind;
+  targetType: FavoriteTargetType;
+  targetId: string;
+  mediaKey?: string;
+};
+
+/**
+ * Delete a favorite (unlike or unbookmark).
+ */
+const deleteFavorite = async (args: DeleteFavoriteArgs): Promise<void> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to unlike or unbookmark.");
+  }
+
+  const response = await fetch(`${API_BASE}/favorites`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(args),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to delete favorite.";
+    throw new Error(message);
+  }
+};
+
+export type GetFavoriteStatusArgs = {
+  kind: FavoriteKind;
+  targetType: FavoriteTargetType;
+  targetId: string;
+  mediaKey?: string;
+};
+
+/**
+ * Check if the current user has favorited a specific target.
+ */
+const getFavoriteStatus = async (
+  args: GetFavoriteStatusArgs
+): Promise<boolean> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    return false;
+  }
+
+  const params = new URLSearchParams({
+    kind: args.kind,
+    targetType: args.targetType,
+    targetId: args.targetId,
+  });
+  if (args.mediaKey) {
+    params.set("mediaKey", args.mediaKey);
+  }
+
+  const response = await fetch(`${API_BASE}/favorites/status?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    return false;
+  }
+
+  return !!(data && data.favorited);
+};
+
+export type GetBulkFavoriteStatusArgs = {
+  kind: FavoriteKind;
+  targets: Array<{
+    targetType: FavoriteTargetType;
+    targetId: string;
+    mediaKey?: string;
+  }>;
+};
+
+/**
+ * Check favorite status for multiple targets at once.
+ * Returns a map of "targetType:targetId" or "targetType:targetId:mediaKey" to boolean.
+ */
+const getBulkFavoriteStatus = async (
+  args: GetBulkFavoriteStatusArgs
+): Promise<Record<string, boolean>> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    return {};
+  }
+
+  const response = await fetch(`${API_BASE}/favorites/status/bulk`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(args),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    return {};
+  }
+
+  return (data && data.status) || {};
+};
+
+export type GetFavoriteCountArgs = {
+  kind: FavoriteKind;
+  targetType: FavoriteTargetType;
+  targetId: string;
+  mediaKey?: string;
+};
+
+/**
+ * Get the count of favorites (likes or bookmarks) for a target.
+ */
+const getFavoriteCount = async (
+  args: GetFavoriteCountArgs
+): Promise<number> => {
+  const params = new URLSearchParams({
+    kind: args.kind,
+    targetType: args.targetType,
+    targetId: args.targetId,
+  });
+  if (args.mediaKey) {
+    params.set("mediaKey", args.mediaKey);
+  }
+
+  const response = await fetch(`${API_BASE}/favorites/count?${params}`);
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    return 0;
+  }
+
+  return typeof data?.count === "number" ? data.count : 0;
+};
+
+export type GetMyFavoritesArgs = {
+  kind: FavoriteKind;
+  targetType: FavoriteTargetType;
+  limit?: number;
+  cursor?: string;
+};
+
+export type GetMyFavoritesResponse = {
+  favorites: EnrichedFavorite[];
+  nextCursor: string | null;
+};
+
+/**
+ * Get the current user's favorites for the Collections page.
+ */
+const getMyFavorites = async (
+  args: GetMyFavoritesArgs
+): Promise<GetMyFavoritesResponse> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to view your collections.");
+  }
+
+  const params = new URLSearchParams({
+    kind: args.kind,
+    targetType: args.targetType,
+  });
+  if (args.limit) {
+    params.set("limit", String(args.limit));
+  }
+  if (args.cursor) {
+    params.set("cursor", args.cursor);
+  }
+
+  const response = await fetch(`${API_BASE}/me/favorites?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load favorites.";
+    throw new Error(message);
+  }
+
+  return {
+    favorites: (data && Array.isArray(data.favorites)
+      ? data.favorites
+      : []) as EnrichedFavorite[],
+    nextCursor:
+      data && (typeof data.nextCursor === "string" || data.nextCursor === null)
+        ? (data.nextCursor as string | null)
+        : null,
+  };
+};
+
 export {
   getAPIBase,
   getWebSocketBase,
@@ -695,4 +942,11 @@ export {
   getDirectMessages,
   sendDirectMessage,
   getMessagesWebSocketUrl,
+  // Favorites
+  createFavorite,
+  deleteFavorite,
+  getFavoriteStatus,
+  getBulkFavoriteStatus,
+  getFavoriteCount,
+  getMyFavorites,
 };

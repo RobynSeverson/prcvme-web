@@ -22,6 +22,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
 import PaymentMethods from "./pages/PaymentMethods";
+import Collections from "./pages/Collections";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 import { getUserByUserName } from "./helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "./helpers/userHelpers";
@@ -222,6 +223,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/subscriptions" element={<Subscriptions />} />
+          <Route path="/collections" element={<Collections />} />
           <Route path="/profit" element={<Profit />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

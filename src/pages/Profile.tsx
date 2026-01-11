@@ -11,6 +11,7 @@ import {
 } from "../helpers/api/apiHelpers";
 import SubscribePaymentModal from "../components/SubscribePaymentModal";
 import Lightbox from "../components/Lightbox";
+import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import {
   getLoggedInUserFromStorage,
@@ -490,18 +491,37 @@ export default function Profile({ userName }: { userName?: string }) {
           paddingLeft: 0,
         }}
       >
-        <p style={{ margin: 0, fontWeight: 600 }}>
-          {user.displayName || user.userName}
-        </p>
-        <p
+        <div
           style={{
-            margin: "0.15rem 0",
-            fontSize: "0.9rem",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
           }}
-          className="text-muted"
         >
-          @{user.userName}
-        </p>
+          <div>
+            <p style={{ margin: 0, fontWeight: 600 }}>
+              {user.displayName || user.userName}
+            </p>
+            <p
+              style={{
+                margin: "0.15rem 0",
+                fontSize: "0.9rem",
+              }}
+              className="text-muted"
+            >
+              @{user.userName}
+            </p>
+          </div>
+          {/* Like and Bookmark buttons for the profile */}
+          {!isOwner && user.id && (
+            <LikeBookmarkButtons
+              targetType="profile"
+              targetId={user.id}
+              size={22}
+              showCounts={true}
+            />
+          )}
+        </div>
         {user.bio && (
           <p
             style={{

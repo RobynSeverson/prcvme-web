@@ -55,6 +55,9 @@ export default function Navbar({
             <NavLink to="/subscriptions" onClick={closeNav} end>
               Subscriptions
             </NavLink>
+            <NavLink to="/collections" onClick={closeNav} end>
+              Collections
+            </NavLink>
             {isCreator ? (
               <NavLink to="/profit" onClick={closeNav} end>
                 Profit
