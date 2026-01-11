@@ -1,6 +1,10 @@
 export type SubscriptionDeal = {
+  dealId: string;
   months: number;
   price: number;
+  title: string;
+  description: string;
+  expiresAt?: string;
 };
 
 export type User = {

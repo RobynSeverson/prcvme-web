@@ -12,7 +12,14 @@ export default function EditProfile() {
   const [bio, setBio] = useState("");
   const [subscriptionPrice, setSubscriptionPrice] = useState<string>("");
   const [subscriptionDeals, setSubscriptionDeals] = useState<
-    Array<{ months: string; price: string }>
+    Array<{
+      dealId: string;
+      months: string;
+      price: string;
+      title: string;
+      description: string;
+      expiresAt: string;
+    }>
   >([]);
   const [profilePictureUrl, setProfilePictureUrl] = useState("");
   const [profileBackgroundUrl, setProfileBackgroundUrl] = useState("");
@@ -39,6 +46,19 @@ export default function EditProfile() {
   const loginLink = `/login?redirect=${encodeURIComponent(
     location.pathname + location.search
   )}`;
+
+  const createDealId = (): string => {
+    try {
+      if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+        return (crypto as any).randomUUID();
+      }
+    } catch {
+      // ignore
+    }
+    return `${Date.now().toString(16)}-${Math.random()
+      .toString(16)
+      .slice(2)}-${Math.random().toString(16).slice(2)}`;
+  };
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");
@@ -92,10 +112,39 @@ export default function EditProfile() {
             ? loadedUser.subscriptionDeals
             : [];
 
+          const toDateInputValue = (value: unknown): string => {
+            if (typeof value !== "string" || !value.trim()) return "";
+            // If it's already YYYY-MM-DD, keep it.
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return value.trim();
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return "";
+            return d.toISOString().slice(0, 10);
+          };
+
+          const defaultTitle = (months: number) =>
+            `${months} month${months === 1 ? "" : "s"} deal`;
+          const defaultDescription = (months: number) =>
+            `Pay for ${months} month${months === 1 ? "" : "s"} up front.`;
+
           setSubscriptionDeals(
             loadedDeals.map((d) => ({
+              dealId:
+                typeof (d as any).dealId === "string" &&
+                (d as any).dealId.trim()
+                  ? (d as any).dealId
+                  : createDealId(),
               months: String(d.months),
               price: String(d.price),
+              title:
+                typeof (d as any).title === "string" && (d as any).title.trim()
+                  ? (d as any).title
+                  : defaultTitle(d.months),
+              description:
+                typeof (d as any).description === "string" &&
+                (d as any).description.trim()
+                  ? (d as any).description
+                  : defaultDescription(d.months),
+              expiresAt: toDateInputValue((d as any).expiresAt),
             }))
           );
 
@@ -177,9 +226,34 @@ export default function EditProfile() {
 
         const deals: SubscriptionDeal[] = [];
         for (const deal of subscriptionDeals) {
+          const dealId = deal.dealId;
           const monthsRaw = deal.months.trim();
           const priceRaw = deal.price.trim();
-          if (!monthsRaw && !priceRaw) continue;
+          const titleRaw = deal.title.trim();
+          const descriptionRaw = deal.description.trim();
+          const expiresAtRaw = deal.expiresAt.trim();
+
+          const isBlank =
+            !monthsRaw &&
+            !priceRaw &&
+            !titleRaw &&
+            !descriptionRaw &&
+            !expiresAtRaw;
+          if (isBlank) continue;
+
+          if (!monthsRaw || !priceRaw || !titleRaw || !descriptionRaw) {
+            setError(
+              "Each deal must include months, price, title, and description (or leave the row blank)."
+            );
+            return;
+          }
+
+          if (!dealId || typeof dealId !== "string" || !dealId.trim()) {
+            setError(
+              "Each deal must have an id. Try removing and re-adding the deal row."
+            );
+            return;
+          }
 
           const months = Number.parseInt(monthsRaw, 10);
           if (!isValidCurrency(priceRaw)) {
@@ -202,7 +276,29 @@ export default function EditProfile() {
             return;
           }
 
-          deals.push({ months, price });
+          if (titleRaw.length > 80) {
+            setError("Deal title must be 80 characters or less.");
+            return;
+          }
+
+          if (descriptionRaw.length > 280) {
+            setError("Deal description must be 280 characters or less.");
+            return;
+          }
+
+          if (expiresAtRaw && !/^\d{4}-\d{2}-\d{2}$/.test(expiresAtRaw)) {
+            setError("Deal expiration must be a valid date.");
+            return;
+          }
+
+          deals.push({
+            dealId: dealId.trim(),
+            months,
+            price,
+            title: titleRaw,
+            description: descriptionRaw,
+            ...(expiresAtRaw ? { expiresAt: expiresAtRaw } : {}),
+          });
         }
 
         payload.subscriptionDeals = deals;
@@ -291,7 +387,17 @@ export default function EditProfile() {
   };
 
   const handleAddDealRow = () => {
-    setSubscriptionDeals((prev) => [...prev, { months: "", price: "" }]);
+    setSubscriptionDeals((prev) => [
+      ...prev,
+      {
+        dealId: createDealId(),
+        months: "",
+        price: "",
+        title: "",
+        description: "",
+        expiresAt: "",
+      },
+    ]);
   };
 
   const handleRemoveDealRow = (index: number) => {
@@ -538,9 +644,12 @@ export default function EditProfile() {
                       key={index}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr auto",
+                        gridTemplateColumns: "1fr 1fr",
                         gap: "0.75rem",
                         alignItems: "end",
+                        padding: "0.75rem",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "0.75rem",
                       }}
                     >
                       <label className="auth-field" style={{ margin: 0 }}>
@@ -578,14 +687,74 @@ export default function EditProfile() {
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        className="auth-toggle"
-                        style={{ marginTop: 0 }}
-                        onClick={() => handleRemoveDealRow(index)}
+
+                      <label
+                        className="auth-field"
+                        style={{ margin: 0, gridColumn: "1 / -1" }}
                       >
-                        Remove
-                      </button>
+                        <span>Title</span>
+                        <input
+                          type="text"
+                          value={deal.title}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setSubscriptionDeals((prev) =>
+                              prev.map((d, i) =>
+                                i === index ? { ...d, title: value } : d
+                              )
+                            );
+                          }}
+                        />
+                      </label>
+
+                      <label
+                        className="auth-field"
+                        style={{ margin: 0, gridColumn: "1 / -1" }}
+                      >
+                        <span>Description</span>
+                        <textarea
+                          rows={2}
+                          value={deal.description}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setSubscriptionDeals((prev) =>
+                              prev.map((d, i) =>
+                                i === index ? { ...d, description: value } : d
+                              )
+                            );
+                          }}
+                          className="new-post-textarea"
+                        />
+                      </label>
+
+                      <label className="auth-field" style={{ margin: 0 }}>
+                        <span>Expires (optional)</span>
+                        <input
+                          type="date"
+                          value={deal.expiresAt}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setSubscriptionDeals((prev) =>
+                              prev.map((d, i) =>
+                                i === index ? { ...d, expiresAt: value } : d
+                              )
+                            );
+                          }}
+                        />
+                      </label>
+
+                      <div
+                        style={{ display: "flex", justifyContent: "flex-end" }}
+                      >
+                        <button
+                          type="button"
+                          className="auth-toggle"
+                          style={{ marginTop: 0 }}
+                          onClick={() => handleRemoveDealRow(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

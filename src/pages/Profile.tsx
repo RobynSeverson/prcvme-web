@@ -470,6 +470,35 @@ export default function Profile({ userName }: { userName?: string }) {
           />
         )}
 
+        {profileBackgroundSrc && !isOwner && user.id ? (
+          <div
+            aria-label="Profile actions"
+            style={{
+              position: "absolute",
+              right: "0.75rem",
+              bottom: "0.75rem",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.35rem 0.55rem",
+              borderRadius: "999px",
+              background: "rgba(0,0,0,0.45)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              color: "rgba(255,255,255,0.92)",
+              zIndex: 2,
+            }}
+          >
+            <LikeBookmarkButtons
+              targetType="profile"
+              targetId={user.id}
+              size={22}
+              showCounts={true}
+            />
+          </div>
+        ) : null}
+
         {profileBackgroundSrc && postStats ? (
           <div
             aria-label="Profile post stats"
@@ -640,8 +669,8 @@ export default function Profile({ userName }: { userName?: string }) {
               @{user.userName}
             </p>
           </div>
-          {/* Like and Bookmark buttons for the profile */}
-          {!isOwner && user.id && (
+          {/* If there is no background image, keep the profile actions here as a fallback. */}
+          {!profileBackgroundSrc && !isOwner && user.id && (
             <LikeBookmarkButtons
               targetType="profile"
               targetId={user.id}
@@ -717,7 +746,6 @@ export default function Profile({ userName }: { userName?: string }) {
       ) : null}
 
       <section>
-        <hr />
         {isLoggedIn ? (
           <div
             style={{
