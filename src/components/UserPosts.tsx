@@ -11,6 +11,11 @@ export type UserPostsProps = {
   protectContent?: boolean;
   isOwner?: boolean;
   reloadToken?: number;
+  onStats?: (stats: {
+    postCount: number;
+    imageCount: number;
+    videoCount: number;
+  }) => void;
 };
 
 export default function UserPosts({
@@ -20,6 +25,7 @@ export default function UserPosts({
   protectContent,
   isOwner,
   reloadToken,
+  onStats,
 }: UserPostsProps) {
   const [posts, setPosts] = useState<UserPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -105,6 +111,28 @@ export default function UserPosts({
 
       setNextCursor(newNextCursor);
       setHasMore(Boolean(newNextCursor));
+
+      const stats =
+        data && data.stats && typeof data.stats === "object"
+          ? (data.stats as Partial<{
+              postCount: unknown;
+              imageCount: unknown;
+              videoCount: unknown;
+            }>)
+          : null;
+
+      if (
+        stats &&
+        typeof stats.postCount === "number" &&
+        typeof stats.imageCount === "number" &&
+        typeof stats.videoCount === "number"
+      ) {
+        onStats?.({
+          postCount: stats.postCount,
+          imageCount: stats.imageCount,
+          videoCount: stats.videoCount,
+        });
+      }
 
       setPosts((prev) => {
         if (!opts.append) return newPosts;

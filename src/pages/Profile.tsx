@@ -34,6 +34,11 @@ export default function Profile({ userName }: { userName?: string }) {
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [unsubscribeError, setUnsubscribeError] = useState<string | null>(null);
   const [postsReloadToken, setPostsReloadToken] = useState(0);
+  const [postStats, setPostStats] = useState<{
+    postCount: number;
+    imageCount: number;
+    videoCount: number;
+  } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -51,6 +56,8 @@ export default function Profile({ userName }: { userName?: string }) {
       try {
         setIsLoading(true);
         setError(null);
+
+        setPostStats(null);
 
         if (userName) {
           try {
@@ -460,6 +467,124 @@ export default function Profile({ userName }: { userName?: string }) {
           />
         )}
 
+        {profileBackgroundSrc && postStats ? (
+          <div
+            aria-label="Profile post stats"
+            style={{
+              position: "absolute",
+              top: "0.75rem",
+              right: "0.75rem",
+              display: "inline-flex",
+              gap: "0.4rem",
+              padding: "0.4rem 0.55rem",
+              borderRadius: "999px",
+              background: "rgba(0,0,0,0.45)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              color: "rgba(255,255,255,0.92)",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                fill="none"
+              >
+                <path
+                  d="M7 7h10M7 12h10M7 17h6"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8l-3 2v-2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {postStats.postCount}
+            </span>
+            <span style={{ opacity: 0.6 }}>•</span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                fill="none"
+              >
+                <path
+                  d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M8 14l2.5-3 2.5 3 2-2 3 4"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M9 9.5h.01"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {postStats.imageCount}
+            </span>
+            <span style={{ opacity: 0.6 }}>•</span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                fill="none"
+              >
+                <path
+                  d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M10 9l6 3-6 3V9z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {postStats.videoCount}
+            </span>
+          </div>
+        ) : null}
+
         {profilePictureSrc && (
           <img
             src={profilePictureSrc}
@@ -596,6 +721,7 @@ export default function Profile({ userName }: { userName?: string }) {
           protectContent={!isOwner && !isSubscribed}
           isOwner={isOwner}
           reloadToken={postsReloadToken}
+          onStats={(stats) => setPostStats(stats)}
         />
       </section>
 
