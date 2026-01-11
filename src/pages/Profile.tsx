@@ -798,7 +798,7 @@ export default function Profile({ userName }: { userName?: string }) {
           <UserPosts
             userId={user.id}
             userName={userName}
-            protectContent={!isOwner && !isSubscribed}
+            protectContent={!isOwner && !isSubscribed && !loggedInUser?.isAdmin}
             isOwner={isOwner}
             reloadToken={postsReloadToken}
             onStats={(stats) => setPostStats(stats)}
