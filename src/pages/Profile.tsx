@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
+import UserMediaGrid from "../components/UserMediaGrid";
 import {
   getCurrentUser,
   getMySubscription,
@@ -34,6 +35,7 @@ export default function Profile({ userName }: { userName?: string }) {
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [unsubscribeError, setUnsubscribeError] = useState<string | null>(null);
   const [postsReloadToken, setPostsReloadToken] = useState(0);
+  const [contentTab, setContentTab] = useState<"posts" | "media">("posts");
   const [postStats, setPostStats] = useState<{
     postCount: number;
     imageCount: number;
@@ -58,6 +60,7 @@ export default function Profile({ userName }: { userName?: string }) {
         setError(null);
 
         setPostStats(null);
+        setContentTab("posts");
 
         if (userName) {
           try {
@@ -715,14 +718,64 @@ export default function Profile({ userName }: { userName?: string }) {
 
       <section>
         <hr />
-        <UserPosts
-          userId={user.id}
-          userName={userName}
-          protectContent={!isOwner && !isSubscribed}
-          isOwner={isOwner}
-          reloadToken={postsReloadToken}
-          onStats={(stats) => setPostStats(stats)}
-        />
+        {isLoggedIn ? (
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              marginBottom: "1.25rem",
+              borderBottom: "1px solid var(--border-color)",
+              paddingBottom: "0.75rem",
+            }}
+          >
+            {(["posts", "media"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setContentTab(tab)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: "0.5rem 1rem",
+                  cursor: "pointer",
+                  fontWeight: contentTab === tab ? 700 : 400,
+                  color:
+                    contentTab === tab
+                      ? "var(--primary-color)"
+                      : "var(--text-muted)",
+                  borderBottom:
+                    contentTab === tab
+                      ? "2px solid var(--primary-color)"
+                      : "2px solid transparent",
+                  marginBottom: "-0.8rem",
+                  transition: "color 0.15s, border-color 0.15s",
+                }}
+              >
+                {tab === "posts" ? "Posts" : "Media"}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {contentTab === "media" && isLoggedIn ? (
+          <UserMediaGrid
+            userId={user.id}
+            userName={userName}
+            protectContent={!isOwner && !isSubscribed}
+            isOwner={isOwner}
+            reloadToken={postsReloadToken}
+            onStats={(stats) => setPostStats(stats)}
+          />
+        ) : (
+          <UserPosts
+            userId={user.id}
+            userName={userName}
+            protectContent={!isOwner && !isSubscribed}
+            isOwner={isOwner}
+            reloadToken={postsReloadToken}
+            onStats={(stats) => setPostStats(stats)}
+          />
+        )}
       </section>
 
       <SubscribePaymentModal
