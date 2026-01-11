@@ -23,6 +23,7 @@ import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
 import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
+import Admin from "./pages/Admin";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 import { getUserByUserName } from "./helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "./helpers/userHelpers";
@@ -138,6 +139,7 @@ function App() {
       !!window.localStorage.getItem("authToken")
   );
   const [isCreator, setIsCreator] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") {
       return "dark";
@@ -164,10 +166,14 @@ function App() {
 
     try {
       const raw = window.localStorage.getItem("authUser");
-      const parsed = raw ? (JSON.parse(raw) as { isCreator?: boolean }) : null;
+      const parsed = raw
+        ? (JSON.parse(raw) as { isCreator?: boolean; isAdmin?: boolean })
+        : null;
       setIsCreator(Boolean(parsed && parsed.isCreator === true));
+      setIsAdmin(Boolean(parsed && parsed.isAdmin === true));
     } catch {
       setIsCreator(false);
+      setIsAdmin(false);
     }
   }, [location]);
 
@@ -206,6 +212,7 @@ function App() {
       <Navbar
         isLoggedIn={isLoggedIn}
         isCreator={isCreator}
+        isAdmin={isAdmin}
         theme={theme}
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}
@@ -224,6 +231,7 @@ function App() {
           <Route path="/messages" element={<Messages />} />
           <Route path="/subscriptions" element={<Subscriptions />} />
           <Route path="/collections" element={<Collections />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/profit" element={<Profit />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
