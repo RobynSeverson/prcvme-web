@@ -340,6 +340,16 @@ function ProfileFavoriteCard({
     );
   }
 
+  const userName = typeof profile.userName === "string" ? profile.userName : "";
+  const displayName =
+    typeof profile.displayName === "string" ? profile.displayName : "";
+  const profileLink = userName ? `/${userName}` : null;
+  const initial = (
+    displayName.trim()[0] ||
+    userName.trim()[0] ||
+    "?"
+  ).toUpperCase();
+
   const profilePictureSrc = buildProfileImageUrl(
     profile.id,
     profile.profilePictureUrl
@@ -348,51 +358,102 @@ function ProfileFavoriteCard({
   return (
     <div className="app-card" style={{ padding: "1rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <Link to={`/${profile.userName}`}>
-          {profilePictureSrc ? (
-            <img
-              src={profilePictureSrc}
-              alt={profile.displayName || profile.userName}
-              style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "999px",
-                objectFit: "cover",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "999px",
-                background: "rgba(15, 23, 42, 0.4)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 700,
-                color: "rgba(255,255,255,0.9)",
-              }}
-            >
-              {(profile.displayName?.[0] || profile.userName[0]).toUpperCase()}
-            </div>
-          )}
-        </Link>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Link
-            to={`/${profile.userName}`}
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            <p style={{ margin: 0, fontWeight: 600 }}>
-              {profile.displayName || profile.userName}
-            </p>
-            <p
-              className="text-muted"
-              style={{ margin: 0, fontSize: "0.85rem" }}
-            >
-              @{profile.userName}
-            </p>
+        {profileLink ? (
+          <Link to={profileLink}>
+            {profilePictureSrc ? (
+              <img
+                src={profilePictureSrc}
+                alt={displayName || userName || "Profile"}
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  borderRadius: "999px",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  borderRadius: "999px",
+                  background: "rgba(15, 23, 42, 0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.9)",
+                }}
+              >
+                {initial}
+              </div>
+            )}
           </Link>
+        ) : (
+          <div aria-label="Profile">
+            {profilePictureSrc ? (
+              <img
+                src={profilePictureSrc}
+                alt={displayName || "Profile"}
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  borderRadius: "999px",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  borderRadius: "999px",
+                  background: "rgba(15, 23, 42, 0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.9)",
+                }}
+              >
+                {initial}
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {profileLink ? (
+            <Link
+              to={profileLink}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                {displayName || userName || "Unknown user"}
+              </p>
+              {userName ? (
+                <p
+                  className="text-muted"
+                  style={{ margin: 0, fontSize: "0.85rem" }}
+                >
+                  @{userName}
+                </p>
+              ) : null}
+            </Link>
+          ) : (
+            <>
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                {displayName || "Unknown user"}
+              </p>
+              {userName ? (
+                <p
+                  className="text-muted"
+                  style={{ margin: 0, fontSize: "0.85rem" }}
+                >
+                  @{userName}
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
         <LikeBookmarkButtons
           targetType="profile"
