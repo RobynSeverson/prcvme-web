@@ -14,6 +14,7 @@ type ThreadRow = {
   user: User;
   lastText: string;
   lastMessageAt: string;
+  isUnread: boolean;
 };
 
 export default function Messages() {
@@ -120,6 +121,7 @@ export default function Messages() {
                 user: u,
                 lastText: t.lastText,
                 lastMessageAt: t.lastMessageAt,
+                isUnread: t.isUnread === true,
               } as ThreadRow;
             } catch {
               return null;
@@ -347,6 +349,21 @@ export default function Messages() {
                 t.user.profilePictureUrl
               );
 
+              const unreadDot = t.isUnread ? (
+                <span
+                  aria-label="Unread"
+                  title="Unread"
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "999px",
+                    background: "#4f46e5",
+                    boxShadow: "0 0 0 3px rgba(79,70,229,0.18)",
+                    flex: "0 0 auto",
+                  }}
+                />
+              ) : null;
+
               return (
                 <div
                   key={t.user.id}
@@ -356,6 +373,11 @@ export default function Messages() {
                     alignItems: "center",
                     padding: "0.5rem 0",
                     borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    background: t.isUnread
+                      ? "rgba(79,70,229,0.10)"
+                      : "transparent",
+                    borderRadius: t.isUnread ? "0.65rem" : undefined,
+                    paddingInline: t.isUnread ? "0.5rem" : undefined,
                   }}
                 >
                   <div>
@@ -364,9 +386,10 @@ export default function Messages() {
                         display: "flex",
                         alignItems: "center",
                         gap: "0.5rem",
-                        fontWeight: 600,
+                        fontWeight: t.isUnread ? 750 : 600,
                       }}
                     >
+                      {unreadDot}
                       <span
                         aria-hidden="true"
                         style={{
