@@ -162,6 +162,28 @@ body {
   text-align: left;
 }
 
+.nav-link-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.2rem;
+  min-width: 1.2rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+}
+
 .nav-links a:hover,
 .nav-links .nav-logout:hover,
 .nav-links .nav-theme-toggle:hover {

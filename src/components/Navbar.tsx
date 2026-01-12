@@ -5,6 +5,7 @@ type NavbarProps = {
   isLoggedIn: boolean;
   isCreator: boolean;
   isAdmin: boolean;
+  unreadMessageThreads?: number;
   theme: "light" | "dark";
   onToggleTheme: () => void;
   onLogout: () => void;
@@ -15,6 +16,7 @@ export default function Navbar({
   isLoggedIn,
   isCreator,
   isAdmin,
+  unreadMessageThreads,
   theme,
   onToggleTheme,
   onLogout,
@@ -52,7 +54,18 @@ export default function Navbar({
               Profile
             </NavLink>
             <NavLink to="/messages" onClick={closeNav} end>
-              Messages
+              <span className="nav-link-inline">
+                <span>Messages</span>
+                {typeof unreadMessageThreads === "number" &&
+                unreadMessageThreads > 0 ? (
+                  <span
+                    className="nav-badge"
+                    aria-label="Unread message threads"
+                  >
+                    {unreadMessageThreads > 99 ? "99+" : unreadMessageThreads}
+                  </span>
+                ) : null}
+              </span>
             </NavLink>
             <NavLink to="/subscriptions" onClick={closeNav} end>
               Subscriptions

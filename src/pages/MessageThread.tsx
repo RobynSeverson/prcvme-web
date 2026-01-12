@@ -5,6 +5,7 @@ import {
   getDirectMessages,
   getMessagesWebSocketUrl,
   getUserByUserName,
+  markMessageThreadRead,
   sendDirectMessage,
 } from "../helpers/api/apiHelpers";
 import type { User } from "../models/user";
@@ -199,6 +200,9 @@ export default function MessageThread() {
         setMessages(ui);
         setNextCursor(result.nextCursor);
 
+        // Best-effort: opening the thread marks it read.
+        void markMessageThreadRead(otherUser.id);
+
         // Ensure we start at the latest message.
         initialScrolledRef.current = false;
       } catch (err) {
@@ -302,6 +306,11 @@ export default function MessageThread() {
 
           return next;
         });
+
+        // If we're viewing this thread, consider any incoming message as read.
+        if (fromUserId !== meUserId && otherUser) {
+          void markMessageThreadRead(otherUser.id);
+        }
       } catch {
         // ignore
       }

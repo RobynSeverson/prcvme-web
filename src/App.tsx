@@ -25,7 +25,10 @@ import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
 import Admin from "./pages/Admin";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
-import { getUserByUserName } from "./helpers/api/apiHelpers";
+import {
+  getUnreadMessageThreadCount,
+  getUserByUserName,
+} from "./helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "./helpers/userHelpers";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -140,6 +143,7 @@ function App() {
   );
   const [isCreator, setIsCreator] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [unreadMessageThreads, setUnreadMessageThreads] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") {
       return "dark";
@@ -178,6 +182,48 @@ function App() {
   }, [location]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let cancelled = false;
+    let interval: number | null = null;
+
+    const refresh = async () => {
+      if (!isLoggedIn) {
+        setUnreadMessageThreads(0);
+        return;
+      }
+
+      try {
+        const count = await getUnreadMessageThreadCount();
+        if (!cancelled) {
+          setUnreadMessageThreads(Math.max(0, count));
+        }
+      } catch {
+        // Keep last known value.
+      }
+    };
+
+    const handleFocus = () => {
+      void refresh();
+    };
+
+    void refresh();
+    window.addEventListener("focus", handleFocus);
+
+    interval = window.setInterval(() => {
+      void refresh();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", handleFocus);
+      if (interval !== null) {
+        window.clearInterval(interval);
+      }
+    };
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     if (typeof document !== "undefined") {
       document.documentElement.setAttribute("data-theme", theme);
     }
@@ -213,6 +259,7 @@ function App() {
         isLoggedIn={isLoggedIn}
         isCreator={isCreator}
         isAdmin={isAdmin}
+        unreadMessageThreads={unreadMessageThreads}
         theme={theme}
         onToggleTheme={toggleTheme}
         onLogout={handleLogout}

@@ -107,6 +107,7 @@ export type MessageThread = {
   otherUserId: string;
   lastMessageAt: string;
   lastText: string;
+  isUnread?: boolean;
 };
 
 export type ProfitSummaryResponse = {
@@ -671,6 +672,38 @@ const getMyMessageThreads = async (
   return { threads, nextCursor };
 };
 
+const getUnreadMessageThreadCount = async (): Promise<number> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) return 0;
+
+  const response = await fetch(`${API_BASE}/messages/unread-count`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    return 0;
+  }
+
+  return data && typeof data.unreadThreads === "number"
+    ? data.unreadThreads
+    : 0;
+};
+
+const markMessageThreadRead = async (userId: string): Promise<void> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) return;
+
+  await fetch(`${API_BASE}/messages/${encodeURIComponent(userId)}/read`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }).catch(() => null);
+};
+
 const getMessagesWebSocketUrl = (userId: string): string | null => {
   const token = window.localStorage.getItem("authToken");
   if (!token) return null;
@@ -939,8 +972,10 @@ export {
   deleteMyPost,
   getMyProfit,
   getMyMessageThreads,
+  getUnreadMessageThreadCount,
   getDirectMessages,
   sendDirectMessage,
+  markMessageThreadRead,
   getMessagesWebSocketUrl,
   // Favorites
   createFavorite,
