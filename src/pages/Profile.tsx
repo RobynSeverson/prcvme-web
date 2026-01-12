@@ -36,6 +36,8 @@ export default function Profile({ userName }: { userName?: string }) {
   const [unsubscribeError, setUnsubscribeError] = useState<string | null>(null);
   const [postsReloadToken, setPostsReloadToken] = useState(0);
   const [contentTab, setContentTab] = useState<"posts" | "media">("posts");
+  const [isProfileImageLightboxOpen, setIsProfileImageLightboxOpen] =
+    useState(false);
   const [postStats, setPostStats] = useState<{
     postCount: number;
     imageCount: number;
@@ -413,6 +415,11 @@ export default function Profile({ userName }: { userName?: string }) {
     user.profileBackgroundUrl
   );
 
+  const handleOpenProfileImage = () => {
+    if (!profilePictureSrc) return;
+    setIsProfileImageLightboxOpen(true);
+  };
+
   const formatMonthlyPrice = (price: number) => {
     if (!Number.isFinite(price)) return null;
     return `$${price.toFixed(2)}/mo`;
@@ -461,9 +468,11 @@ export default function Profile({ userName }: { userName?: string }) {
             onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
             onDragStart={isOwner ? undefined : (e) => e.preventDefault()}
             style={{
+              display: "block",
               width: "100%",
               height: "160px",
               objectFit: "cover",
+              borderRadius: "0.75rem",
               userSelect: isOwner ? undefined : "none",
               WebkitTouchCallout: isOwner ? undefined : "none",
             }}
@@ -624,6 +633,7 @@ export default function Profile({ userName }: { userName?: string }) {
             draggable={false}
             onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
             onDragStart={isOwner ? undefined : (e) => e.preventDefault()}
+            onClick={handleOpenProfileImage}
             style={{
               position: "absolute",
               left: "1.5rem",
@@ -637,6 +647,7 @@ export default function Profile({ userName }: { userName?: string }) {
               backgroundColor: "var(--bg-color)",
               userSelect: isOwner ? undefined : "none",
               WebkitTouchCallout: isOwner ? undefined : "none",
+              cursor: "pointer",
             }}
           />
         )}
@@ -897,6 +908,41 @@ export default function Profile({ userName }: { userName?: string }) {
               {isUnsubscribing ? "Unsubscribing..." : "Unsubscribe"}
             </button>
           </div>
+        </div>
+      </Lightbox>
+
+      <Lightbox
+        isOpen={isProfileImageLightboxOpen}
+        onClose={() => setIsProfileImageLightboxOpen(false)}
+        zIndex={2600}
+      >
+        <div
+          className="app-card"
+          style={{
+            width: "min(860px, 96vw)",
+            padding: "0.75rem",
+            borderRadius: "1rem",
+            background: "rgba(0,0,0,0.25)",
+          }}
+        >
+          {profilePictureSrc ? (
+            <img
+              src={profilePictureSrc}
+              alt={`${user.displayName || user.userName} profile`}
+              draggable={false}
+              onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
+              onDragStart={isOwner ? undefined : (e) => e.preventDefault()}
+              style={{
+                width: "100%",
+                height: "auto",
+                maxHeight: "80vh",
+                objectFit: "contain",
+                borderRadius: "0.75rem",
+                userSelect: isOwner ? undefined : "none",
+                WebkitTouchCallout: isOwner ? undefined : "none",
+              }}
+            />
+          ) : null}
         </div>
       </Lightbox>
     </main>
