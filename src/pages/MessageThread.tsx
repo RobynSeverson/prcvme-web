@@ -136,7 +136,7 @@ export default function MessageThread() {
     setIsLoggedIn(isUserLoggedIn());
     const me = getLoggedInUserFromStorage();
     setMeUserId(me?.id ?? null);
-    setCanUploadMedia(me?.isCreator === true);
+    setCanUploadMedia(me?.isCreator === true || me?.isAdmin === true);
   }, []);
 
   useEffect(() => {
