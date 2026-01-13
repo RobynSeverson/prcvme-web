@@ -238,7 +238,7 @@ export default function Profile({ userName }: { userName?: string }) {
     if (typeof window === "undefined") return;
 
     const apiBaseUrl = getProfileAPIBase().replace(/\/$/, "");
-    const url = `${apiBaseUrl}/profile/${encodeURIComponent(user.userName)}`;
+    const url = `${apiBaseUrl}/u/${encodeURIComponent(user.userName)}`;
 
     const setCopiedFeedback = () => {
       setCopyStatus("copied");
