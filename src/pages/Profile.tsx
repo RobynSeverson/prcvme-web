@@ -445,6 +445,13 @@ export default function Profile({ userName }: { userName?: string }) {
     !Number.isNaN(accessUntilDate.getTime()) &&
     accessUntilDate.getTime() > now.getTime();
 
+  const canMessageUser =
+    !isOwner &&
+    isLoggedIn &&
+    (isSubscribed || hasPaidThroughAccess) &&
+    typeof user.userName === "string" &&
+    user.userName.length > 0;
+
   const formatCountLabel = (count: number, singular: string) => {
     const safeCount = Number.isFinite(count) ? count : 0;
     return `${safeCount} ${singular}${safeCount === 1 ? "" : "s"}`;
@@ -484,6 +491,43 @@ export default function Profile({ userName }: { userName?: string }) {
             }}
           />
         )}
+
+        {profileBackgroundSrc && canMessageUser ? (
+          <Link
+            to={`/messages/${encodeURIComponent(user.userName)}`}
+            className="icon-button"
+            aria-label={`Message ${user.displayName || user.userName}`}
+            title="Message"
+            style={{
+              position: "absolute",
+              right: "0.75rem",
+              top: "160px",
+              transform: "translateY(0.5rem)",
+              zIndex: 3,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M21 12a8 8 0 0 1-8 8H8l-5 2 2-5v-5a8 8 0 0 1 8-8h0a8 8 0 0 1 8 8Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M8 12h8"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M8 16h5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </Link>
+        ) : null}
 
         {profileBackgroundSrc && !isOwner && user.id ? (
           <div

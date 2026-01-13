@@ -501,7 +501,14 @@ export default function MessageThread() {
     >
       <section style={{ marginBottom: "1rem" }}>
         <p className="text-muted" style={{ margin: 0 }}>
-          {otherUser.displayName || otherUser.userName} | @{otherUser.userName}
+          <Link
+            to={`/${encodeURIComponent(otherUser.userName)}`}
+            title="View profile"
+            style={{ color: "inherit", textDecoration: "none" }}
+          >
+            {otherUser.displayName || otherUser.userName} | @
+            {otherUser.userName}
+          </Link>
         </p>
       </section>
 
