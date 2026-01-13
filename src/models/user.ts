@@ -17,6 +17,7 @@ export type User = {
   lastUpdatedAt?: string;
   profilePictureUrl?: string;
   profileBackgroundUrl?: string;
+  profilePreviewUrl?: string;
   isActive: boolean;
   isCreator: boolean;
   subscriptionPrice?: number;

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import type { DetailedHTMLProps, ImgHTMLAttributes } from "react";
-import { blurredMediaStyle } from "../constants/styleConstants";
 
 export interface SecureImageProps {
   src: string;
@@ -95,9 +94,6 @@ const SecureImage = ({
     onDragStart: !isOwner ? (e) => e.preventDefault() : undefined,
   };
 
-  const blurredMediaStyleForProtected: React.CSSProperties | undefined =
-    protectContent ? blurredMediaStyle : undefined;
-
   return (
     <img
       {...secureImgProps}
@@ -111,7 +107,6 @@ const SecureImage = ({
       style={{
         ...style,
         ...secureImageStyle,
-        ...blurredMediaStyleForProtected,
       }}
     />
   );

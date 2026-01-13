@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import type { DetailedHTMLProps, VideoHTMLAttributes } from "react";
-import { blurredMediaStyle } from "../constants/styleConstants";
 
 export interface SecureVideoProps {
   src: string;
@@ -86,9 +85,6 @@ const SecureVideo = ({
     onDragStart: protectContent ? (e) => e.preventDefault() : undefined,
   };
 
-  const blurredMediaStyleForProtected: React.CSSProperties | undefined =
-    protectContent ? blurredMediaStyle : undefined;
-
   return (
     <video
       {...secureVideoProps}
@@ -99,7 +95,6 @@ const SecureVideo = ({
       style={{
         ...style,
         ...secureVideoStyle,
-        ...blurredMediaStyleForProtected,
       }}
     />
   );
