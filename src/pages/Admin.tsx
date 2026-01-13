@@ -714,7 +714,12 @@ export default function Admin() {
                 <div className="admin-user-info">
                   <div className="admin-user-title">
                     {u.displayName || u.userName}{" "}
-                    <span className="text-muted">@{u.userName}</span>
+                    <Link
+                      to={`/${encodeURIComponent(u.userName)}`}
+                      className="text-muted"
+                    >
+                      @{u.userName}
+                    </Link>
                   </div>
                   <div className="text-muted admin-user-meta">
                     {u.email}
