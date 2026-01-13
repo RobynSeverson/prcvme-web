@@ -719,6 +719,59 @@ const getMessagesWebSocketUrl = (userId: string): string | null => {
   return url.toString();
 };
 
+// ==================== Password Reset ====================
+
+const requestPasswordReset = async (email: string): Promise<void> => {
+  const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to request password reset.";
+    throw new Error(message);
+  }
+};
+
+const verifyPasswordResetToken = async (token: string): Promise<boolean> => {
+  const url = new URL(
+    `${API_BASE}/auth/reset-password/verify`,
+    window.location.origin
+  );
+  url.searchParams.set("token", token);
+
+  const response = await fetch(url.toString());
+  const data = await response.json().catch(() => null);
+  return !!(response.ok && data && data.valid === true);
+};
+
+const resetPassword = async (args: {
+  token: string;
+  newPassword: string;
+}): Promise<void> => {
+  const response = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(args),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to reset password.";
+    throw new Error(message);
+  }
+};
+
 // ==================== Favorites (Likes & Bookmarks) ====================
 
 export type CreateFavoriteArgs = {
@@ -983,6 +1036,10 @@ export {
   sendDirectMessage,
   markMessageThreadRead,
   getMessagesWebSocketUrl,
+  // Password reset
+  requestPasswordReset,
+  verifyPasswordResetToken,
+  resetPassword,
   // Favorites
   createFavorite,
   deleteFavorite,

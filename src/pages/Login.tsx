@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -198,6 +198,12 @@ export default function Login() {
               ? "Create account"
               : "Sign in"}
           </button>
+
+          {!isRegister && (
+            <Link to="/forgot-password" className="auth-toggle">
+              Forgot password?
+            </Link>
+          )}
         </form>
 
         <button type="button" className="auth-toggle" onClick={toggleMode}>
