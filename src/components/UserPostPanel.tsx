@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { UserPost } from "../models/userPost";
 import Lightbox from "./Lightbox";
@@ -132,13 +132,141 @@ export default function UserPostPanel({
 
   const isLightboxOpen = Boolean(activeMedia);
 
-  const buildMediaUrl = (imageKey?: string | null) => {
+  const lightboxMediaItems = useMemo(() => {
+    const mediaItems = Array.isArray(post.mediaItems) ? post.mediaItems : [];
+    const result: Array<{
+      mediaKey: string;
+      mediaType: "image" | "video";
+      src: string;
+    }> = [];
+
+    for (const item of mediaItems) {
+      if (!item || typeof item.mediaKey !== "string") continue;
+      if (item.mediaType !== "image" && item.mediaType !== "video") continue;
+      const src = buildMediaUrl(item.mediaKey);
+      if (!src) continue;
+      result.push({ mediaKey: item.mediaKey, mediaType: item.mediaType, src });
+    }
+
+    return result;
+    // buildMediaUrl uses post.userId, which is stable for a given post.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.mediaItems, post.userId]);
+
+  const activeLightboxIndex = useMemo(() => {
+    if (!activeMedia) return -1;
+    return lightboxMediaItems.findIndex(
+      (m) =>
+        m.mediaKey === activeMedia.mediaKey &&
+        m.mediaType === activeMedia.mediaType
+    );
+  }, [activeMedia, lightboxMediaItems]);
+
+  const goToNextLightboxMedia = () => {
+    if (lightboxMediaItems.length <= 1) return;
+    setActiveMedia((prev) => {
+      if (!prev) return prev;
+      const idx = lightboxMediaItems.findIndex(
+        (m) => m.mediaKey === prev.mediaKey && m.mediaType === prev.mediaType
+      );
+      if (idx < 0) return prev;
+      const nextIdx = Math.min(idx + 1, lightboxMediaItems.length - 1);
+      if (nextIdx === idx) return prev;
+      const next = lightboxMediaItems[nextIdx];
+      return {
+        type: next.mediaType,
+        src: next.src,
+        mediaKey: next.mediaKey,
+        mediaType: next.mediaType,
+      };
+    });
+  };
+
+  const goToPrevLightboxMedia = () => {
+    if (lightboxMediaItems.length <= 1) return;
+    setActiveMedia((prev) => {
+      if (!prev) return prev;
+      const idx = lightboxMediaItems.findIndex(
+        (m) => m.mediaKey === prev.mediaKey && m.mediaType === prev.mediaType
+      );
+      if (idx < 0) return prev;
+      const nextIdx = Math.max(idx - 1, 0);
+      if (nextIdx === idx) return prev;
+      const next = lightboxMediaItems[nextIdx];
+      return {
+        type: next.mediaType,
+        src: next.src,
+        mediaKey: next.mediaKey,
+        mediaType: next.mediaType,
+      };
+    });
+  };
+
+  const swipeRef = useRef<{
+    x: number;
+    y: number;
+    lastX: number;
+    lastY: number;
+  } | null>(null);
+
+  const onLightboxTouchStart: React.TouchEventHandler = (e) => {
+    if (!activeMedia) return;
+    const t = e.touches[0];
+    if (!t) return;
+    swipeRef.current = {
+      x: t.clientX,
+      y: t.clientY,
+      lastX: t.clientX,
+      lastY: t.clientY,
+    };
+  };
+
+  const onLightboxTouchMove: React.TouchEventHandler = (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    if (!swipeRef.current) return;
+    swipeRef.current.lastX = t.clientX;
+    swipeRef.current.lastY = t.clientY;
+  };
+
+  const onLightboxTouchEnd: React.TouchEventHandler = () => {
+    const s = swipeRef.current;
+    swipeRef.current = null;
+    if (!s) return;
+
+    const dx = s.lastX - s.x;
+    const dy = s.lastY - s.y;
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dy) > 60) return;
+
+    if (dx < 0) goToNextLightboxMedia();
+    else goToPrevLightboxMedia();
+  };
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goToPrevLightboxMedia();
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goToNextLightboxMedia();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLightboxOpen, activeLightboxIndex, lightboxMediaItems.length]);
+
+  function buildMediaUrl(imageKey?: string | null) {
     if (!imageKey) return undefined;
     if (imageKey.startsWith("http://") || imageKey.startsWith("https://")) {
       return imageKey;
     }
     return `${API_BASE}/users/${post.userId}/media/${imageKey}`;
-  };
+  }
 
   return (
     <li className="app-card user-post-card">
@@ -532,6 +660,9 @@ export default function UserPostPanel({
               maxWidth: "min(96vw, 1100px)",
               maxHeight: "88vh",
             }}
+            onTouchStart={onLightboxTouchStart}
+            onTouchMove={onLightboxTouchMove}
+            onTouchEnd={onLightboxTouchEnd}
           >
             {activeMedia.type === "image" ? (
               <SecureImage

@@ -247,6 +247,115 @@ export default function UserMediaGrid({
 
   const isLightboxOpen = Boolean(activeMedia);
 
+  const activeLightboxIndex = useMemo(() => {
+    if (!activeMedia) return -1;
+    return items.findIndex(
+      (it) =>
+        it.postId === activeMedia.targetPostId &&
+        it.mediaKey === activeMedia.mediaKey
+    );
+  }, [activeMedia, items]);
+
+  const goToNextLightboxMedia = () => {
+    if (items.length <= 1) return;
+    setActiveMedia((prev) => {
+      if (!prev) return prev;
+      const idx = items.findIndex(
+        (it) => it.postId === prev.targetPostId && it.mediaKey === prev.mediaKey
+      );
+      if (idx < 0) return prev;
+      const nextIdx = Math.min(idx + 1, items.length - 1);
+      if (nextIdx === idx) return prev;
+      const next = items[nextIdx];
+      return {
+        type: next.mediaType,
+        src: next.src,
+        mediaKey: next.mediaKey,
+        mediaType: next.mediaType,
+        targetPostId: next.postId,
+      };
+    });
+  };
+
+  const goToPrevLightboxMedia = () => {
+    if (items.length <= 1) return;
+    setActiveMedia((prev) => {
+      if (!prev) return prev;
+      const idx = items.findIndex(
+        (it) => it.postId === prev.targetPostId && it.mediaKey === prev.mediaKey
+      );
+      if (idx < 0) return prev;
+      const nextIdx = Math.max(idx - 1, 0);
+      if (nextIdx === idx) return prev;
+      const next = items[nextIdx];
+      return {
+        type: next.mediaType,
+        src: next.src,
+        mediaKey: next.mediaKey,
+        mediaType: next.mediaType,
+        targetPostId: next.postId,
+      };
+    });
+  };
+
+  const swipeRef = useRef<{
+    x: number;
+    y: number;
+    lastX: number;
+    lastY: number;
+  } | null>(null);
+
+  const onLightboxTouchStart: React.TouchEventHandler = (e) => {
+    if (!activeMedia) return;
+    const t = e.touches[0];
+    if (!t) return;
+    swipeRef.current = {
+      x: t.clientX,
+      y: t.clientY,
+      lastX: t.clientX,
+      lastY: t.clientY,
+    };
+  };
+
+  const onLightboxTouchMove: React.TouchEventHandler = (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    if (!swipeRef.current) return;
+    swipeRef.current.lastX = t.clientX;
+    swipeRef.current.lastY = t.clientY;
+  };
+
+  const onLightboxTouchEnd: React.TouchEventHandler = () => {
+    const s = swipeRef.current;
+    swipeRef.current = null;
+    if (!s) return;
+
+    const dx = s.lastX - s.x;
+    const dy = s.lastY - s.y;
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dy) > 60) return;
+
+    if (dx < 0) goToNextLightboxMedia();
+    else goToPrevLightboxMedia();
+  };
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goToPrevLightboxMedia();
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goToNextLightboxMedia();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLightboxOpen, activeLightboxIndex, items.length]);
+
   return (
     <section>
       {isLoading && <p className="text-muted">Loading media...</p>}
@@ -386,6 +495,9 @@ export default function UserMediaGrid({
               maxWidth: "min(96vw, 1100px)",
               maxHeight: "88vh",
             }}
+            onTouchStart={onLightboxTouchStart}
+            onTouchMove={onLightboxTouchMove}
+            onTouchEnd={onLightboxTouchEnd}
           >
             {activeMedia.type === "image" ? (
               <SecureImage

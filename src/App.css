@@ -345,6 +345,21 @@ body {
   font-size: 0.8rem;
 }
 
+.footer-payments {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.footer-payment-icon {
+  height: 18px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.92;
+}
+
 .app-card {
   border-radius: 0.75rem;
   border: 1px solid var(--card-border);

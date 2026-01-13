@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildPaymentMethodLabel } from "../helpers/paymentMethods/paymentMethodsStorage";
+import PaymentIcons from "./PaymentIcons";
 
 export type NewPaymentMethodSummary = {
   label: string;
@@ -148,6 +149,7 @@ export default function PaymentMethodForm({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <PaymentIcons style={{ marginTop: 0, marginBottom: "0.25rem" }} />
       <div className="auth-field">
         <span>Name on card</span>
         <input
