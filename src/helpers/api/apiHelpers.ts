@@ -7,9 +7,14 @@ import type {
 import type { MediaType } from "../../models/userPost";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const PROFILE_API_BASE = import.meta.env.VITE_PROFILE_API_URL ?? API_BASE;
 
 const getAPIBase = (): string => {
   return API_BASE;
+};
+
+const getProfileAPIBase = (): string => {
+  return PROFILE_API_BASE;
 };
 
 const getWebSocketBase = (): string => {
@@ -957,6 +962,7 @@ const getMyFavorites = async (
 
 export {
   getAPIBase,
+  getProfileAPIBase,
   getWebSocketBase,
   getUserByUserName,
   getCurrentUser,

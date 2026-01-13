@@ -5,11 +5,11 @@ import UserPosts from "../components/UserPosts";
 import UserMediaGrid from "../components/UserMediaGrid";
 import {
   getCurrentUser,
-  getAPIBase,
   getMySubscription,
   getUserByUserName,
   subscribeToUser,
   unsubscribeFromUser,
+  getProfileAPIBase,
 } from "../helpers/api/apiHelpers";
 import SubscribePaymentModal from "../components/SubscribePaymentModal";
 import Lightbox from "../components/Lightbox";
@@ -237,7 +237,7 @@ export default function Profile({ userName }: { userName?: string }) {
     if (!user) return;
     if (typeof window === "undefined") return;
 
-    const apiBaseUrl = getAPIBase().replace(/\/$/, "");
+    const apiBaseUrl = getProfileAPIBase().replace(/\/$/, "");
     const url = `${apiBaseUrl}/profile/${encodeURIComponent(user.userName)}`;
 
     const setCopiedFeedback = () => {
