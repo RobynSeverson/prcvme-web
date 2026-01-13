@@ -5,6 +5,7 @@ import UserPosts from "../components/UserPosts";
 import UserMediaGrid from "../components/UserMediaGrid";
 import {
   getCurrentUser,
+  getAPIBase,
   getMySubscription,
   getUserByUserName,
   subscribeToUser,
@@ -236,8 +237,8 @@ export default function Profile({ userName }: { userName?: string }) {
     if (!user) return;
     if (typeof window === "undefined") return;
 
-    const baseUrl = window.location.origin;
-    const url = `${baseUrl}/${user.userName}`;
+    const apiBaseUrl = getAPIBase().replace(/\/$/, "");
+    const url = `${apiBaseUrl}/profile/${encodeURIComponent(user.userName)}`;
 
     const setCopiedFeedback = () => {
       setCopyStatus("copied");
