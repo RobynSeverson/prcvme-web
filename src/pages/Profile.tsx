@@ -445,6 +445,11 @@ export default function Profile({ userName }: { userName?: string }) {
     !Number.isNaN(accessUntilDate.getTime()) &&
     accessUntilDate.getTime() > now.getTime();
 
+  const formatCountLabel = (count: number, singular: string) => {
+    const safeCount = Number.isFinite(count) ? count : 0;
+    return `${safeCount} ${singular}${safeCount === 1 ? "" : "s"}`;
+  };
+
   return (
     <main style={{ position: "relative" }}>
       {!isOwner && (
@@ -527,10 +532,11 @@ export default function Profile({ userName }: { userName?: string }) {
               color: "rgba(255,255,255,0.92)",
               fontSize: "0.85rem",
               fontWeight: 600,
-              pointerEvents: "none",
+              pointerEvents: "auto",
             }}
           >
             <span
+              title={formatCountLabel(postStats.postCount, "post")}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -561,6 +567,7 @@ export default function Profile({ userName }: { userName?: string }) {
             </span>
             <span style={{ opacity: 0.6 }}>•</span>
             <span
+              title={formatCountLabel(postStats.imageCount, "image")}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -597,6 +604,7 @@ export default function Profile({ userName }: { userName?: string }) {
             </span>
             <span style={{ opacity: 0.6 }}>•</span>
             <span
+              title={formatCountLabel(postStats.videoCount, "video")}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
