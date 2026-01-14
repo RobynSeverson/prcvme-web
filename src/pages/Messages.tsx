@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  getCurrentUser,
   getMyMessageThreads,
+  getMySubscribers,
   getMySubscriptions,
   getUserByUserName,
 } from "../helpers/api/apiHelpers";
@@ -19,6 +21,7 @@ type ThreadRow = {
 
 export default function Messages() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => isUserLoggedIn());
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +45,24 @@ export default function Messages() {
   }, []);
 
   useEffect(() => {
+    const loadMe = async () => {
+      if (!isLoggedIn) {
+        setCurrentUser(null);
+        return;
+      }
+
+      try {
+        const me = await getCurrentUser();
+        setCurrentUser(me);
+      } catch {
+        setCurrentUser(null);
+      }
+    };
+
+    void loadMe();
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     const loadSubscribedUsers = async () => {
       if (!isLoggedIn) {
         setSubscribedUsers([]);
@@ -52,46 +73,62 @@ export default function Messages() {
         setSubscribedUsersError(null);
         setIsLoadingSubscribedUsers(true);
 
-        const subs = await getMySubscriptions();
-        const now = new Date();
-        const active = subs.filter((s) => {
-          const isActive = s.isActive !== false;
-          const accessUntil =
-            typeof s.accessUntil === "string" ? new Date(s.accessUntil) : null;
-          const hasAccess =
-            isActive ||
-            (accessUntil instanceof Date &&
-              !Number.isNaN(accessUntil.getTime()) &&
-              accessUntil.getTime() > now.getTime());
-          return hasAccess;
-        });
+        if (currentUser?.isCreator === true) {
+          const subs = await getMySubscribers({ includeInactive: true });
+          const users = (
+            subs.map((s) => s.user).filter(Boolean) as User[]
+          ).sort((a, b) => {
+            const aKey = (a.displayName || a.userName || "").toLowerCase();
+            const bKey = (b.displayName || b.userName || "").toLowerCase();
+            return aKey.localeCompare(bKey);
+          });
+          setSubscribedUsers(users);
+        } else {
+          const subs = await getMySubscriptions();
+          const now = new Date();
+          const active = subs.filter((s) => {
+            const isActive = s.isActive !== false;
+            const accessUntil =
+              typeof s.accessUntil === "string"
+                ? new Date(s.accessUntil)
+                : null;
+            const hasAccess =
+              isActive ||
+              (accessUntil instanceof Date &&
+                !Number.isNaN(accessUntil.getTime()) &&
+                accessUntil.getTime() > now.getTime());
+            return hasAccess;
+          });
 
-        const uniqueIds = Array.from(
-          new Set(active.map((s) => s.subscribedToUserId).filter(Boolean))
-        );
+          const uniqueIds = Array.from(
+            new Set(active.map((s) => s.subscribedToUserId).filter(Boolean))
+          );
 
-        const resolved = await Promise.all(
-          uniqueIds.map(async (id) => {
-            try {
-              const u = await getUserByUserName(id);
-              return u ?? null;
-            } catch {
-              return null;
-            }
-          })
-        );
+          const resolved = await Promise.all(
+            uniqueIds.map(async (id) => {
+              try {
+                const u = await getUserByUserName(id);
+                return u ?? null;
+              } catch {
+                return null;
+              }
+            })
+          );
 
-        const users = (resolved.filter(Boolean) as User[]).sort((a, b) => {
-          const aKey = (a.displayName || a.userName || "").toLowerCase();
-          const bKey = (b.displayName || b.userName || "").toLowerCase();
-          return aKey.localeCompare(bKey);
-        });
+          const users = (resolved.filter(Boolean) as User[]).sort((a, b) => {
+            const aKey = (a.displayName || a.userName || "").toLowerCase();
+            const bKey = (b.displayName || b.userName || "").toLowerCase();
+            return aKey.localeCompare(bKey);
+          });
 
-        setSubscribedUsers(users);
+          setSubscribedUsers(users);
+        }
       } catch (err) {
         const message =
           (err instanceof Error && err.message) ||
-          "Failed to load your subscriptions.";
+          (currentUser?.isCreator === true
+            ? "Failed to load your subscribers."
+            : "Failed to load your subscriptions.");
         setSubscribedUsersError(message);
         setSubscribedUsers([]);
       } finally {
@@ -100,7 +137,7 @@ export default function Messages() {
     };
 
     void loadSubscribedUsers();
-  }, [isLoggedIn]);
+  }, [isLoggedIn, currentUser?.isCreator]);
 
   useEffect(() => {
     const load = async () => {
@@ -204,7 +241,11 @@ export default function Messages() {
               // Allow click selection without closing immediately.
               window.setTimeout(() => setIsAutocompleteOpen(false), 150);
             }}
-            placeholder="Start a thread (subscribed users only)"
+            placeholder={
+              currentUser?.isCreator === true
+                ? "Start a thread (subscribers only)"
+                : "Start a thread (subscribed users only)"
+            }
             className="auth-input"
           />
           <button type="submit" className="auth-submit" disabled>

@@ -98,6 +98,15 @@ export type UserSubscription = {
   accessUntil?: string;
 };
 
+export type CreatorSubscriber = {
+  id: string;
+  subscriberUserId: string;
+  createdAt: string;
+  isActive?: boolean;
+  accessUntil?: string;
+  user: User | null;
+};
+
 export type DirectMessage = {
   id: string;
   fromUserId: string;
@@ -321,6 +330,44 @@ const getMySubscriptions = async (): Promise<UserSubscription[]> => {
 
   if (data && Array.isArray(data.subscriptions)) {
     return data.subscriptions as UserSubscription[];
+  }
+
+  return [];
+};
+
+const getMySubscribers = async (args?: {
+  includeInactive?: boolean;
+}): Promise<CreatorSubscriber[]> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to view subscribers.");
+  }
+
+  const params = new URLSearchParams();
+  if (args?.includeInactive) {
+    params.set("includeInactive", "1");
+  }
+
+  const url = params.toString()
+    ? `${API_BASE}/me/subscribers?${params.toString()}`
+    : `${API_BASE}/me/subscribers`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to load subscribers.";
+    throw new Error(message);
+  }
+
+  if (data && Array.isArray(data.subscribers)) {
+    return data.subscribers as CreatorSubscriber[];
   }
 
   return [];
@@ -1139,6 +1186,7 @@ export {
   removeMyPaymentMethod,
   setMyDefaultPaymentMethod,
   getMySubscriptions,
+  getMySubscribers,
   getMySubscription,
   getMySubscriptionStatus,
   subscribeToUser,
