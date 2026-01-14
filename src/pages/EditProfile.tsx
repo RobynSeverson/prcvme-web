@@ -332,6 +332,20 @@ export default function EditProfile() {
       : withLeadingZero;
   };
 
+  const normalizeUserName = (raw: string): string => {
+    // Enforce URL-safe username characters: letters, numbers, '.', '_', '-'
+    return raw.replace(/\s+/g, "").replace(/[^A-Za-z0-9._-]/g, "");
+  };
+
+  const userNameTrimmed = userName.trim();
+  const userNameNormalized = normalizeUserName(userNameTrimmed);
+  const userNameLengthOk =
+    userNameNormalized.length >= 3 && userNameNormalized.length <= 30;
+  const userNameFormatOk = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(
+    userNameNormalized
+  );
+  const userNameOk = userNameLengthOk && userNameFormatOk;
+
   const isValidCurrency = (value: string): boolean => {
     const normalized = normalizeCurrencyInput(value);
     if (!normalized) return false;
@@ -344,6 +358,13 @@ export default function EditProfile() {
     setError(null);
     setSuccess(null);
 
+    if (!userNameOk) {
+      setError(
+        'Username must be 3-30 characters using only letters, numbers, ".", "_", or "-" (must start/end with a letter/number).'
+      );
+      return;
+    }
+
     const token = window.localStorage.getItem("authToken");
 
     if (!token) {
@@ -355,7 +376,7 @@ export default function EditProfile() {
 
     try {
       const payload: Record<string, unknown> = {
-        userName,
+        userName: userNameNormalized,
         displayName: displayName || undefined,
         bio: bio || undefined,
         profilePictureUrl: profilePictureUrl || undefined,
@@ -728,8 +749,20 @@ export default function EditProfile() {
               name="userName"
               required
               value={userName}
-              onChange={(event) => setUserName(event.target.value)}
+              onChange={(event) => {
+                const next = normalizeUserName(event.target.value);
+                setUserName(next);
+              }}
             />
+            <div className="text-muted" style={{ fontSize: "0.85rem" }}>
+              Only letters, numbers, ".", "_", "-" (3–30 chars). Saved as
+              lowercase.
+              {!userNameOk && userName.length > 0 ? (
+                <span style={{ display: "block", color: "#fca5a5" }}>
+                  Must start/end with a letter or number.
+                </span>
+              ) : null}
+            </div>
           </label>
 
           <label className="auth-field">
@@ -1193,7 +1226,11 @@ export default function EditProfile() {
           {success && <p className="auth-success">{success}</p>}
 
           <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
-            <button type="submit" className="auth-submit" disabled={isSaving}>
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={isSaving || !userNameOk}
+            >
               {isSaving ? "Saving..." : "Save changes"}
             </button>
             <button

@@ -35,11 +35,56 @@ export default function Login() {
 
   const isRegister = mode === "register";
 
+  const normalizeUserName = (raw: string): string => {
+    // Enforce URL-safe username characters: letters, numbers, '.', '_', '-'
+    return raw.replace(/\s+/g, "").replace(/[^A-Za-z0-9._-]/g, "");
+  };
+
+  const userNameTrimmed = userName.trim();
+  const userNameNormalized = normalizeUserName(userNameTrimmed);
+  const userNameLengthOk =
+    userNameNormalized.length >= 3 && userNameNormalized.length <= 30;
+  const userNameFormatOk = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(
+    userNameNormalized
+  );
+  const userNameOk = userNameLengthOk && userNameFormatOk;
+
+  const pw = password;
+  const pwMinLenOk = pw.length >= 10;
+  const pwMaxLenOk = pw.length <= 128;
+  const pwHasLower = /[a-z]/.test(pw);
+  const pwHasUpper = /[A-Z]/.test(pw);
+  const pwHasNumber = /[0-9]/.test(pw);
+  const pwHasSymbol = /[^A-Za-z0-9]/.test(pw);
+  const pwNoSpaces = !/\s/.test(pw);
+  const passwordOk =
+    pwMinLenOk &&
+    pwMaxLenOk &&
+    pwHasLower &&
+    pwHasUpper &&
+    pwHasNumber &&
+    pwHasSymbol &&
+    pwNoSpaces;
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
 
     if (isRegister) {
+      if (!userNameOk) {
+        setError(
+          'Username must be 3-30 characters using only letters, numbers, ".", "_", or "-" (must start/end with a letter/number).'
+        );
+        return;
+      }
+
+      if (!passwordOk) {
+        setError(
+          "Password must be 10+ characters and include uppercase, lowercase, a number, and a symbol (no spaces)."
+        );
+        return;
+      }
+
       if (password !== passwordConfirm) {
         setError("Passwords do not match.");
         return;
@@ -63,7 +108,7 @@ export default function Login() {
 
       if (isRegister) {
         payload.birthday = new Date(birthday).toISOString();
-        payload.userName = userName;
+        payload.userName = userNameNormalized;
       }
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -131,8 +176,20 @@ export default function Login() {
                 placeholder="yourusername"
                 required
                 value={userName}
-                onChange={(event) => setUserName(event.target.value)}
+                onChange={(event) => {
+                  const next = normalizeUserName(event.target.value);
+                  setUserName(next);
+                }}
               />
+              <div className="text-muted" style={{ fontSize: "0.85rem" }}>
+                Only letters, numbers, ".", "_", "-" (3–30 chars). Saved as
+                lowercase.
+                {!userNameOk && userName.length > 0 ? (
+                  <span style={{ display: "block", color: "#fca5a5" }}>
+                    Must start/end with a letter or number.
+                  </span>
+                ) : null}
+              </div>
             </label>
           )}
 
@@ -159,6 +216,41 @@ export default function Login() {
               onChange={(event) => setPassword(event.target.value)}
             />
           </label>
+
+          {isRegister ? (
+            <div
+              className="text-muted"
+              style={{
+                fontSize: "0.85rem",
+                marginTop: "-0.25rem",
+                marginBottom: "0.5rem",
+                lineHeight: 1.35,
+              }}
+            >
+              <div>Password requirements:</div>
+              <div style={{ color: pwMinLenOk ? "#86efac" : "#fca5a5" }}>
+                • 10+ characters
+              </div>
+              <div style={{ color: pwHasUpper ? "#86efac" : "#fca5a5" }}>
+                • 1 uppercase letter
+              </div>
+              <div style={{ color: pwHasLower ? "#86efac" : "#fca5a5" }}>
+                • 1 lowercase letter
+              </div>
+              <div style={{ color: pwHasNumber ? "#86efac" : "#fca5a5" }}>
+                • 1 number
+              </div>
+              <div style={{ color: pwHasSymbol ? "#86efac" : "#fca5a5" }}>
+                • 1 symbol
+              </div>
+              <div style={{ color: pwNoSpaces ? "#86efac" : "#fca5a5" }}>
+                • No spaces
+              </div>
+              {!pwMaxLenOk ? (
+                <div style={{ color: "#fca5a5" }}>• Max 128 characters</div>
+              ) : null}
+            </div>
+          ) : null}
 
           {isRegister && (
             <label className="auth-field">
@@ -189,7 +281,18 @@ export default function Login() {
 
           {error && <p className="auth-error">{error}</p>}
 
-          <button type="submit" className="auth-submit" disabled={isSubmitting}>
+          <button
+            type="submit"
+            className="auth-submit"
+            disabled={
+              isSubmitting ||
+              (isRegister &&
+                (!userNameOk ||
+                  !passwordOk ||
+                  password !== passwordConfirm ||
+                  !birthday))
+            }
+          >
             {isSubmitting
               ? isRegister
                 ? "Creating account..."
