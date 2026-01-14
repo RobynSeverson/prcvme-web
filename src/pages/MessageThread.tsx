@@ -243,13 +243,10 @@ export default function MessageThread() {
           toUserId: m.toUserId,
           text: m.text,
           mediaItems: m.mediaItems,
-          price:
-            typeof (m as any).price === "number" ? (m as any).price : undefined,
+          price: typeof m.price === "number" ? m.price : undefined,
           isUnlocked:
-            typeof (m as any).isUnlocked === "boolean"
-              ? (m as any).isUnlocked
-              : undefined,
-          deleted: (m as any).deleted === true,
+            typeof m.isUnlocked === "boolean" ? m.isUnlocked : undefined,
+          deleted: m.deleted === true,
           createdAt: m.createdAt,
         }));
 
@@ -443,13 +440,10 @@ export default function MessageThread() {
         toUserId: m.toUserId,
         text: m.text,
         mediaItems: m.mediaItems,
-        price:
-          typeof (m as any).price === "number" ? (m as any).price : undefined,
+        price: typeof m.price === "number" ? m.price : undefined,
         isUnlocked:
-          typeof (m as any).isUnlocked === "boolean"
-            ? (m as any).isUnlocked
-            : undefined,
-        deleted: (m as any).deleted === true,
+          typeof m.isUnlocked === "boolean" ? m.isUnlocked : undefined,
+        deleted: m.deleted === true,
         createdAt: m.createdAt,
       }));
 
