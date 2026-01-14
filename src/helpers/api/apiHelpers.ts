@@ -104,6 +104,8 @@ export type DirectMessage = {
   toUserId: string;
   text: string;
   mediaItems?: { mediaKey: string; mediaType: "image" | "video" | "audio" }[];
+  price?: number;
+  isUnlocked?: boolean;
   createdAt: string;
 };
 
@@ -575,7 +577,11 @@ const getDirectMessages = async (
 
 const sendDirectMessage = async (
   userId: string,
-  args: { text?: string; mediaFiles?: FileList | File[] | null }
+  args: {
+    text?: string;
+    mediaFiles?: FileList | File[] | null;
+    price?: number | null;
+  }
 ): Promise<DirectMessage> => {
   const token = window.localStorage.getItem("authToken");
   if (!token) {
@@ -596,6 +602,13 @@ const sendDirectMessage = async (
   const formData = new FormData();
   if (trimmedText) {
     formData.append("text", trimmedText);
+  }
+  if (
+    typeof args.price === "number" &&
+    Number.isFinite(args.price) &&
+    args.price > 0
+  ) {
+    formData.append("price", String(args.price));
   }
   if (mediaFiles) {
     const arr = Array.isArray(mediaFiles) ? mediaFiles : Array.from(mediaFiles);
@@ -629,6 +642,57 @@ const sendDirectMessage = async (
   }
 
   throw new Error("Message data is missing.");
+};
+
+const purchaseDirectMessageMedia = async (args: {
+  messageId: string;
+  paymentProfileId?: string;
+  cardInfo?: {
+    nameOnCard: string;
+    cardNumber: string;
+    expirationDate: string;
+    cardCode?: string;
+  };
+}): Promise<{ ok: true; messageId: string; isUnlocked: true }> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to purchase media.");
+  }
+
+  if (!args.messageId) {
+    throw new Error("Missing messageId.");
+  }
+
+  const response = await fetch(
+    `${API_BASE}/messages/direct/${encodeURIComponent(
+      args.messageId
+    )}/purchase`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        paymentProfileId: args.paymentProfileId,
+        cardInfo: args.cardInfo,
+      }),
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to purchase media.";
+    throw new Error(message);
+  }
+
+  if (data && data.ok === true && typeof data.messageId === "string") {
+    return { ok: true, messageId: data.messageId, isUnlocked: true };
+  }
+
+  throw new Error("Purchase response is missing.");
 };
 
 const getMyMessageThreads = async (
@@ -1034,6 +1098,7 @@ export {
   getUnreadMessageThreadCount,
   getDirectMessages,
   sendDirectMessage,
+  purchaseDirectMessageMedia,
   markMessageThreadRead,
   getMessagesWebSocketUrl,
   // Password reset

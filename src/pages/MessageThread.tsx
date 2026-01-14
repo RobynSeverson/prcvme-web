@@ -6,6 +6,7 @@ import {
   getMessagesWebSocketUrl,
   getUserByUserName,
   markMessageThreadRead,
+  purchaseDirectMessageMedia,
   sendDirectMessage,
 } from "../helpers/api/apiHelpers";
 import type { User } from "../models/user";
@@ -16,6 +17,7 @@ import {
 import SecureImage from "../components/SecureImage";
 import SecureVideo from "../components/SecureVideo";
 import Lightbox from "../components/Lightbox";
+import PayToViewPaymentModal from "../components/PayToViewPaymentModal";
 
 type UiMessage = {
   id: string;
@@ -23,15 +25,42 @@ type UiMessage = {
   toUserId: string;
   text: string;
   mediaItems?: { mediaKey: string; mediaType: "image" | "video" | "audio" }[];
+  price?: number;
+  isUnlocked?: boolean;
   createdAt: string;
 };
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-function getUserMediaUrl(userId: string, mediaKey: string): string {
-  return `${API_BASE}/users/${encodeURIComponent(
-    userId
-  )}/media/${encodeURIComponent(mediaKey)}`;
+function getDirectMessageMediaUrl(
+  messageId: string,
+  mediaKey: string,
+  opts?: { thumbnail?: boolean }
+): string {
+  const url = new URL(
+    `${API_BASE}/messages/direct/${encodeURIComponent(
+      messageId
+    )}/media/${encodeURIComponent(mediaKey)}`,
+    window.location.origin
+  );
+
+  if (opts?.thumbnail) {
+    url.searchParams.set("thumbnail", "1");
+  }
+
+  return url.toString();
+}
+
+function formatPriceUSD(amount: number): string {
+  if (!Number.isFinite(amount) || amount <= 0) return "";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  } catch {
+    return `$${amount.toFixed(2)}`;
+  }
 }
 
 function formatMessageTime(isoString: string): string {
@@ -82,8 +111,13 @@ export default function MessageThread() {
   const [isSending, setIsSending] = useState(false);
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [draftPrice, setDraftPrice] = useState<string>("");
 
   const [activeImageSrc, setActiveImageSrc] = useState<string | null>(null);
+
+  const [payMessage, setPayMessage] = useState<UiMessage | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
 
   const preventDefault = (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -143,6 +177,7 @@ export default function MessageThread() {
     if (canUploadMedia) return;
     if (newMediaFiles.length === 0) return;
     setNewMediaFiles([]);
+    setDraftPrice("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -193,6 +228,12 @@ export default function MessageThread() {
           toUserId: m.toUserId,
           text: m.text,
           mediaItems: m.mediaItems,
+          price:
+            typeof (m as any).price === "number" ? (m as any).price : undefined,
+          isUnlocked:
+            typeof (m as any).isUnlocked === "boolean"
+              ? (m as any).isUnlocked
+              : undefined,
           createdAt: m.createdAt,
         }));
 
@@ -257,6 +298,7 @@ export default function MessageThread() {
             mediaKey: string;
             mediaType: "image" | "video" | "audio";
           }[];
+          price?: number;
           timestamp?: string;
         };
 
@@ -277,6 +319,10 @@ export default function MessageThread() {
         const mediaItems = Array.isArray(parsed.mediaItems)
           ? parsed.mediaItems
           : undefined;
+        const price =
+          typeof parsed.price === "number" && Number.isFinite(parsed.price)
+            ? parsed.price
+            : undefined;
         const createdAt = parsed.timestamp ?? new Date().toISOString();
 
         if (messageIdsRef.current.has(id)) {
@@ -286,6 +332,14 @@ export default function MessageThread() {
         messageIdsRef.current.add(id);
         setMessages((prev) => {
           const wasNearBottom = isNearBottom();
+          const isMine = !!meUserId && fromUserId === meUserId;
+          const hasPricedMedia =
+            typeof price === "number" &&
+            Number.isFinite(price) &&
+            price > 0 &&
+            Array.isArray(mediaItems) &&
+            mediaItems.length > 0;
+
           const next = [
             ...prev,
             {
@@ -294,6 +348,8 @@ export default function MessageThread() {
               toUserId,
               text,
               mediaItems,
+              price,
+              isUnlocked: isMine || !hasPricedMedia,
               createdAt,
             },
           ];
@@ -401,10 +457,21 @@ export default function MessageThread() {
       setError(null);
       setIsSending(true);
 
+      const parsedPrice = (() => {
+        if (!canUploadMedia) return null;
+        if (newMediaFiles.length === 0) return null;
+        const raw = draftPrice.trim();
+        if (!raw) return null;
+        const n = Number(raw);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return Number(n.toFixed(2));
+      })();
+
       const created = await sendDirectMessage(otherUser.id, {
         text: draft,
         mediaFiles:
           canUploadMedia && newMediaFiles.length > 0 ? newMediaFiles : null,
+        price: parsedPrice,
       });
 
       if (!messageIdsRef.current.has(created.id)) {
@@ -418,6 +485,8 @@ export default function MessageThread() {
               toUserId: created.toUserId,
               text: created.text,
               mediaItems: created.mediaItems,
+              price: created.price,
+              isUnlocked: created.isUnlocked,
               createdAt: created.createdAt,
             },
           ];
@@ -430,6 +499,7 @@ export default function MessageThread() {
 
       setDraft("");
       setNewMediaFiles([]);
+      setDraftPrice("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -555,75 +625,215 @@ export default function MessageThread() {
                   <div className="message-bubble">
                     <div>{m.text}</div>
                     {Array.isArray(m.mediaItems) && m.mediaItems.length > 0 ? (
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: `repeat(${mediaGridColumns}, minmax(0, 1fr))`,
-                          gap: "0.5rem",
-                          marginTop: "0.5rem",
-                        }}
-                      >
-                        {m.mediaItems.map((it) => {
-                          const src = getUserMediaUrl(
-                            m.fromUserId,
-                            it.mediaKey
-                          );
+                      <>
+                        {(() => {
+                          const price =
+                            typeof m.price === "number" &&
+                            Number.isFinite(m.price)
+                              ? m.price
+                              : 0;
+                          const isLocked =
+                            !isMine &&
+                            price > 0 &&
+                            Array.isArray(m.mediaItems) &&
+                            m.mediaItems.length > 0 &&
+                            m.isUnlocked !== true;
 
-                          const wrapperStyle: React.CSSProperties = {
-                            position: "relative",
-                            display: "inline-block",
-                            width: "100%",
-                          };
-
-                          return it.mediaType === "video" ? (
-                            <SecureVideo
-                              key={it.mediaKey}
-                              src={src}
-                              disablePictureInPicture
-                              style={{ width: "100%", borderRadius: "10px" }}
-                            />
-                          ) : it.mediaType === "audio" ? (
-                            <audio
-                              key={it.mediaKey}
-                              src={src}
-                              controls
-                              controlsList="nodownload"
-                              onContextMenu={preventDefault}
-                              onDragStart={preventDefault}
-                              style={{ width: "100%" }}
-                            />
-                          ) : (
-                            <div key={it.mediaKey} style={wrapperStyle}>
-                              <SecureImage
-                                src={src}
-                                alt=""
+                          return (
+                            <>
+                              <div
                                 style={{
-                                  width: "100%",
-                                  borderRadius: "10px",
-                                  objectFit: "cover",
+                                  display: "grid",
+                                  gridTemplateColumns: `repeat(${mediaGridColumns}, minmax(0, 1fr))`,
+                                  gap: "0.5rem",
+                                  marginTop: "0.5rem",
                                 }}
-                                loading="lazy"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setActiveImageSrc(src);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setActiveImageSrc(src);
+                              >
+                                {m.mediaItems.map((it) => {
+                                  const isVideo = it.mediaType === "video";
+                                  const isAudio = it.mediaType === "audio";
+
+                                  const src = isLocked
+                                    ? getDirectMessageMediaUrl(
+                                        m.id,
+                                        it.mediaKey,
+                                        {
+                                          thumbnail: isVideo,
+                                        }
+                                      )
+                                    : getDirectMessageMediaUrl(
+                                        m.id,
+                                        it.mediaKey
+                                      );
+
+                                  const wrapperStyle: React.CSSProperties = {
+                                    position: "relative",
+                                    display: "inline-block",
+                                    width: "100%",
+                                  };
+
+                                  if (isLocked) {
+                                    if (isAudio) {
+                                      return (
+                                        <div
+                                          key={it.mediaKey}
+                                          style={{
+                                            borderRadius: "10px",
+                                            overflow: "hidden",
+                                            border:
+                                              "1px solid rgba(255,255,255,0.12)",
+                                            background:
+                                              "linear-gradient(135deg, rgba(99,102,241,0.16), rgba(15,23,42,0.55))",
+                                            height: "88px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: "rgba(255,255,255,0.9)",
+                                            fontWeight: 700,
+                                          }}
+                                        >
+                                          Locked audio
+                                        </div>
+                                      );
+                                    }
+
+                                    return (
+                                      <div
+                                        key={it.mediaKey}
+                                        style={wrapperStyle}
+                                      >
+                                        <SecureImage
+                                          src={src}
+                                          alt=""
+                                          protectContent
+                                          isOwner={false}
+                                          style={{
+                                            width: "100%",
+                                            borderRadius: "10px",
+                                            objectFit: "cover",
+                                            filter: "blur(1px)",
+                                          }}
+                                          loading="lazy"
+                                        />
+                                        <div
+                                          style={{
+                                            position: "absolute",
+                                            inset: 0,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            background:
+                                              "linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45))",
+                                            borderRadius: "10px",
+                                          }}
+                                        >
+                                          <span
+                                            style={{
+                                              padding: "0.35rem 0.6rem",
+                                              borderRadius: "999px",
+                                              background: "rgba(0,0,0,0.55)",
+                                              border:
+                                                "1px solid rgba(255,255,255,0.18)",
+                                              color: "rgba(255,255,255,0.95)",
+                                              fontSize: "0.85rem",
+                                              fontWeight: 700,
+                                            }}
+                                          >
+                                            Locked
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
                                   }
-                                }}
-                                tabIndex={0}
-                                role="button"
-                              />
-                            </div>
+
+                                  return isVideo ? (
+                                    <SecureVideo
+                                      key={it.mediaKey}
+                                      src={src}
+                                      disablePictureInPicture
+                                      style={{
+                                        width: "100%",
+                                        borderRadius: "10px",
+                                      }}
+                                    />
+                                  ) : isAudio ? (
+                                    <audio
+                                      key={it.mediaKey}
+                                      src={src}
+                                      controls
+                                      controlsList="nodownload"
+                                      onContextMenu={preventDefault}
+                                      onDragStart={preventDefault}
+                                      style={{ width: "100%" }}
+                                    />
+                                  ) : (
+                                    <div key={it.mediaKey} style={wrapperStyle}>
+                                      <SecureImage
+                                        src={src}
+                                        alt=""
+                                        style={{
+                                          width: "100%",
+                                          borderRadius: "10px",
+                                          objectFit: "cover",
+                                        }}
+                                        loading="lazy"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setActiveImageSrc(src);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (
+                                            e.key === "Enter" ||
+                                            e.key === " "
+                                          ) {
+                                            e.preventDefault();
+                                            setActiveImageSrc(src);
+                                          }
+                                        }}
+                                        tabIndex={0}
+                                        role="button"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {isLocked ? (
+                                <div
+                                  style={{
+                                    marginTop: "0.5rem",
+                                    display: "flex",
+                                    justifyContent: "flex-end",
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    className="auth-submit"
+                                    style={{ width: "auto", marginTop: 0 }}
+                                    onClick={() => {
+                                      setPayError(null);
+                                      setPayMessage(m);
+                                    }}
+                                  >
+                                    Pay {formatPriceUSD(price)} to view
+                                  </button>
+                                </div>
+                              ) : null}
+                            </>
                           );
-                        })}
-                      </div>
+                        })()}
+                      </>
                     ) : null}
                     {m.createdAt ? (
                       <div className="message-meta">
                         {formatMessageTime(m.createdAt)}
+                        {typeof m.price === "number" &&
+                        Number.isFinite(m.price) &&
+                        m.price > 0 ? (
+                          <span style={{ marginLeft: "0.5rem" }}>
+                            • {formatPriceUSD(m.price)}
+                          </span>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -701,6 +911,30 @@ export default function MessageThread() {
             {isSending ? "Sending..." : "Send"}
           </button>
         </form>
+
+        {canUploadMedia && newMediaFiles.length > 0 ? (
+          <div
+            style={{
+              marginTop: "0.5rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              justifyContent: "flex-end",
+            }}
+          >
+            <label className="text-muted" style={{ fontSize: "0.9rem" }}>
+              Price (optional)
+            </label>
+            <input
+              inputMode="decimal"
+              placeholder="0.00"
+              value={draftPrice}
+              onChange={(e) => setDraftPrice(e.target.value)}
+              className="auth-input"
+              style={{ width: "120px" }}
+            />
+          </div>
+        ) : null}
 
         {canUploadMedia && mediaPreviews.length > 0 ? (
           <div
@@ -860,6 +1094,44 @@ export default function MessageThread() {
             />
           ) : null}
         </Lightbox>
+
+        <PayToViewPaymentModal
+          isOpen={!!payMessage}
+          amount={typeof payMessage?.price === "number" ? payMessage.price : 0}
+          onClose={() => {
+            if (isPaying) return;
+            setPayMessage(null);
+            setPayError(null);
+          }}
+          isConfirmLoading={isPaying}
+          errorMessage={payError}
+          onConfirm={async ({ paymentProfileId, cardInfo }) => {
+            if (!payMessage) return;
+            try {
+              setPayError(null);
+              setIsPaying(true);
+              await purchaseDirectMessageMedia({
+                messageId: payMessage.id,
+                paymentProfileId,
+                cardInfo,
+              });
+
+              setMessages((prev) =>
+                prev.map((mm) =>
+                  mm.id === payMessage.id ? { ...mm, isUnlocked: true } : mm
+                )
+              );
+              setPayMessage(null);
+            } catch (err) {
+              const message =
+                (err instanceof Error && err.message) ||
+                "Failed to purchase media.";
+              setPayError(message);
+            } finally {
+              setIsPaying(false);
+            }
+          }}
+        />
       </section>
     </main>
   );
