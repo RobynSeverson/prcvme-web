@@ -1,4 +1,14 @@
+import { useEffect } from "react";
+import { setTitle } from "../helpers/metadataHelper";
+
 export default function RefundPolicy() {
+  useEffect(() => {
+    const cleanup = setTitle("Refund Policy • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
+
   return (
     <main>
       <h1>Refund Policy</h1>

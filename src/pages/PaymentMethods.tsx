@@ -9,6 +9,7 @@ import {
   setMyDefaultPaymentMethod,
   type PaymentMethod,
 } from "../helpers/api/apiHelpers";
+import { setTitle } from "../helpers/metadataHelper";
 
 export default function PaymentMethods() {
   const location = useLocation();
@@ -36,6 +37,13 @@ export default function PaymentMethods() {
       )}`,
     [location.pathname, location.search]
   );
+
+  useEffect(() => {
+    const cleanup = setTitle("Payment Methods • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

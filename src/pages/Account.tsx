@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getAPIBase } from "../helpers/api/apiHelpers";
+import { setTitle } from "../helpers/metadataHelper";
 
 const API_BASE = getAPIBase();
 
@@ -46,6 +47,13 @@ export default function Account() {
   const loginLink = `/login?redirect=${encodeURIComponent(
     location.pathname + location.search
   )}`;
+
+  useEffect(() => {
+    const cleanup = setTitle("Account • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");

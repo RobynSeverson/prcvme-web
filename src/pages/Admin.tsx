@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import Lightbox from "../components/Lightbox";
+import { setTitle } from "../helpers/metadataHelper";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -81,6 +82,13 @@ export default function Admin() {
     } catch {
       return false;
     }
+  }, []);
+
+  useEffect(() => {
+    const cleanup = setTitle("Admin • prcvme");
+    return () => {
+      cleanup();
+    };
   }, []);
 
   useEffect(() => {

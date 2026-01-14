@@ -5,6 +5,7 @@ import {
   resetPassword,
   verifyPasswordResetToken,
 } from "../helpers/api/apiHelpers";
+import { setTitle } from "../helpers/metadataHelper";
 
 function useQuery() {
   const location = useLocation();
@@ -24,6 +25,13 @@ export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const cleanup = setTitle("Reset Password • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

@@ -11,6 +11,7 @@ import {
 import type { User } from "../models/user";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
+import { setTitle } from "../helpers/metadataHelper";
 
 type ThreadRow = {
   user: User;
@@ -38,6 +39,13 @@ export default function Messages() {
 
   const loginLink = useMemo(() => {
     return `/login?redirect=${encodeURIComponent("/messages")}`;
+  }, []);
+
+  useEffect(() => {
+    const cleanup = setTitle("Messages • prcvme");
+    return () => {
+      cleanup();
+    };
   }, []);
 
   useEffect(() => {

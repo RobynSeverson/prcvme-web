@@ -1,4 +1,14 @@
+import { useEffect } from "react";
+import { setTitle } from "../helpers/metadataHelper";
+
 export default function Contact() {
+  useEffect(() => {
+    const cleanup = setTitle("Contact • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
+
   return (
     <main>
       <h1>Contact</h1>

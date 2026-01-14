@@ -11,6 +11,7 @@ import {
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import type { User } from "../models/user";
+import { setTitle } from "../helpers/metadataHelper";
 
 type SubscriptionRow = {
   subscribedToUserId: string;
@@ -51,6 +52,13 @@ export default function Subscriptions() {
 
   const loginLink = useMemo(() => {
     return `/login?redirect=${encodeURIComponent("/subscriptions")}`;
+  }, []);
+
+  useEffect(() => {
+    const cleanup = setTitle("Subscriptions • prcvme");
+    return () => {
+      cleanup();
+    };
   }, []);
 
   useEffect(() => {

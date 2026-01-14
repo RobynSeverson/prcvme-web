@@ -16,6 +16,7 @@ import SecureImage from "../components/SecureImage";
 import SecureVideo from "../components/SecureVideo";
 import Lightbox from "../components/Lightbox";
 import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
+import { setTitle } from "../helpers/metadataHelper";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -125,6 +126,13 @@ export default function Collections() {
       setIsLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    const cleanup = setTitle("Collections • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   // Reset and load when tab or kind changes
   useEffect(() => {

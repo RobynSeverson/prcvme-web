@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import Login from "./Login";
 import UserPosts from "../components/UserPosts";
 import { getLoggedInUserFromStorage } from "../helpers/auth/authHelpers";
+import { setTitle } from "../helpers/metadataHelper";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -33,6 +34,13 @@ export default function Home() {
       return { file, kind, url: URL.createObjectURL(file) };
     });
   }, [newMediaFiles]);
+
+  useEffect(() => {
+    const cleanup = setTitle("Home • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     return () => {

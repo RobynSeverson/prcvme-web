@@ -1,4 +1,13 @@
+import { useEffect } from "react";
+import { setTitle } from "../helpers/metadataHelper";
+
 export default function Terms() {
+  useEffect(() => {
+    const cleanup = setTitle("Terms of Service • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
   return (
     <main>
       <h1>Terms of Service</h1>

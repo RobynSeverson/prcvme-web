@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { setTitle } from "../helpers/metadataHelper";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -16,6 +17,13 @@ export default function Login() {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const cleanup = setTitle("Login • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   const getSafeRedirectPath = (raw: string | null): string | null => {
     if (!raw) return null;

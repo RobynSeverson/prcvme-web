@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getCurrentUser, getMyProfit } from "../helpers/api/apiHelpers";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import type { User } from "../models/user";
+import { setTitle } from "../helpers/metadataHelper";
 
 type ProfitSummary = {
   currency: string;
@@ -56,6 +57,13 @@ export default function Profit() {
 
   const loginLink = useMemo(() => {
     return `/login?redirect=${encodeURIComponent("/profit")}`;
+  }, []);
+
+  useEffect(() => {
+    const cleanup = setTitle("Profit • prcvme");
+    return () => {
+      cleanup();
+    };
   }, []);
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { SubscriptionDeal, User } from "../models/user";
 import DriversLicenseIcon from "../components/DriversLicenseIcon";
 import PersonHoldingIdIcon from "../components/PersonHoldingIdIcon";
+import { setTitle } from "../helpers/metadataHelper";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -86,6 +87,13 @@ export default function EditProfile() {
       .toString(16)
       .slice(2)}-${Math.random().toString(16).slice(2)}`;
   };
+
+  useEffect(() => {
+    const cleanup = setTitle("Edit Profile • prcvme");
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     const token = window.localStorage.getItem("authToken");
