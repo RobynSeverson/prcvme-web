@@ -184,10 +184,8 @@ export default function PaymentMethods() {
               return (
                 <div
                   key={method.id}
+                  className="payment-method-surface"
                   style={{
-                    borderRadius: "0.75rem",
-                    border: "1px solid rgba(148, 163, 184, 0.35)",
-                    background: "rgba(15, 23, 42, 0.35)",
                     padding: "0.75rem",
                     display: "flex",
                     alignItems: "flex-start",
@@ -209,16 +207,7 @@ export default function PaymentMethods() {
                         {method.label}
                       </span>
                       {isDefault ? (
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            padding: "0.15rem 0.5rem",
-                            borderRadius: "999px",
-                            background: "rgba(79, 70, 229, 0.25)",
-                            border: "1px solid rgba(99, 102, 241, 0.35)",
-                            color: "#c7d2fe",
-                          }}
-                        >
+                        <span className="payment-method-default-badge">
                           Default
                         </span>
                       ) : null}

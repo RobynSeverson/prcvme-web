@@ -199,15 +199,9 @@ export default function PayToViewPaymentModal({
           {storedMethods.map((method) => (
             <label
               key={method.id}
+              className="payment-method-choice payment-method-surface"
               style={{
-                display: "flex",
-                gap: "0.6rem",
-                alignItems: "center",
                 padding: "0.65rem 0.75rem",
-                borderRadius: "0.75rem",
-                border: "1px solid rgba(148, 163, 184, 0.35)",
-                background: "rgba(15, 23, 42, 0.35)",
-                cursor: "pointer",
               }}
             >
               <input
@@ -232,15 +226,9 @@ export default function PayToViewPaymentModal({
           ))}
 
           <label
+            className="payment-method-choice payment-method-surface payment-method-choice-dashed"
             style={{
-              display: "flex",
-              gap: "0.6rem",
-              alignItems: "center",
               padding: "0.65rem 0.75rem",
-              borderRadius: "0.75rem",
-              border: "1px dashed rgba(148, 163, 184, 0.55)",
-              background: "rgba(15, 23, 42, 0.2)",
-              cursor: "pointer",
             }}
           >
             <input
