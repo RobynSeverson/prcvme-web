@@ -3,8 +3,9 @@ import type { UserPost, MediaType } from "./userPost";
 
 /**
  * The type of item being favorited (liked or bookmarked).
+ * - dmMedia: A specific media item within a direct message
  */
-export type FavoriteTargetType = "profile" | "post" | "media";
+export type FavoriteTargetType = "profile" | "post" | "media" | "dmMedia";
 
 /**
  * The kind of favorite action.
@@ -41,7 +42,19 @@ export type FavoriteWithMedia = Favorite & {
   target: UserPost | null;
 };
 
+export type FavoriteWithDmMedia = Favorite & {
+  target: {
+    id: string;
+    fromUserId: string;
+    toUserId: string;
+    text: string;
+    mediaItems?: { mediaKey: string; mediaType: MediaType }[];
+    createdAt: string;
+  } | null;
+};
+
 export type EnrichedFavorite =
   | FavoriteWithProfile
   | FavoriteWithPost
-  | FavoriteWithMedia;
+  | FavoriteWithMedia
+  | FavoriteWithDmMedia;

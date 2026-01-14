@@ -18,6 +18,7 @@ import SecureImage from "../components/SecureImage";
 import SecureVideo from "../components/SecureVideo";
 import Lightbox from "../components/Lightbox";
 import PayToViewPaymentModal from "../components/PayToViewPaymentModal";
+import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
 
 type UiMessage = {
   id: string;
@@ -113,7 +114,12 @@ export default function MessageThread() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [draftPrice, setDraftPrice] = useState<string>("");
 
-  const [activeImageSrc, setActiveImageSrc] = useState<string | null>(null);
+  const [activeLightboxMedia, setActiveLightboxMedia] = useState<{
+    messageId: string;
+    mediaKey: string;
+    mediaType: "image" | "video" | "audio";
+    src: string;
+  } | null>(null);
 
   const [payMessage, setPayMessage] = useState<UiMessage | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
@@ -123,7 +129,7 @@ export default function MessageThread() {
     e.preventDefault();
   };
 
-  const isLightboxOpen = Boolean(activeImageSrc);
+  const isLightboxOpen = Boolean(activeLightboxMedia);
 
   const mediaPreviews = useMemo(() => {
     return newMediaFiles.map((file) => {
@@ -747,25 +753,57 @@ export default function MessageThread() {
                                   }
 
                                   return isVideo ? (
-                                    <SecureVideo
+                                    <div
                                       key={it.mediaKey}
-                                      src={src}
-                                      disablePictureInPicture
                                       style={{
-                                        width: "100%",
-                                        borderRadius: "10px",
+                                        ...wrapperStyle,
+                                        cursor: "pointer",
                                       }}
-                                    />
+                                      onClick={() => {
+                                        setActiveLightboxMedia({
+                                          messageId: m.id,
+                                          mediaKey: it.mediaKey,
+                                          mediaType: it.mediaType,
+                                          src,
+                                        });
+                                      }}
+                                      role="button"
+                                      tabIndex={0}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          setActiveLightboxMedia({
+                                            messageId: m.id,
+                                            mediaKey: it.mediaKey,
+                                            mediaType: it.mediaType,
+                                            src,
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <SecureVideo
+                                        src={src}
+                                        disablePictureInPicture
+                                        style={{
+                                          width: "100%",
+                                          borderRadius: "10px",
+                                        }}
+                                      />
+                                    </div>
                                   ) : isAudio ? (
-                                    <audio
-                                      key={it.mediaKey}
-                                      src={src}
-                                      controls
-                                      controlsList="nodownload"
-                                      onContextMenu={preventDefault}
-                                      onDragStart={preventDefault}
-                                      style={{ width: "100%" }}
-                                    />
+                                    <div key={it.mediaKey} style={wrapperStyle}>
+                                      <audio
+                                        src={src}
+                                        controls
+                                        controlsList="nodownload"
+                                        onContextMenu={preventDefault}
+                                        onDragStart={preventDefault}
+                                        style={{ width: "100%" }}
+                                      />
+                                    </div>
                                   ) : (
                                     <div key={it.mediaKey} style={wrapperStyle}>
                                       <SecureImage
@@ -779,7 +817,12 @@ export default function MessageThread() {
                                         loading="lazy"
                                         onClick={(e) => {
                                           e.preventDefault();
-                                          setActiveImageSrc(src);
+                                          setActiveLightboxMedia({
+                                            messageId: m.id,
+                                            mediaKey: it.mediaKey,
+                                            mediaType: it.mediaType,
+                                            src,
+                                          });
                                         }}
                                         onKeyDown={(e) => {
                                           if (
@@ -787,7 +830,12 @@ export default function MessageThread() {
                                             e.key === " "
                                           ) {
                                             e.preventDefault();
-                                            setActiveImageSrc(src);
+                                            setActiveLightboxMedia({
+                                              messageId: m.id,
+                                              mediaKey: it.mediaKey,
+                                              mediaType: it.mediaType,
+                                              src,
+                                            });
                                           }
                                         }}
                                         tabIndex={0}
@@ -1077,21 +1125,73 @@ export default function MessageThread() {
 
         <Lightbox
           isOpen={isLightboxOpen}
-          onClose={() => setActiveImageSrc(null)}
+          onClose={() => setActiveLightboxMedia(null)}
         >
-          {activeImageSrc ? (
-            <SecureImage
-              src={activeImageSrc}
-              alt=""
+          {activeLightboxMedia ? (
+            <div
               style={{
+                position: "relative",
                 width: "auto",
                 maxWidth: "min(96vw, 1100px)",
                 maxHeight: "88vh",
-                borderRadius: "12px",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-                objectFit: "contain",
               }}
-            />
+            >
+              {activeLightboxMedia.mediaType === "video" ? (
+                <SecureVideo
+                  src={activeLightboxMedia.src}
+                  isOwner={false}
+                  protectContent={false}
+                  disablePictureInPicture
+                  style={{
+                    width: "auto",
+                    maxWidth: "100%",
+                    maxHeight: "88vh",
+                    borderRadius: "12px",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                  }}
+                />
+              ) : (
+                <SecureImage
+                  src={activeLightboxMedia.src}
+                  alt=""
+                  style={{
+                    width: "auto",
+                    maxWidth: "min(96vw, 1100px)",
+                    maxHeight: "88vh",
+                    borderRadius: "12px",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                    objectFit: "contain",
+                  }}
+                />
+              )}
+
+              <div
+                style={
+                  {
+                    position: "absolute",
+                    top: "12px",
+                    left: "12px",
+                    padding: "0.3rem 0.5rem",
+                    borderRadius: "999px",
+                    background: "rgba(0,0,0,0.45)",
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                    zIndex: 1,
+                    ["--text-muted" as any]: "rgba(255,255,255,0.72)",
+                  } as React.CSSProperties
+                }
+              >
+                <LikeBookmarkButtons
+                  targetType="dmMedia"
+                  targetId={activeLightboxMedia.messageId}
+                  mediaKey={activeLightboxMedia.mediaKey}
+                  mediaType={activeLightboxMedia.mediaType}
+                  size={22}
+                  showCounts={true}
+                />
+              </div>
+            </div>
           ) : null}
         </Lightbox>
 

@@ -7,6 +7,7 @@ import type {
   FavoriteWithProfile,
   FavoriteWithPost,
   FavoriteWithMedia,
+  FavoriteWithDmMedia,
 } from "../models/favorite";
 import { getMyFavorites } from "../helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
@@ -18,13 +19,14 @@ import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-type CollectionTab = "profiles" | "posts" | "media";
+type CollectionTab = "profiles" | "posts" | "media" | "dm";
 type CollectionKind = "likes" | "bookmarks";
 
 const TAB_TO_TARGET_TYPE: Record<CollectionTab, FavoriteTargetType> = {
   profiles: "profile",
   posts: "post",
   media: "media",
+  dm: "dmMedia",
 };
 
 const KIND_TO_FAVORITE_KIND: Record<CollectionKind, FavoriteKind> = {
@@ -40,7 +42,10 @@ export default function Collections() {
   const rawKind = searchParams.get("kind");
 
   const currentTab: CollectionTab =
-    rawTab === "profiles" || rawTab === "posts" || rawTab === "media"
+    rawTab === "profiles" ||
+    rawTab === "posts" ||
+    rawTab === "media" ||
+    rawTab === "dm"
       ? rawTab
       : "posts";
 
@@ -215,32 +220,34 @@ export default function Collections() {
           paddingBottom: "0.75rem",
         }}
       >
-        {(["profiles", "posts", "media"] as CollectionTab[]).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setTab(tab)}
-            style={{
-              background: "transparent",
-              border: "none",
-              padding: "0.5rem 1rem",
-              cursor: "pointer",
-              fontWeight: currentTab === tab ? 700 : 400,
-              color:
-                currentTab === tab
-                  ? "var(--primary-color)"
-                  : "var(--text-muted)",
-              borderBottom:
-                currentTab === tab
-                  ? "2px solid var(--primary-color)"
-                  : "2px solid transparent",
-              marginBottom: "-0.8rem",
-              transition: "color 0.15s, border-color 0.15s",
-            }}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
+        {(["profiles", "posts", "media", "dm"] as CollectionTab[]).map(
+          (tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setTab(tab)}
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: "0.5rem 1rem",
+                cursor: "pointer",
+                fontWeight: currentTab === tab ? 700 : 400,
+                color:
+                  currentTab === tab
+                    ? "var(--primary-color)"
+                    : "var(--text-muted)",
+                borderBottom:
+                  currentTab === tab
+                    ? "2px solid var(--primary-color)"
+                    : "2px solid transparent",
+                marginBottom: "-0.8rem",
+                transition: "color 0.15s, border-color 0.15s",
+              }}
+            >
+              {tab === "dm" ? "DM" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          )
+        )}
       </div>
 
       {/* Content */}
@@ -258,7 +265,7 @@ export default function Collections() {
         style={{
           display: "grid",
           gridTemplateColumns:
-            currentTab === "media"
+            currentTab === "media" || currentTab === "dm"
               ? "repeat(auto-fill, minmax(150px, 1fr))"
               : "1fr",
           gap: "1rem",
@@ -321,7 +328,25 @@ function FavoriteCard({ favorite, tab, kind, onRemove }: FavoriteCardProps) {
       />
     );
   }
+  if (tab === "dm") {
+    return (
+      <DmMediaFavoriteCard
+        favorite={favorite as FavoriteWithDmMedia}
+        kind={kind}
+        onRemove={onRemove}
+      />
+    );
+  }
   return null;
+}
+
+function buildDmMediaUrl(messageId: string, mediaKey: string) {
+  if (mediaKey.startsWith("http://") || mediaKey.startsWith("https://")) {
+    return mediaKey;
+  }
+  return `${API_BASE}/messages/direct/${encodeURIComponent(
+    messageId
+  )}/media/${encodeURIComponent(mediaKey)}`;
 }
 
 function ProfileFavoriteCard({
@@ -848,6 +873,186 @@ function MediaFavoriteCard({
                 targetId={favorite.targetId}
                 mediaKey={activeMedia.mediaKey}
                 mediaType={activeMedia.mediaType}
+                size={22}
+                showCounts={true}
+              />
+            </div>
+          </div>
+        ) : null}
+      </Lightbox>
+    </div>
+  );
+}
+
+function DmMediaFavoriteCard({
+  favorite,
+  kind,
+  onRemove,
+}: {
+  favorite: FavoriteWithDmMedia;
+  kind: CollectionKind;
+  onRemove: () => void;
+}) {
+  const message = favorite.target;
+  const messageId = favorite.targetId;
+  const mediaKey = favorite.mediaKey;
+  const mediaType = favorite.mediaType;
+
+  const [activeMedia, setActiveMedia] = useState<{
+    type: "image" | "video";
+    src: string;
+    mediaKey: string;
+    mediaType: "image" | "video" | "audio";
+    messageId: string;
+  } | null>(null);
+
+  if (!message || !messageId || !mediaKey || !mediaType) {
+    return (
+      <div
+        className="app-card"
+        style={{
+          aspectRatio: "1",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <p className="text-muted" style={{ fontSize: "0.85rem" }}>
+          Unavailable
+        </p>
+      </div>
+    );
+  }
+
+  const mediaSrc = buildDmMediaUrl(messageId, mediaKey);
+  const isVideo = mediaType === "video";
+  const thumbSrc = isVideo
+    ? `${mediaSrc}${mediaSrc.includes("?") ? "&" : "?"}thumbnail=1`
+    : mediaSrc;
+  const isLightboxOpen = Boolean(activeMedia);
+
+  return (
+    <div
+      className="app-card"
+      style={{
+        position: "relative",
+        aspectRatio: "1",
+        overflow: "hidden",
+        padding: 0,
+      }}
+    >
+      <SecureImage
+        src={thumbSrc}
+        alt="Saved DM media"
+        isOwner={false}
+        protectContent={false}
+        onClick={() => {
+          if (mediaType === "audio") return;
+          setActiveMedia({
+            type: isVideo ? "video" : "image",
+            src: mediaSrc,
+            mediaKey,
+            mediaType,
+            messageId,
+          });
+        }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          cursor: mediaType === "audio" ? "default" : "pointer",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          top: "0.25rem",
+          right: "0.25rem",
+          background: "rgba(0,0,0,0.5)",
+          borderRadius: "999px",
+        }}
+      >
+        <LikeBookmarkButtons
+          targetType="dmMedia"
+          targetId={favorite.targetId}
+          mediaKey={favorite.mediaKey}
+          mediaType={favorite.mediaType}
+          likeOnly={kind === "likes"}
+          bookmarkOnly={kind === "bookmarks"}
+          size={16}
+          onLikeChange={(liked) => !liked && kind === "likes" && onRemove()}
+          onBookmarkChange={(bookmarked) =>
+            !bookmarked && kind === "bookmarks" && onRemove()
+          }
+          checkInitialStatus={false}
+          style={{ color: "white" }}
+        />
+      </div>
+
+      <Lightbox isOpen={isLightboxOpen} onClose={() => setActiveMedia(null)}>
+        {activeMedia ? (
+          <div
+            style={{
+              position: "relative",
+              width: "auto",
+              maxWidth: "min(96vw, 1100px)",
+              maxHeight: "88vh",
+            }}
+          >
+            {activeMedia.type === "image" ? (
+              <SecureImage
+                src={activeMedia.src}
+                alt="Saved DM media"
+                isOwner={false}
+                protectContent={false}
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  objectFit: "contain",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            ) : (
+              <SecureVideo
+                src={activeMedia.src}
+                isOwner={false}
+                protectContent={false}
+                disablePictureInPicture
+                style={{
+                  width: "auto",
+                  maxWidth: "100%",
+                  maxHeight: "88vh",
+                  borderRadius: "12px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                }}
+              />
+            )}
+
+            <div
+              style={
+                {
+                  position: "absolute",
+                  top: "12px",
+                  left: "12px",
+                  padding: "0.3rem 0.5rem",
+                  borderRadius: "999px",
+                  background: "rgba(0,0,0,0.45)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  zIndex: 1,
+                  ["--text-muted" as any]: "rgba(255,255,255,0.72)",
+                } as React.CSSProperties
+              }
+            >
+              <LikeBookmarkButtons
+                targetType="dmMedia"
+                targetId={favorite.targetId}
+                mediaKey={favorite.mediaKey}
+                mediaType={favorite.mediaType}
                 size={22}
                 showCounts={true}
               />

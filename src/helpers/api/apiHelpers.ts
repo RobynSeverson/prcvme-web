@@ -125,6 +125,19 @@ export type ProfitSummaryResponse = {
   month: number;
   activeSubscriptions: number;
   subscriptionPrice?: number;
+  subscriptions?: {
+    total: number;
+    day: number;
+    week: number;
+    month: number;
+  };
+  dm?: {
+    total: number;
+    day: number;
+    week: number;
+    month: number;
+    salesCount: number;
+  };
 };
 
 export type PaymentMethod = {

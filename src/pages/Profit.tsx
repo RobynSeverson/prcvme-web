@@ -12,6 +12,19 @@ type ProfitSummary = {
   month: number;
   activeSubscriptions: number;
   subscriptionPrice?: number;
+  subscriptions?: {
+    total: number;
+    day: number;
+    week: number;
+    month: number;
+  };
+  dm?: {
+    total: number;
+    day: number;
+    week: number;
+    month: number;
+    salesCount: number;
+  };
 };
 
 const formatMoney = (value: number, currency: string) => {
@@ -100,7 +113,7 @@ export default function Profit() {
       <section style={{ marginBottom: "1rem" }}>
         <h2 style={{ marginBottom: "0.5rem" }}>Profit</h2>
         <p className="text-muted" style={{ marginTop: 0 }}>
-          Subscription earnings summary.
+          Earnings summary (subscriptions + paid messages).
         </p>
       </section>
 
@@ -124,6 +137,20 @@ export default function Profit() {
               {formatMoney(summary.total, currency)}
             </div>
           </div>
+
+          {summary.dm ? (
+            <div className="app-card" style={{ padding: "0.9rem" }}>
+              <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                Paid Messages (Month)
+              </div>
+              <div style={{ fontSize: "1.6rem", fontWeight: 700 }}>
+                {formatMoney(summary.dm.month, currency)}
+              </div>
+              <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                Sales: {summary.dm.salesCount}
+              </div>
+            </div>
+          ) : null}
 
           <div className="app-card" style={{ padding: "0.9rem" }}>
             <div className="text-muted" style={{ fontSize: "0.9rem" }}>
@@ -172,7 +199,7 @@ export default function Profit() {
               Note
             </div>
             <div className="text-muted" style={{ fontSize: "0.9rem" }}>
-              This reflects subscription charges recorded by prcvme.
+              This reflects completed charges recorded by prcvme.
             </div>
           </div>
         </section>
