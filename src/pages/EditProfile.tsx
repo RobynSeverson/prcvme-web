@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { SubscriptionDeal, User } from "../models/user";
+import DriversLicenseIcon from "../components/DriversLicenseIcon";
+import PersonHoldingIdIcon from "../components/PersonHoldingIdIcon";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -877,7 +879,8 @@ export default function EditProfile() {
                           <div
                             style={{ fontWeight: 600, marginBottom: "0.35rem" }}
                           >
-                            Identity document
+                            Upload a clear photo of your government issued ID /
+                            passport
                           </div>
                           <button
                             type="button"
@@ -888,6 +891,7 @@ export default function EditProfile() {
                               height: "180px",
                               overflow: "hidden",
                               cursor: "pointer",
+                              position: "relative",
                             }}
                             onClick={() =>
                               identityDocumentInputRef.current?.click()
@@ -904,16 +908,23 @@ export default function EditProfile() {
                                 }}
                               />
                             ) : (
-                              <span
+                              <div
                                 style={{
-                                  display: "inline-block",
-                                  marginTop: "4.5rem",
+                                  height: "100%",
+                                  width: "100%",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "0.6rem",
                                   color: "var(--text-muted)",
-                                  fontSize: "0.85rem",
                                 }}
                               >
-                                Click to upload document
-                              </span>
+                                <DriversLicenseIcon size={44} />
+                                <span style={{ fontSize: "0.9rem" }}>
+                                  Click to upload document
+                                </span>
+                              </div>
                             )}
                           </button>
                           <input
@@ -938,7 +949,8 @@ export default function EditProfile() {
                           <div
                             style={{ fontWeight: 600, marginBottom: "0.35rem" }}
                           >
-                            Holding document
+                            Upload a photo of you holding your government issued
+                            ID / passport
                           </div>
                           <button
                             type="button"
@@ -949,6 +961,7 @@ export default function EditProfile() {
                               height: "180px",
                               overflow: "hidden",
                               cursor: "pointer",
+                              position: "relative",
                             }}
                             onClick={() =>
                               holdingIdentityDocumentInputRef.current?.click()
@@ -965,16 +978,23 @@ export default function EditProfile() {
                                 }}
                               />
                             ) : (
-                              <span
+                              <div
                                 style={{
-                                  display: "inline-block",
-                                  marginTop: "4.5rem",
+                                  height: "100%",
+                                  width: "100%",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "0.6rem",
                                   color: "var(--text-muted)",
-                                  fontSize: "0.85rem",
                                 }}
                               >
-                                Click to upload holding document
-                              </span>
+                                <PersonHoldingIdIcon size={44} />
+                                <span style={{ fontSize: "0.9rem" }}>
+                                  Click to upload holding document
+                                </span>
+                              </div>
                             )}
                           </button>
                           <input
