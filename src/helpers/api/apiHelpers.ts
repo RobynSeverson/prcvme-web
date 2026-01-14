@@ -106,6 +106,7 @@ export type DirectMessage = {
   mediaItems?: { mediaKey: string; mediaType: "image" | "video" | "audio" }[];
   price?: number;
   isUnlocked?: boolean;
+  deleted?: boolean;
   createdAt: string;
 };
 
@@ -708,6 +709,43 @@ const purchaseDirectMessageMedia = async (args: {
   throw new Error("Purchase response is missing.");
 };
 
+const deleteDirectMessage = async (
+  messageId: string
+): Promise<{ ok: true; messageId: string; deleted: true }> => {
+  const token = window.localStorage.getItem("authToken");
+  if (!token) {
+    throw new Error("You must be logged in to delete messages.");
+  }
+
+  if (!messageId) {
+    throw new Error("Missing messageId.");
+  }
+
+  const response = await fetch(
+    `${API_BASE}/messages/direct/${encodeURIComponent(messageId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to delete message.";
+    throw new Error(message);
+  }
+
+  if (data && data.ok === true && typeof data.messageId === "string") {
+    return { ok: true, messageId: data.messageId, deleted: true };
+  }
+
+  throw new Error("Delete response is missing.");
+};
+
 const getMyMessageThreads = async (
   before?: string,
   limit?: number
@@ -1112,6 +1150,7 @@ export {
   getDirectMessages,
   sendDirectMessage,
   purchaseDirectMessageMedia,
+  deleteDirectMessage,
   markMessageThreadRead,
   getMessagesWebSocketUrl,
   // Password reset

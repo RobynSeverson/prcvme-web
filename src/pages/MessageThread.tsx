@@ -5,6 +5,7 @@ import {
   getDirectMessages,
   getMessagesWebSocketUrl,
   getUserByUserName,
+  deleteDirectMessage,
   markMessageThreadRead,
   purchaseDirectMessageMedia,
   sendDirectMessage,
@@ -28,6 +29,7 @@ type UiMessage = {
   mediaItems?: { mediaKey: string; mediaType: "image" | "video" | "audio" }[];
   price?: number;
   isUnlocked?: boolean;
+  deleted?: boolean;
   createdAt: string;
 };
 
@@ -95,6 +97,7 @@ export default function MessageThread() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => isUserLoggedIn());
   const [meUserId, setMeUserId] = useState<string | null>(null);
   const [canUploadMedia, setCanUploadMedia] = useState(false);
+  const [canDeleteMessages, setCanDeleteMessages] = useState(false);
 
   const [otherUser, setOtherUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
@@ -124,6 +127,11 @@ export default function MessageThread() {
   const [payMessage, setPayMessage] = useState<UiMessage | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+
+  const [deleteMessageTarget, setDeleteMessageTarget] =
+    useState<UiMessage | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const preventDefault = (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -177,6 +185,7 @@ export default function MessageThread() {
     const me = getLoggedInUserFromStorage();
     setMeUserId(me?.id ?? null);
     setCanUploadMedia(me?.isCreator === true || me?.isAdmin === true);
+    setCanDeleteMessages(me?.isCreator === true);
   }, []);
 
   useEffect(() => {
@@ -240,6 +249,7 @@ export default function MessageThread() {
             typeof (m as any).isUnlocked === "boolean"
               ? (m as any).isUnlocked
               : undefined,
+          deleted: (m as any).deleted === true,
           createdAt: m.createdAt,
         }));
 
@@ -308,6 +318,26 @@ export default function MessageThread() {
           timestamp?: string;
         };
 
+        if (parsed.type === "dmDeleted") {
+          if (typeof parsed.id !== "string") return;
+          const id = parsed.id;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === id
+                ? {
+                    ...m,
+                    deleted: true,
+                    text: "",
+                    mediaItems: [],
+                    price: undefined,
+                    isUnlocked: false,
+                  }
+                : m
+            )
+          );
+          return;
+        }
+
         if (parsed.type !== "dm") return;
         if (
           typeof parsed.id !== "string" ||
@@ -357,6 +387,7 @@ export default function MessageThread() {
               price,
               isUnlocked: isMine || !hasPricedMedia,
               createdAt,
+              deleted: false,
             },
           ];
 
@@ -412,6 +443,13 @@ export default function MessageThread() {
         toUserId: m.toUserId,
         text: m.text,
         mediaItems: m.mediaItems,
+        price:
+          typeof (m as any).price === "number" ? (m as any).price : undefined,
+        isUnlocked:
+          typeof (m as any).isUnlocked === "boolean"
+            ? (m as any).isUnlocked
+            : undefined,
+        deleted: (m as any).deleted === true,
         createdAt: m.createdAt,
       }));
 
@@ -494,6 +532,7 @@ export default function MessageThread() {
               price: created.price,
               isUnlocked: created.isUnlocked,
               createdAt: created.createdAt,
+              deleted: false,
             },
           ];
           requestAnimationFrame(() => {
@@ -616,7 +655,9 @@ export default function MessageThread() {
           ) : (
             messages.map((m) => {
               const isMine = !!meUserId && m.fromUserId === meUserId;
-              let mediaLength = m.mediaItems ? m.mediaItems.length : 0;
+              const isDeleted = m.deleted === true;
+              let mediaLength =
+                !isDeleted && m.mediaItems ? m.mediaItems.length : 0;
               let mediaGridColumns = mediaLength === 1 ? 1 : mediaLength;
 
               if (mediaLength > 4) {
@@ -628,9 +669,89 @@ export default function MessageThread() {
                   key={m.id}
                   className={`message-row ${isMine ? "is-mine" : ""}`}
                 >
-                  <div className="message-bubble">
-                    <div>{m.text}</div>
-                    {Array.isArray(m.mediaItems) && m.mediaItems.length > 0 ? (
+                  <div
+                    className="message-bubble"
+                    style={{ position: "relative" }}
+                  >
+                    {canDeleteMessages && isMine && !isDeleted ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError(null);
+                          setDeleteMessageTarget(m);
+                        }}
+                        title="Delete message"
+                        aria-label="Delete message"
+                        style={{
+                          position: "absolute",
+                          top: "2px",
+                          right: "2px",
+                          zIndex: 50,
+                          width: "18px",
+                          height: "18px",
+                          borderRadius: "999px",
+                          border: "1px solid rgba(255,255,255,0.18)",
+                          background: "rgba(0,0,0,0.25)",
+                          color: "rgba(255,255,255,0.9)",
+                          cursor: "pointer",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          style={{ position: "absolute" }}
+                        >
+                          <path
+                            d="M3 6h18"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M8 6V4h8v2"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M6 6l1 16h10l1-16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M10 11v6M14 11v6"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    ) : null}
+
+                    {isDeleted ? (
+                      <div
+                        className="text-muted"
+                        style={{ fontStyle: "italic" }}
+                      >
+                        Message deleted
+                      </div>
+                    ) : (
+                      <div>{m.text}</div>
+                    )}
+
+                    {!isDeleted &&
+                    Array.isArray(m.mediaItems) &&
+                    m.mediaItems.length > 0 ? (
                       <>
                         {(() => {
                           const price =
@@ -877,7 +998,8 @@ export default function MessageThread() {
                         {formatMessageTime(m.createdAt)}
                         {typeof m.price === "number" &&
                         Number.isFinite(m.price) &&
-                        m.price > 0 ? (
+                        m.price > 0 &&
+                        !isDeleted ? (
                           <span style={{ marginLeft: "0.5rem" }}>
                             • {formatPriceUSD(m.price)}
                           </span>
@@ -1232,6 +1354,99 @@ export default function MessageThread() {
             }
           }}
         />
+
+        <Lightbox
+          isOpen={!!deleteMessageTarget}
+          onClose={() => {
+            if (isDeleting) return;
+            setDeleteMessageTarget(null);
+            setDeleteError(null);
+          }}
+          zIndex={1200}
+        >
+          {deleteMessageTarget ? (
+            <div
+              className="app-card"
+              style={{
+                width: "min(92vw, 420px)",
+                padding: "1rem",
+              }}
+            >
+              <h3 style={{ marginTop: 0, marginBottom: "0.5rem" }}>
+                Delete message?
+              </h3>
+              <p className="text-muted" style={{ marginTop: 0 }}>
+                This removes the message for both users.
+              </p>
+
+              {deleteError ? <p className="auth-error">{deleteError}</p> : null}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.5rem",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  type="button"
+                  className="auth-submit"
+                  style={{ width: "auto", marginTop: 0, opacity: 0.9 }}
+                  onClick={() => {
+                    if (isDeleting) return;
+                    setDeleteMessageTarget(null);
+                    setDeleteError(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="auth-submit"
+                  style={{
+                    width: "auto",
+                    marginTop: 0,
+                    background: "rgba(239,68,68,0.9)",
+                    borderColor: "rgba(239,68,68,0.95)",
+                  }}
+                  disabled={isDeleting}
+                  onClick={async () => {
+                    try {
+                      if (!deleteMessageTarget) return;
+                      setDeleteError(null);
+                      setIsDeleting(true);
+                      await deleteDirectMessage(deleteMessageTarget.id);
+                      setMessages((prev) =>
+                        prev.map((m) =>
+                          m.id === deleteMessageTarget.id
+                            ? {
+                                ...m,
+                                deleted: true,
+                                text: "",
+                                mediaItems: [],
+                                price: undefined,
+                                isUnlocked: false,
+                              }
+                            : m
+                        )
+                      );
+                      setDeleteMessageTarget(null);
+                    } catch (err) {
+                      const message =
+                        (err instanceof Error && err.message) ||
+                        "Failed to delete message.";
+                      setDeleteError(message);
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </Lightbox>
       </section>
     </main>
   );
