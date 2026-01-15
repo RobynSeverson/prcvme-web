@@ -27,6 +27,7 @@ import RefundPolicy from "./pages/RefundPolicy";
 import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
 import Admin from "./pages/Admin";
+import Creator from "./pages/Creator";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 import {
   getUnreadMessageThreadCount,
@@ -329,6 +330,7 @@ function App() {
 
           {/* Creator routes */}
           <Route path="/me/profit" element={<Profit />} />
+          <Route path="/me/creator" element={<Creator />} />
 
           {/* Company routes */}
           <Route path="/company/about" element={<About />} />

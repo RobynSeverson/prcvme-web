@@ -78,6 +78,9 @@ export default function Navbar({
                 Admin
               </NavLink>
             ) : null}
+            <NavLink to="/me/creator" onClick={closeNav} end>
+              {isCreator ? "Creator Settings" : "Become a Creator"}
+            </NavLink>
             {isCreator ? (
               <NavLink to="/me/profit" onClick={closeNav} end>
                 Profit
