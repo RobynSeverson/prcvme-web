@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import ReactGA from "react-ga4";
 import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
 import UserMediaGrid from "../components/UserMediaGrid";
@@ -325,6 +326,13 @@ export default function Profile({ userName }: { userName?: string }) {
   const handleSubscribeToggle = async () => {
     if (!user) return;
     if (isOwner) return;
+
+    ReactGA.event({
+      category: "User Interaction",
+      action: `Clicked ${isSubscribed ? "Unsubscribe" : "Subscribe"} Button`,
+      label: userName || "Unknown Profile",
+    });
+
     if (!isLoggedIn) {
       navigate(loginLink);
       return;
