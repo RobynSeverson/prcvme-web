@@ -6,6 +6,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import ReactGA from "react-ga4";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -167,7 +168,11 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    ReactGA.initialize("G-BS3RK8L7E7");
+    ReactGA.send({ hitType: "pageview", page: location.pathname });
+
     if (typeof window === "undefined") return;
+
     setIsLoggedIn(isUserLoggedIn());
 
     try {
