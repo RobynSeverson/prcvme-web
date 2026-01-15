@@ -26,11 +26,124 @@ export default function Navbar({
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
 
+  const creatorSettingsLabel = isCreator
+    ? "Creator Settings"
+    : "Become a Creator";
+
+  type SettingsLink = {
+    to: string;
+    label: string;
+    end?: boolean;
+    show: boolean;
+  };
+
+  const mobileSettingsLinks: SettingsLink[] = [
+    {
+      to: "/portal/admin",
+      label: "Admin",
+      end: true,
+      show: isAdmin,
+    },
+    {
+      to: "/me/creator",
+      label: creatorSettingsLabel,
+      end: true,
+      show: true,
+    },
+    {
+      to: "/me/profit",
+      label: "Profit",
+      end: true,
+      show: isCreator,
+    },
+    {
+      to: "/me/account",
+      label: "Account",
+      show: true,
+    },
+    {
+      to: "/me/payment",
+      label: "Payment Methods",
+      show: true,
+    },
+  ];
+
+  const desktopSettingsLinks: SettingsLink[] = [
+    {
+      to: "/me/account",
+      label: "Account",
+      show: true,
+    },
+    {
+      to: "/me/payment",
+      label: "Payment Methods",
+      show: true,
+    },
+    {
+      to: "/me/creator",
+      label: creatorSettingsLabel,
+      end: true,
+      show: true,
+    },
+    {
+      to: "/me/profit",
+      label: "Profit",
+      end: true,
+      show: isCreator,
+    },
+    {
+      to: "/portal/admin",
+      label: "Admin",
+      end: true,
+      show: isAdmin,
+    },
+  ];
+
   const toggleNav = () => setIsNavOpen((open) => !open);
   const closeNav = () => {
     setIsNavOpen(false);
     setIsMoreOpen(false);
   };
+
+  const handleThemeToggle = () => {
+    onToggleTheme();
+    setIsMoreOpen(false);
+  };
+
+  const handleLogout = () => {
+    closeNav();
+    onLogout();
+  };
+
+  const handleLogin = () => {
+    closeNav();
+  };
+
+  const ThemeToggleButton = ({
+    className,
+    onClick,
+  }: {
+    className: string;
+    onClick: () => void;
+  }) => (
+    <button
+      type="button"
+      className={className}
+      onClick={onClick}
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      aria-pressed={theme === "dark"}
+      role="menuitem"
+    >
+      <span className="theme-toggle-label">Dark</span>
+      <span
+        className={`theme-toggle-slider ${
+          theme === "dark" ? "theme-toggle-slider-on" : "theme-toggle-slider-off"
+        }`}
+      >
+        <span className="theme-toggle-knob" />
+      </span>
+    </button>
+  );
 
   useEffect(() => {
     if (!isMoreOpen) return;
@@ -102,81 +215,30 @@ export default function Navbar({
             <NavLink to="/me/collections" onClick={closeNav} end>
               Collections
             </NavLink>
-            {isAdmin ? (
-              <NavLink
-                to="/portal/admin"
-                onClick={closeNav}
-                end
-                className="nav-mobile-only"
-              >
-                Admin
-              </NavLink>
-            ) : null}
-            <NavLink
-              to="/me/creator"
-              onClick={closeNav}
-              end
-              className="nav-mobile-only"
-            >
-              {isCreator ? "Creator Settings" : "Become a Creator"}
-            </NavLink>
-            {isCreator ? (
-              <NavLink
-                to="/me/profit"
-                onClick={closeNav}
-                end
-                className="nav-mobile-only"
-              >
-                Profit
-              </NavLink>
-            ) : null}
-            <NavLink
-              to="/me/account"
-              onClick={closeNav}
-              className="nav-mobile-only"
-            >
-              Account
-            </NavLink>
-            <NavLink
-              to="/me/payment"
-              onClick={closeNav}
-              className="nav-mobile-only"
-            >
-              Payment Methods
-            </NavLink>
+            {mobileSettingsLinks
+              .filter((link) => link.show)
+              .map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  onClick={closeNav}
+                  end={link.end}
+                  className="nav-mobile-only"
+                >
+                  {link.label}
+                </NavLink>
+              ))}
           </>
         )}
-        <button
-          type="button"
+        <ThemeToggleButton
           className="nav-theme-toggle nav-mobile-only"
-          onClick={() => {
-            onToggleTheme();
-            setIsMoreOpen(false);
-          }}
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          aria-pressed={theme === "dark"}
-          role="menuitem"
-        >
-          <span className="theme-toggle-label">Dark</span>
-          <span
-            className={`theme-toggle-slider ${
-              theme === "dark"
-                ? "theme-toggle-slider-on"
-                : "theme-toggle-slider-off"
-            }`}
-          >
-            <span className="theme-toggle-knob" />
-          </span>
-        </button>
+          onClick={handleThemeToggle}
+        />
         {isLoggedIn ? (
           <button
             type="button"
             className="nav-logout nav-mobile-only"
-            onClick={() => {
-              setIsMoreOpen(false);
-              closeNav();
-              onLogout();
-            }}
+            onClick={handleLogout}
             role="menuitem"
           >
             Logout
@@ -185,10 +247,7 @@ export default function Navbar({
           <NavLink
             to={loginHref}
             className="nav-mobile-only"
-            onClick={() => {
-              setIsMoreOpen(false);
-              closeNav();
-            }}
+            onClick={handleLogin}
             role="menuitem"
           >
             Login
@@ -237,36 +296,13 @@ export default function Navbar({
           )}
           {!isLoggedIn && (
             <>
-              <button
-                type="button"
+              <ThemeToggleButton
                 className="nav-theme-toggle"
-                onClick={() => {
-                  onToggleTheme();
-                  setIsMoreOpen(false);
-                }}
-                aria-label={`Switch to ${
-                  theme === "dark" ? "light" : "dark"
-                } mode`}
-                aria-pressed={theme === "dark"}
-                role="menuitem"
-              >
-                <span className="theme-toggle-label">Dark</span>
-                <span
-                  className={`theme-toggle-slider ${
-                    theme === "dark"
-                      ? "theme-toggle-slider-on"
-                      : "theme-toggle-slider-off"
-                  }`}
-                >
-                  <span className="theme-toggle-knob" />
-                </span>
-              </button>
+                onClick={handleThemeToggle}
+              />
               <NavLink
                 to={loginHref}
-                onClick={() => {
-                  setIsMoreOpen(false);
-                  closeNav();
-                }}
+                onClick={handleLogin}
                 role="menuitem"
               >
                 Login
@@ -276,116 +312,33 @@ export default function Navbar({
           <div className="nav-more-menu" role="menu" aria-label="Settings">
             {isLoggedIn ? (
               <>
-                <NavLink
-                  to="/me/account"
-                  onClick={() => {
-                    setIsMoreOpen(false);
-                    closeNav();
-                  }}
+                {desktopSettingsLinks
+                  .filter((link) => link.show)
+                  .map((link) => (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      onClick={closeNav}
+                      end={link.end}
+                      role="menuitem"
+                    >
+                      {link.label}
+                    </NavLink>
+                  ))}
+                <ThemeToggleButton
+                  className="nav-theme-toggle"
+                  onClick={handleThemeToggle}
+                />
+                <button
+                  type="button"
+                  className="nav-logout"
+                  onClick={handleLogout}
                   role="menuitem"
                 >
-                  Account
-                </NavLink>
-                <NavLink
-                  to="/me/payment"
-                  onClick={() => {
-                    setIsMoreOpen(false);
-                    closeNav();
-                  }}
-                  role="menuitem"
-                >
-                  Payment Methods
-                </NavLink>
-                <NavLink
-                  to="/me/creator"
-                  onClick={() => {
-                    setIsMoreOpen(false);
-                    closeNav();
-                  }}
-                  end
-                  role="menuitem"
-                >
-                  {isCreator ? "Creator Settings" : "Become a Creator"}
-                </NavLink>
-                {isCreator ? (
-                  <NavLink
-                    to="/me/profit"
-                    onClick={() => {
-                      setIsMoreOpen(false);
-                      closeNav();
-                    }}
-                    end
-                    role="menuitem"
-                  >
-                    Profit
-                  </NavLink>
-                ) : null}
-                {isAdmin ? (
-                  <NavLink
-                    to="/portal/admin"
-                    onClick={() => {
-                      setIsMoreOpen(false);
-                      closeNav();
-                    }}
-                    end
-                    role="menuitem"
-                  >
-                    Admin
-                  </NavLink>
-                ) : null}
+                  Logout
+                </button>
               </>
             ) : null}
-
-            <button
-              type="button"
-              className="nav-theme-toggle"
-              onClick={() => {
-                onToggleTheme();
-                setIsMoreOpen(false);
-              }}
-              aria-label={`Switch to ${
-                theme === "dark" ? "light" : "dark"
-              } mode`}
-              aria-pressed={theme === "dark"}
-              role="menuitem"
-            >
-              <span className="theme-toggle-label">Dark</span>
-              <span
-                className={`theme-toggle-slider ${
-                  theme === "dark"
-                    ? "theme-toggle-slider-on"
-                    : "theme-toggle-slider-off"
-                }`}
-              >
-                <span className="theme-toggle-knob" />
-              </span>
-            </button>
-
-            {isLoggedIn ? (
-              <button
-                type="button"
-                className="nav-logout"
-                onClick={() => {
-                  setIsMoreOpen(false);
-                  closeNav();
-                  onLogout();
-                }}
-                role="menuitem"
-              >
-                Logout
-              </button>
-            ) : (
-              <NavLink
-                to={loginHref}
-                onClick={() => {
-                  setIsMoreOpen(false);
-                  closeNav();
-                }}
-                role="menuitem"
-              >
-                Login
-              </NavLink>
-            )}
           </div>
         </div>
       </nav>
