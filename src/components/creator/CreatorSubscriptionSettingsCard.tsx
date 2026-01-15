@@ -25,6 +25,7 @@ export default function CreatorSubscriptionSettingsCard({
   const [subscriptionPrice, setSubscriptionPrice] = useState<string>("");
   const [subscriptionDeals, setSubscriptionDeals] = useState<DealFormRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -54,6 +55,32 @@ export default function CreatorSubscriptionSettingsCard({
     const normalized = normalizeCurrencyInput(value);
     if (!normalized) return false;
     return /^\d+(\.\d{1,2})?$/.test(normalized);
+  };
+
+  const validatePriceRange = (raw: string, label: string): string | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+
+    if (!isValidCurrency(trimmed)) {
+      return `${label} must have at most 2 decimal places.`;
+    }
+
+    const normalized = normalizeCurrencyInput(trimmed);
+    const parsed = Number(normalized);
+
+    if (!Number.isFinite(parsed)) {
+      return `${label} must be a valid number.`;
+    }
+
+    if (parsed < 1) {
+      return `${label} must be at least 1.00.`;
+    }
+
+    if (parsed > 100) {
+      return `${label} must be <= 100.00.`;
+    }
+
+    return null;
   };
 
   useEffect(() => {
@@ -102,6 +129,8 @@ export default function CreatorSubscriptionSettingsCard({
         expiresAt: toDateInputValue((d as any).expiresAt),
       }))
     );
+
+    setValidationError(null);
   }, [user]);
 
   const handleAddDealRow = () => {
@@ -125,10 +154,20 @@ export default function CreatorSubscriptionSettingsCard({
   const handleSave = async () => {
     setError(null);
     setSuccess(null);
+    setValidationError(null);
 
     const token = window.localStorage.getItem("authToken");
     if (!token) {
       setError("You need to be signed in to edit creator settings.");
+      return;
+    }
+
+    const liveSubscriptionError = validatePriceRange(
+      subscriptionPrice,
+      "Subscription price"
+    );
+    if (liveSubscriptionError) {
+      setValidationError(liveSubscriptionError);
       return;
     }
 
@@ -137,25 +176,26 @@ export default function CreatorSubscriptionSettingsCard({
       const payload: Record<string, unknown> = {};
 
       const trimmedPrice = subscriptionPrice.trim();
-      if (trimmedPrice) {
-        if (!isValidCurrency(trimmedPrice)) {
-          setError("Subscription price must have at most 2 decimal places.");
-          return;
-        }
-        const normalizedPrice = normalizeCurrencyInput(trimmedPrice);
-        const parsed = Number(normalizedPrice);
-        if (!Number.isFinite(parsed) || parsed < 0) {
-          setError("Subscription price must be a number >= 0.");
-          return;
-        }
-        if (parsed > 100) {
-          setError("Subscription price must be <= 100.00.");
-          return;
-        }
-        payload.subscriptionPrice = parsed;
-      } else {
-        payload.subscriptionPrice = null;
+      if (!trimmedPrice) {
+        setError("Subscription price is required.");
+        return;
       }
+
+      if (!isValidCurrency(trimmedPrice)) {
+        setError("Subscription price must have at most 2 decimal places.");
+        return;
+      }
+      const normalizedPrice = normalizeCurrencyInput(trimmedPrice);
+      const parsed = Number(normalizedPrice);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        setError("Subscription price must be a number >= 1.00.");
+        return;
+      }
+      if (parsed > 100) {
+        setError("Subscription price must be <= 100.00.");
+        return;
+      }
+      payload.subscriptionPrice = parsed;
 
       const deals: SubscriptionDeal[] = [];
       for (const deal of subscriptionDeals) {
@@ -200,8 +240,8 @@ export default function CreatorSubscriptionSettingsCard({
           setError("Deal months must be an integer > 0.");
           return;
         }
-        if (!Number.isFinite(price) || price < 0) {
-          setError("Deal price must be a number >= 0.");
+        if (!Number.isFinite(price) || price < 1) {
+          setError("Deal price must be a number >= 1.00.");
           return;
         }
         if (price > 100) {
@@ -277,11 +317,15 @@ export default function CreatorSubscriptionSettingsCard({
         <span>Monthly price (USD)</span>
         <input
           type="number"
-          min={0}
+          min={1}
           max={100}
           step={0.01}
           value={subscriptionPrice}
-          onChange={(event) => setSubscriptionPrice(event.target.value)}
+          onChange={(event) => {
+            const value = event.target.value;
+            setSubscriptionPrice(value);
+            setValidationError(validatePriceRange(value, "Subscription price"));
+          }}
         />
       </label>
 
@@ -349,7 +393,7 @@ export default function CreatorSubscriptionSettingsCard({
                 <span>Price (USD)</span>
                 <input
                   type="number"
-                  min={0}
+                  min={1}
                   max={100}
                   step={0.01}
                   value={deal.price}
@@ -434,6 +478,7 @@ export default function CreatorSubscriptionSettingsCard({
         </div>
       )}
 
+      {validationError ? <p className="auth-error">{validationError}</p> : null}
       {error ? <p className="auth-error">{error}</p> : null}
       {success ? <p className="auth-success">{success}</p> : null}
 
