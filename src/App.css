@@ -131,49 +131,6 @@ body {
   color: var(--text-muted);
 }
 
-.app-footer {
-  padding: 1rem 1.5rem 1.5rem;
-  border-top: 1px solid var(--footer-border);
-  background: var(--footer-bg);
-}
-
-.footer-links {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.footer-links a {
-  color: var(--footer-link-color);
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-.footer-links a:hover {
-  color: var(--footer-link-hover-color);
-}
-
-.footer-copy {
-  margin: 0;
-  color: var(--footer-copy-color);
-  font-size: 0.8rem;
-}
-
-.footer-payments {
-  margin-top: 0.75rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.footer-payment-icon {
-  height: 18px;
-  width: auto;
-  object-fit: contain;
-  opacity: 0.92;
-}
-
 .app-card {
   border-radius: 0.75rem;
   border: 1px solid var(--card-border);
@@ -226,10 +183,6 @@ body {
 
 @media (min-width: 768px) {
   .app-content {
-    padding-inline: 2.5rem;
-  }
-
-  .app-footer {
     padding-inline: 2.5rem;
   }
 }

@@ -1,0 +1,14 @@
+.paymentIcons {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.paymentIcon {
+  height: 18px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.92;
+}

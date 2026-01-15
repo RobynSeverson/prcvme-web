@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import styles from "./PaymentIcons.module.css";
 
 type PaymentIconsProps = {
   className?: string;
@@ -8,8 +9,8 @@ type PaymentIconsProps = {
 };
 
 export default function PaymentIcons({
-  className = "footer-payments",
-  iconClassName = "footer-payment-icon",
+  className = styles.paymentIcons,
+  iconClassName = styles.paymentIcon,
   style,
   ariaLabel = "Accepted payment methods",
 }: PaymentIconsProps) {
