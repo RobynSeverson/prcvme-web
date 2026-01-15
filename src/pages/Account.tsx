@@ -44,7 +44,7 @@ export default function Account() {
     string | null
   >(null);
 
-  const loginLink = `/login?redirect=${encodeURIComponent(
+  const loginLink = `/account/login?redirect=${encodeURIComponent(
     location.pathname + location.search
   )}`;
 

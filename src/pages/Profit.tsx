@@ -56,7 +56,7 @@ export default function Profit() {
   const [error, setError] = useState<string | null>(null);
 
   const loginLink = useMemo(() => {
-    return `/login?redirect=${encodeURIComponent("/profit")}`;
+    return `/account/login?redirect=${encodeURIComponent("/profit")}`;
   }, []);
 
   useEffect(() => {

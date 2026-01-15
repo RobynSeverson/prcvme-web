@@ -181,7 +181,7 @@ export default function Collections() {
       <main>
         <h1>Collections</h1>
         <p>You need to be signed in to view your collections.</p>
-        <Link to="/login">Go to login</Link>
+        <Link to="/account/login">Go to login</Link>
       </main>
     );
   }

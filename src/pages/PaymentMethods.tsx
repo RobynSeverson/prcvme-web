@@ -32,7 +32,7 @@ export default function PaymentMethods() {
 
   const loginLink = useMemo(
     () =>
-      `/login?redirect=${encodeURIComponent(
+      `/account/login?redirect=${encodeURIComponent(
         location.pathname + location.search
       )}`,
     [location.pathname, location.search]

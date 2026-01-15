@@ -38,7 +38,7 @@ export default function Messages() {
   const navigate = useNavigate();
 
   const loginLink = useMemo(() => {
-    return `/login?redirect=${encodeURIComponent("/messages")}`;
+    return `/account/login?redirect=${encodeURIComponent("/me/messages")}`;
   }, []);
 
   useEffect(() => {
@@ -212,14 +212,14 @@ export default function Messages() {
     if (suggestions.length === 1) {
       const user = suggestions[0];
       setIsAutocompleteOpen(false);
-      navigate(`/messages/${encodeURIComponent(user.userName)}`);
+      navigate(`/me/messages/${encodeURIComponent(user.userName)}`);
     }
   };
 
   const handleSelectUser = (user: User) => {
     setSearch(`@${user.userName}`);
     setIsAutocompleteOpen(false);
-    navigate(`/messages/${encodeURIComponent(user.userName)}`);
+    navigate(`/me/messages/${encodeURIComponent(user.userName)}`);
   };
 
   if (!isLoggedIn) {
@@ -509,7 +509,9 @@ export default function Messages() {
                       {t.lastText}
                     </div>
                   </div>
-                  <Link to={`/messages/${encodeURIComponent(t.user.userName)}`}>
+                  <Link
+                    to={`/me/messages/${encodeURIComponent(t.user.userName)}`}
+                  >
                     Open
                   </Link>
                 </div>

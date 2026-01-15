@@ -92,7 +92,7 @@ export default function ResetPassword() {
       await resetPassword({ token, newPassword: password });
       setSuccess(true);
       window.setTimeout(() => {
-        navigate("/login", { replace: true });
+        navigate("/account/login", { replace: true });
       }, 1200);
     } catch (err) {
       console.error("Error resetting password", err);
@@ -115,7 +115,7 @@ export default function ResetPassword() {
             <p className="auth-error">
               This reset link is invalid or has expired.
             </p>
-            <Link to="/forgot-password" className="auth-toggle">
+            <Link to="/account/forgot-password" className="auth-toggle">
               Request a new reset link
             </Link>
           </>
@@ -161,7 +161,7 @@ export default function ResetPassword() {
           </form>
         )}
 
-        <Link to="/login" className="auth-toggle">
+        <Link to="/account/login" className="auth-toggle">
           Back to sign in
         </Link>
       </section>

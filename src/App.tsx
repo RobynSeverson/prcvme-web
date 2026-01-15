@@ -245,13 +245,13 @@ function App() {
     }
     setIsLoggedIn(false);
     navigate(
-      `/login?redirect=${encodeURIComponent(
+      `/account/login?redirect=${encodeURIComponent(
         location.pathname + location.search
       )}`
     );
   };
 
-  const loginHref = `/login?redirect=${encodeURIComponent(
+  const loginHref = `/account/login?redirect=${encodeURIComponent(
     location.pathname + location.search
   )}`;
 
@@ -273,25 +273,64 @@ function App() {
       <div className="app-content">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/:userName" element={<UserProfileRoute />} />
+
+          {/* Legacy Routes */}
+
+          {/* Login routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Account routes */}
           <Route path="/account" element={<Account />} />
           <Route path="/payment" element={<PaymentMethods />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/subscriptions" element={<Subscriptions />} />
           <Route path="/collections" element={<Collections />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/messages/:userName" element={<UserMessageRoute />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+
+          {/* Creator routes */}
           <Route path="/profit" element={<Profit />} />
+
+          {/* Company routes */}
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
-          <Route path="/messages/:userName" element={<UserMessageRoute />} />
-          <Route path="/:userName" element={<UserProfileRoute />} />
-          <Route path="/profile/edit" element={<EditProfile />} />
+
+          {/* New Routes */}
+
+          {/* Login routes */}
+          <Route path="/account/login" element={<Login />} />
+          <Route path="/account/forgot-password" element={<ForgotPassword />} />
+          <Route path="/account/reset-password" element={<ResetPassword />} />
+
+          {/* Account routes */}
+          <Route path="/me/account" element={<Account />} />
+          <Route path="/me/payment" element={<PaymentMethods />} />
+          <Route path="/me/profile" element={<Profile />} />
+          <Route path="/me/messages" element={<Messages />} />
+          <Route path="/me/subscriptions" element={<Subscriptions />} />
+          <Route path="/me/collections" element={<Collections />} />
+          <Route path="/me/messages/:userName" element={<UserMessageRoute />} />
+          <Route path="/me/profile/edit" element={<EditProfile />} />
+
+          {/* Admin routes */}
+          <Route path="/portal/admin" element={<Admin />} />
+
+          {/* Creator routes */}
+          <Route path="/me/profit" element={<Profit />} />
+
+          {/* Company routes */}
+          <Route path="/company/about" element={<About />} />
+          <Route path="/company/contact" element={<Contact />} />
+          <Route path="/company/privacy" element={<Privacy />} />
+          <Route path="/company/terms" element={<Terms />} />
+          <Route path="/company/refund-policy" element={<RefundPolicy />} />
         </Routes>
       </div>
 

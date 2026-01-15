@@ -71,7 +71,7 @@ export default function EditProfile() {
   const identityDocumentInputRef = useRef<HTMLInputElement | null>(null);
   const holdingIdentityDocumentInputRef = useRef<HTMLInputElement | null>(null);
 
-  const loginLink = `/login?redirect=${encodeURIComponent(
+  const loginLink = `/account/login?redirect=${encodeURIComponent(
     location.pathname + location.search
   )}`;
 
@@ -596,7 +596,7 @@ export default function EditProfile() {
   };
 
   const handleBackToProfile = () => {
-    navigate("/profile");
+    navigate("/me/profile");
   };
 
   if (isLoading) {

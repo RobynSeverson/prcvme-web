@@ -51,7 +51,7 @@ export default function Subscriptions() {
   const navigate = useNavigate();
 
   const loginLink = useMemo(() => {
-    return `/login?redirect=${encodeURIComponent("/subscriptions")}`;
+    return `/account/login?redirect=${encodeURIComponent("/subscriptions")}`;
   }, []);
 
   useEffect(() => {
@@ -387,7 +387,7 @@ export default function Subscriptions() {
                           onClick={() => {
                             if (!userName) return;
                             navigate(
-                              `/messages/${encodeURIComponent(userName)}`
+                              `/me/messages/${encodeURIComponent(userName)}`
                             );
                           }}
                           title={userName ? "Chat" : "Subscriber unavailable"}

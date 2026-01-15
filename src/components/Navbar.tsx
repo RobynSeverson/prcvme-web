@@ -50,10 +50,10 @@ export default function Navbar({
         </NavLink>
         {isLoggedIn && (
           <>
-            <NavLink to="/profile" onClick={closeNav} end>
+            <NavLink to="/me/profile" onClick={closeNav} end>
               Profile
             </NavLink>
-            <NavLink to="/messages" onClick={closeNav} end>
+            <NavLink to="/me/messages" onClick={closeNav} end>
               <span className="nav-link-inline">
                 <span>Messages</span>
                 {typeof unreadMessageThreads === "number" &&
@@ -67,26 +67,26 @@ export default function Navbar({
                 ) : null}
               </span>
             </NavLink>
-            <NavLink to="/subscriptions" onClick={closeNav} end>
+            <NavLink to="/me/subscriptions" onClick={closeNav} end>
               Subscriptions
             </NavLink>
-            <NavLink to="/collections" onClick={closeNav} end>
+            <NavLink to="/me/collections" onClick={closeNav} end>
               Collections
             </NavLink>
             {isAdmin ? (
-              <NavLink to="/admin" onClick={closeNav} end>
+              <NavLink to="/portal/admin" onClick={closeNav} end>
                 Admin
               </NavLink>
             ) : null}
             {isCreator ? (
-              <NavLink to="/profit" onClick={closeNav} end>
+              <NavLink to="/me/profit" onClick={closeNav} end>
                 Profit
               </NavLink>
             ) : null}
-            <NavLink to="/account" onClick={closeNav}>
+            <NavLink to="/me/account" onClick={closeNav}>
               Account
             </NavLink>
-            <NavLink to="/payment" onClick={closeNav}>
+            <NavLink to="/me/payment" onClick={closeNav}>
               Payment Methods
             </NavLink>
           </>

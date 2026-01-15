@@ -175,7 +175,7 @@ export default function MessageThread() {
   };
 
   const loginLink = useMemo(() => {
-    return `/login?redirect=${encodeURIComponent(
+    return `/account/login?redirect=${encodeURIComponent(
       location.pathname + location.search
     )}`;
   }, [location.pathname, location.search]);
@@ -584,7 +584,7 @@ export default function MessageThread() {
       <main>
         <p>{error}</p>
         <p>
-          <Link to="/messages">Back to messages</Link>
+          <Link to="/me/messages">Back to messages</Link>
         </p>
       </main>
     );
@@ -633,7 +633,7 @@ export default function MessageThread() {
         }}
       >
         <div className="message-thread-actions">
-          <Link to="/messages">Back</Link>
+          <Link to="/me/messages">Back</Link>
         </div>
 
         <div

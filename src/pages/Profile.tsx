@@ -52,7 +52,7 @@ export default function Profile({ userName }: { userName?: string }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const loginLink = `/login?redirect=${encodeURIComponent(
+  const loginLink = `/account/login?redirect=${encodeURIComponent(
     location.pathname + location.search
   )}`;
 
@@ -230,7 +230,7 @@ export default function Profile({ userName }: { userName?: string }) {
   }, [isOwner, user]);
 
   const handleEditProfile = () => {
-    navigate("/profile/edit");
+    navigate("/me/profile/edit");
   };
 
   const handleShareProfile = async () => {
@@ -494,7 +494,7 @@ export default function Profile({ userName }: { userName?: string }) {
 
         {profileBackgroundSrc && canMessageUser ? (
           <Link
-            to={`/messages/${encodeURIComponent(user.userName)}`}
+            to={`/me/messages/${encodeURIComponent(user.userName)}`}
             className="icon-button"
             aria-label={`Message ${user.displayName || user.userName}`}
             title="Message"

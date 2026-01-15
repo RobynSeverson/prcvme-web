@@ -33,13 +33,14 @@ export default function Login() {
     if (raw.startsWith("//")) return null;
     if (raw.includes("://")) return null;
     if (raw.startsWith("/login")) return null;
+    if (raw.startsWith("/account/login")) return null;
 
     return raw;
   };
 
   const redirectPath =
     getSafeRedirectPath(new URLSearchParams(location.search).get("redirect")) ||
-    "/profile";
+    "/me/profile";
 
   const isRegister = mode === "register";
 
@@ -311,7 +312,7 @@ export default function Login() {
           </button>
 
           {!isRegister && (
-            <Link to="/forgot-password" className="auth-toggle">
+            <Link to="/account/forgot-password" className="auth-toggle">
               Forgot password?
             </Link>
           )}

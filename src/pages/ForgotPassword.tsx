@@ -75,7 +75,7 @@ export default function ForgotPassword() {
           </button>
         </form>
 
-        <Link to="/login" className="auth-toggle">
+        <Link to="/account/login" className="auth-toggle">
           Back to sign in
         </Link>
       </section>
