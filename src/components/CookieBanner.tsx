@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import styles from "./CookieBanner.module.css";
 
 const STORAGE_KEY = "prcvme_cookie_banner_dismissed_at";
 
@@ -23,26 +24,22 @@ export default function CookieBanner() {
 
   return (
     <div
-      className="cookie-banner"
+      className={styles.banner}
       role="dialog"
       aria-live="polite"
       aria-label="Cookie notice"
     >
-      <div className="cookie-banner__content">
-        <div className="cookie-banner__text">
+      <div className={styles.content}>
+        <div className={styles.text}>
           <strong>Cookie Notice</strong>
           <span>
             We use cookies and similar technologies to keep you signed in and
             help the Service work reliably. Learn more in our{" "}
-            <Link to="/privacy">Privacy Policy</Link>.
+            <Link to="/company/privacy">Privacy Policy</Link>.
           </span>
         </div>
-        <div className="cookie-banner__actions">
-          <button
-            type="button"
-            className="cookie-banner__button"
-            onClick={dismiss}
-          >
+        <div className={styles.actions}>
+          <button type="button" className={styles.button} onClick={dismiss}>
             Dismiss
           </button>
         </div>
