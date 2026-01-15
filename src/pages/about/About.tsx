@@ -1,5 +1,5 @@
 import { useEffect, type SVGProps } from "react";
-import { setTitle } from "../helpers/metadataHelper";
+import { setTitle } from "../../helpers/metadataHelper";
 import styles from "./About.module.css";
 
 function SubscriptionIcon(props: SVGProps<SVGSVGElement>) {

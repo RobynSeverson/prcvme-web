@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { isUserLoggedIn } from "../helpers/auth/authHelpers";
-import Lightbox from "../components/Lightbox";
-import { setTitle } from "../helpers/metadataHelper";
+import { isUserLoggedIn } from "../../helpers/auth/authHelpers";
+import Lightbox from "../../components/Lightbox";
+import { setTitle } from "../../helpers/metadataHelper";
 import styles from "./Admin.module.css";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";

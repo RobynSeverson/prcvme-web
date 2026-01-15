@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getAPIBase } from "../helpers/api/apiHelpers";
-import { setTitle } from "../helpers/metadataHelper";
+import { getAPIBase } from "../../helpers/api/apiHelpers";
+import { setTitle } from "../../helpers/metadataHelper";
 import styles from "./Account.module.css";
 
 const API_BASE = getAPIBase();

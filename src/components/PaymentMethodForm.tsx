@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildPaymentMethodLabel } from "../helpers/paymentMethods/paymentMethodsStorage";
-import PaymentIcons from "./PaymentIcons";
+import PaymentIcons from "./paymenticons/PaymentIcons";
 
 export type NewPaymentMethodSummary = {
   label: string;

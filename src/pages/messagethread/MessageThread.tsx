@@ -9,17 +9,17 @@ import {
   markMessageThreadRead,
   purchaseDirectMessageMedia,
   sendDirectMessage,
-} from "../helpers/api/apiHelpers";
-import type { User } from "../models/user";
+} from "../../helpers/api/apiHelpers";
+import type { User } from "../../models/user";
 import {
   getLoggedInUserFromStorage,
   isUserLoggedIn,
-} from "../helpers/auth/authHelpers";
-import SecureImage from "../components/SecureImage";
-import SecureVideo from "../components/SecureVideo";
-import Lightbox from "../components/Lightbox";
-import PayToViewPaymentModal from "../components/PayToViewPaymentModal";
-import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
+} from "../../helpers/auth/authHelpers";
+import SecureImage from "../../components/SecureImage";
+import SecureVideo from "../../components/SecureVideo";
+import Lightbox from "../../components/Lightbox";
+import PayToViewPaymentModal from "../../components/PayToViewPaymentModal";
+import LikeBookmarkButtons from "../../components/LikeBookmarkButtons";
 import styles from "./MessageThread.module.css";
 
 type UiMessage = {

@@ -11,22 +11,22 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Account from "./pages/Account";
+import Account from "./pages/account/Account";
 import "./App.css";
 import EditProfile from "./pages/EditProfile";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
-import MessageThread from "./pages/MessageThread";
+import MessageThread from "./pages/messagethread/MessageThread";
 import Subscriptions from "./pages/Subscriptions";
 import Profit from "./pages/Profit";
-import About from "./pages/About";
+import About from "./pages/about/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
 import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
-import Admin from "./pages/Admin";
+import Admin from "./pages/admin/Admin";
 import Creator from "./pages/Creator";
 import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 import {
@@ -34,9 +34,9 @@ import {
   getUserByUserName,
 } from "./helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "./helpers/userHelpers";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import CookieBanner from "./components/CookieBanner";
+import Navbar from "./components/navbar/Navbar";
+import Footer from "./components/footer/Footer";
+import CookieBanner from "./components/cookiebanner/CookieBanner";
 
 function upsertMetaTag(
   kind: "name" | "property",
