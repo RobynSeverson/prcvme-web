@@ -195,6 +195,7 @@ export default function Navbar({
           </NavLink>
         )}
 
+        {/* Begin Desktop Only Nav */}
         <div
           className={`nav-more nav-desktop-only ${isMoreOpen ? "is-open" : ""}`}
           ref={moreMenuRef}
@@ -233,6 +234,44 @@ export default function Navbar({
               </svg>
               <span className="visually-hidden">Settings</span>
             </button>
+          )}
+          {!isLoggedIn && (
+            <>
+              <button
+                type="button"
+                className="nav-theme-toggle"
+                onClick={() => {
+                  onToggleTheme();
+                  setIsMoreOpen(false);
+                }}
+                aria-label={`Switch to ${
+                  theme === "dark" ? "light" : "dark"
+                } mode`}
+                aria-pressed={theme === "dark"}
+                role="menuitem"
+              >
+                <span className="theme-toggle-label">Dark</span>
+                <span
+                  className={`theme-toggle-slider ${
+                    theme === "dark"
+                      ? "theme-toggle-slider-on"
+                      : "theme-toggle-slider-off"
+                  }`}
+                >
+                  <span className="theme-toggle-knob" />
+                </span>
+              </button>
+              <NavLink
+                to={loginHref}
+                onClick={() => {
+                  setIsMoreOpen(false);
+                  closeNav();
+                }}
+                role="menuitem"
+              >
+                Login
+              </NavLink>
+            </>
           )}
           <div className="nav-more-menu" role="menu" aria-label="Settings">
             {isLoggedIn ? (
