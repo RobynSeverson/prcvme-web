@@ -1,0 +1,84 @@
+.userRow {
+  padding: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.userTitle {
+  font-weight: 700;
+}
+
+.userMeta {
+  font-size: 0.9rem;
+}
+
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.userStatus {
+  font-size: 0.9rem;
+}
+
+.actionsMobile {
+  display: none;
+}
+
+.actionsMobile summary {
+  cursor: pointer;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+:global([data-theme='light']) .actionsMobile summary {
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.actionsBody {
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+@media (max-width: 520px) {
+  .userRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actionsDesktop {
+    display: none;
+  }
+
+  .actionsMobile {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+  }
+
+  .toggleButton {
+    width: 100%;
+    text-align: left;
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.6rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.55);
+    color: #e5e7eb;
+  }
+
+  :global([data-theme='light']) .toggleButton {
+    background: rgba(255, 255, 255, 0.95);
+    color: #0f172a;
+    border-color: rgba(15, 23, 42, 0.18);
+  }
+
+  .toggleButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

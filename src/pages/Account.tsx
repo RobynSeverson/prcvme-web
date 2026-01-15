@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getAPIBase } from "../helpers/api/apiHelpers";
 import { setTitle } from "../helpers/metadataHelper";
+import styles from "./Account.module.css";
 
 const API_BASE = getAPIBase();
 
@@ -317,9 +318,9 @@ export default function Account() {
     <main>
       <h1>Account</h1>
 
-      <div className="account-stack">
+      <div className={styles.stack}>
         <section className="auth-card">
-          <h2 className="account-section-title">Account details</h2>
+          <h2 className={styles.sectionTitle}>Account details</h2>
           <p>
             <strong>Email:</strong> {user.email}
           </p>
@@ -334,7 +335,7 @@ export default function Account() {
         </section>
 
         <section className="auth-card">
-          <h2 className="account-section-title">Update email</h2>
+          <h2 className={styles.sectionTitle}>Update email</h2>
           <form className="auth-form" onSubmit={handleUpdateEmail}>
             <label className="auth-field">
               <span>New email</span>
@@ -376,7 +377,7 @@ export default function Account() {
         </section>
 
         <section className="auth-card">
-          <h2 className="account-section-title">Change password</h2>
+          <h2 className={styles.sectionTitle}>Change password</h2>
           <form className="auth-form" onSubmit={handleUpdatePassword}>
             <label className="auth-field">
               <span>Current password</span>

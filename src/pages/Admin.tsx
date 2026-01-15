@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import Lightbox from "../components/Lightbox";
 import { setTitle } from "../helpers/metadataHelper";
+import styles from "./Admin.module.css";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -718,9 +719,9 @@ export default function Admin() {
         {results.length > 0 ? (
           <div style={{ marginTop: "1rem", display: "grid", gap: "0.75rem" }}>
             {results.map((u) => (
-              <div key={u.id} className="app-card admin-user-row">
+              <div key={u.id} className={`app-card ${styles.userRow}`}>
                 <div className="admin-user-info">
-                  <div className="admin-user-title">
+                  <div className={styles.userTitle}>
                     {u.displayName || u.userName}{" "}
                     <Link
                       to={`/${encodeURIComponent(u.userName)}`}
@@ -729,15 +730,17 @@ export default function Admin() {
                       @{u.userName}
                     </Link>
                   </div>
-                  <div className="text-muted admin-user-meta">
+                  <div className={`${styles.userMeta} text-muted`}>
                     {u.email}
                     {u.isAdmin ? " • admin" : ""}
                     {!u.isActive ? " • inactive" : ""}
                   </div>
                 </div>
 
-                <div className="admin-user-actions admin-user-actions-desktop">
-                  <span className="text-muted admin-user-status">
+                <div
+                  className={`${styles.userActions} ${styles.actionsDesktop}`}
+                >
+                  <span className={`${styles.userStatus} text-muted`}>
                     {u.isCreator ? "Creator" : "Viewer"} •{" "}
                     {u.isActive ? "Active" : "Inactive"}
                   </span>
@@ -776,17 +779,19 @@ export default function Admin() {
                   </button>
                 </div>
 
-                <details className="admin-user-actions admin-user-actions-mobile">
+                <details
+                  className={`${styles.userActions} ${styles.actionsMobile}`}
+                >
                   <summary>Options</summary>
-                  <div className="admin-user-actions-body">
-                    <span className="text-muted admin-user-status">
+                  <div className={styles.actionsBody}>
+                    <span className={`${styles.userStatus} text-muted`}>
                       {u.isCreator ? "Creator" : "Viewer"} •{" "}
                       {u.isActive ? "Active" : "Inactive"}
                     </span>
 
                     <button
                       type="button"
-                      className="auth-toggle admin-toggle-button"
+                      className={`auth-toggle ${styles.toggleButton}`}
                       disabled={Boolean(isUpdating[`${u.id}:creator`])}
                       onClick={() => {
                         setError(null);
@@ -803,7 +808,7 @@ export default function Admin() {
 
                     <button
                       type="button"
-                      className="auth-toggle admin-toggle-button"
+                      className={`auth-toggle ${styles.toggleButton}`}
                       disabled={Boolean(isUpdating[`${u.id}:active`])}
                       onClick={() => {
                         setError(null);

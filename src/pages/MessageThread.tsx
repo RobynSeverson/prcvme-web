@@ -20,6 +20,7 @@ import SecureVideo from "../components/SecureVideo";
 import Lightbox from "../components/Lightbox";
 import PayToViewPaymentModal from "../components/PayToViewPaymentModal";
 import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
+import styles from "./MessageThread.module.css";
 
 type UiMessage = {
   id: string;
@@ -624,7 +625,7 @@ export default function MessageThread() {
       {error && <p className="auth-error">{error}</p>}
 
       <section
-        className="app-card message-thread-card"
+        className={`app-card ${styles.card}`}
         style={{
           display: "flex",
           flexDirection: "column",
@@ -632,12 +633,12 @@ export default function MessageThread() {
           minHeight: 0,
         }}
       >
-        <div className="message-thread-actions">
+        <div className={styles.actions}>
           <Link to="/me/messages">Back</Link>
         </div>
 
         <div
-          className="message-list"
+          className={styles.list}
           ref={messageListRef}
           onScroll={handleMessageListScroll}
           style={{ overflowY: "auto", flex: 1, minHeight: 0 }}
@@ -661,10 +662,10 @@ export default function MessageThread() {
               return (
                 <div
                   key={m.id}
-                  className={`message-row ${isMine ? "is-mine" : ""}`}
+                  className={`${styles.row} ${isMine ? styles.rowMine : ""}`}
                 >
                   <div
-                    className="message-bubble"
+                    className={styles.bubble}
                     style={{ position: "relative" }}
                   >
                     {canDeleteMessages && isMine && !isDeleted ? (
@@ -988,7 +989,7 @@ export default function MessageThread() {
                       </>
                     ) : null}
                     {m.createdAt ? (
-                      <div className="message-meta">
+                      <div className={styles.meta}>
                         {formatMessageTime(m.createdAt)}
                         {typeof m.price === "number" &&
                         Number.isFinite(m.price) &&
