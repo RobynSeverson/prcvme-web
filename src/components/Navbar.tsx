@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import styles from "./Navbar.module.css";
 
 type NavbarProps = {
   isLoggedIn: boolean;
@@ -134,16 +135,21 @@ export default function Navbar({
       aria-pressed={theme === "dark"}
       role="menuitem"
     >
-      <span className="theme-toggle-label">Dark</span>
+      <span className={styles.themeToggleLabel}>Dark</span>
       <span
-        className={`theme-toggle-slider ${
-          theme === "dark" ? "theme-toggle-slider-on" : "theme-toggle-slider-off"
+        className={`${styles.themeToggleSlider} ${
+          theme === "dark" ? styles.themeToggleSliderOn : ""
         }`}
       >
-        <span className="theme-toggle-knob" />
+        <span className={styles.themeToggleKnob} />
       </span>
     </button>
   );
+
+  const navLinkClassName =
+    (extraClassName?: string) =>
+    ({ isActive }: { isActive: boolean }): string =>
+      `${extraClassName ?? ""} ${isActive ? styles.navLinkActive : ""}`.trim();
 
   useEffect(() => {
     if (!isMoreOpen) return;
@@ -170,14 +176,16 @@ export default function Navbar({
   }, [isMoreOpen]);
 
   return (
-    <header className="app-header">
-      <div className="brand">
+    <header className={styles.header}>
+      <div className={styles.brand}>
         <Link to="/" onClick={closeNav}>
           prcvme
         </Link>
       </div>
       <button
-        className={`nav-toggle ${isNavOpen ? "open" : ""}`}
+        className={`${styles.navToggle} ${
+          isNavOpen ? styles.navToggleOpen : ""
+        }`}
         onClick={toggleNav}
         aria-label="Toggle navigation menu"
         aria-expanded={isNavOpen}
@@ -186,22 +194,32 @@ export default function Navbar({
         <span></span>
         <span></span>
       </button>
-      <nav className={`nav-links ${isNavOpen ? "nav-open" : ""}`}>
-        <NavLink to="/" onClick={closeNav} end>
+      <nav className={`${styles.navLinks} ${isNavOpen ? styles.navOpen : ""}`}>
+        <NavLink to="/" onClick={closeNav} end className={navLinkClassName()}>
           Home
         </NavLink>
         {isLoggedIn && (
           <>
-            <NavLink to="/me/profile" onClick={closeNav} end>
+            <NavLink
+              to="/me/profile"
+              onClick={closeNav}
+              end
+              className={navLinkClassName()}
+            >
               Profile
             </NavLink>
-            <NavLink to="/me/messages" onClick={closeNav} end>
-              <span className="nav-link-inline">
+            <NavLink
+              to="/me/messages"
+              onClick={closeNav}
+              end
+              className={navLinkClassName()}
+            >
+              <span className={styles.navLinkInline}>
                 <span>Messages</span>
                 {typeof unreadMessageThreads === "number" &&
                 unreadMessageThreads > 0 ? (
                   <span
-                    className="nav-badge"
+                    className={styles.navBadge}
                     aria-label="Unread message threads"
                   >
                     {unreadMessageThreads > 99 ? "99+" : unreadMessageThreads}
@@ -209,10 +227,20 @@ export default function Navbar({
                 ) : null}
               </span>
             </NavLink>
-            <NavLink to="/me/subscriptions" onClick={closeNav} end>
+            <NavLink
+              to="/me/subscriptions"
+              onClick={closeNav}
+              end
+              className={navLinkClassName()}
+            >
               Subscriptions
             </NavLink>
-            <NavLink to="/me/collections" onClick={closeNav} end>
+            <NavLink
+              to="/me/collections"
+              onClick={closeNav}
+              end
+              className={navLinkClassName()}
+            >
               Collections
             </NavLink>
             {mobileSettingsLinks
@@ -223,7 +251,7 @@ export default function Navbar({
                   to={link.to}
                   onClick={closeNav}
                   end={link.end}
-                  className="nav-mobile-only"
+                  className={navLinkClassName(styles.navMobileOnly)}
                 >
                   {link.label}
                 </NavLink>
@@ -231,13 +259,13 @@ export default function Navbar({
           </>
         )}
         <ThemeToggleButton
-          className="nav-theme-toggle nav-mobile-only"
+          className={`${styles.navThemeToggle} ${styles.navMobileOnly}`}
           onClick={handleThemeToggle}
         />
         {isLoggedIn ? (
           <button
             type="button"
-            className="nav-logout nav-mobile-only"
+            className={`${styles.navLogout} ${styles.navMobileOnly}`}
             onClick={handleLogout}
             role="menuitem"
           >
@@ -246,7 +274,7 @@ export default function Navbar({
         ) : (
           <NavLink
             to={loginHref}
-            className="nav-mobile-only"
+            className={navLinkClassName(styles.navMobileOnly)}
             onClick={handleLogin}
             role="menuitem"
           >
@@ -256,20 +284,22 @@ export default function Navbar({
 
         {/* Begin Desktop Only Nav */}
         <div
-          className={`nav-more nav-desktop-only ${isMoreOpen ? "is-open" : ""}`}
+          className={`${styles.navMore} ${styles.navDesktopOnly} ${
+            isMoreOpen ? styles.navMoreOpen : ""
+          }`}
           ref={moreMenuRef}
         >
           {isLoggedIn && (
             <button
               type="button"
-              className="nav-more-button"
+              className={styles.navMoreButton}
               onClick={() => setIsMoreOpen((open) => !open)}
               aria-haspopup="menu"
               aria-expanded={isMoreOpen}
               aria-label="Settings"
             >
               <svg
-                className="nav-settings-icon"
+                className={styles.navSettingsIcon}
                 viewBox="0 0 24 24"
                 aria-hidden="true"
                 focusable="false"
@@ -297,19 +327,20 @@ export default function Navbar({
           {!isLoggedIn && (
             <>
               <ThemeToggleButton
-                className="nav-theme-toggle"
+                className={styles.navThemeToggle}
                 onClick={handleThemeToggle}
               />
               <NavLink
                 to={loginHref}
                 onClick={handleLogin}
                 role="menuitem"
+                className={navLinkClassName()}
               >
                 Login
               </NavLink>
             </>
           )}
-          <div className="nav-more-menu" role="menu" aria-label="Settings">
+          <div className={styles.navMoreMenu} role="menu" aria-label="Settings">
             {isLoggedIn ? (
               <>
                 {desktopSettingsLinks
@@ -321,17 +352,18 @@ export default function Navbar({
                       onClick={closeNav}
                       end={link.end}
                       role="menuitem"
+                      className={navLinkClassName()}
                     >
                       {link.label}
                     </NavLink>
                   ))}
                 <ThemeToggleButton
-                  className="nav-theme-toggle"
+                  className={styles.navThemeToggle}
                   onClick={handleThemeToggle}
                 />
                 <button
                   type="button"
-                  className="nav-logout"
+                  className={styles.navLogout}
                   onClick={handleLogout}
                   role="menuitem"
                 >
