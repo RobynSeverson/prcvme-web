@@ -146,44 +146,94 @@ export default function Navbar({
             </NavLink>
           </>
         )}
+        <button
+          type="button"
+          className="nav-theme-toggle nav-mobile-only"
+          onClick={() => {
+            onToggleTheme();
+            setIsMoreOpen(false);
+          }}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          aria-pressed={theme === "dark"}
+          role="menuitem"
+        >
+          <span className="theme-toggle-label">Dark</span>
+          <span
+            className={`theme-toggle-slider ${
+              theme === "dark"
+                ? "theme-toggle-slider-on"
+                : "theme-toggle-slider-off"
+            }`}
+          >
+            <span className="theme-toggle-knob" />
+          </span>
+        </button>
+        {isLoggedIn ? (
+          <button
+            type="button"
+            className="nav-logout nav-mobile-only"
+            onClick={() => {
+              setIsMoreOpen(false);
+              closeNav();
+              onLogout();
+            }}
+            role="menuitem"
+          >
+            Logout
+          </button>
+        ) : (
+          <NavLink
+            to={loginHref}
+            className="nav-mobile-only"
+            onClick={() => {
+              setIsMoreOpen(false);
+              closeNav();
+            }}
+            role="menuitem"
+          >
+            Login
+          </NavLink>
+        )}
 
         <div
           className={`nav-more nav-desktop-only ${isMoreOpen ? "is-open" : ""}`}
           ref={moreMenuRef}
         >
-          <button
-            type="button"
-            className="nav-more-button"
-            onClick={() => setIsMoreOpen((open) => !open)}
-            aria-haspopup="menu"
-            aria-expanded={isMoreOpen}
-            aria-label="Settings"
-          >
-            <svg
-              className="nav-settings-icon"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              focusable="false"
+          {isLoggedIn && (
+            <button
+              type="button"
+              className="nav-more-button"
+              onClick={() => setIsMoreOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={isMoreOpen}
+              aria-label="Settings"
             >
-              <path
-                d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M19.4 15a1.9 1.9 0 0 0 .38 2.1l.05.05a2.3 2.3 0 0 1-1.63 3.93 2.3 2.3 0 0 1-1.63-.67l-.05-.05a1.9 1.9 0 0 0-2.1-.38 1.9 1.9 0 0 0-1.15 1.75V22a2.3 2.3 0 0 1-4.6 0v-.08a1.9 1.9 0 0 0-1.15-1.75 1.9 1.9 0 0 0-2.1.38l-.05.05a2.3 2.3 0 0 1-3.26 0 2.3 2.3 0 0 1 0-3.26l.05-.05a1.9 1.9 0 0 0 .38-2.1 1.9 1.9 0 0 0-1.75-1.15H2a2.3 2.3 0 0 1 0-4.6h.08a1.9 1.9 0 0 0 1.75-1.15 1.9 1.9 0 0 0-.38-2.1l-.05-.05a2.3 2.3 0 0 1 3.26-3.26l.05.05a1.9 1.9 0 0 0 2.1.38 1.9 1.9 0 0 0 1.15-1.75V2a2.3 2.3 0 0 1 4.6 0v.08a1.9 1.9 0 0 0 1.15 1.75 1.9 1.9 0 0 0 2.1-.38l.05-.05a2.3 2.3 0 1 1 3.26 3.26l-.05.05a1.9 1.9 0 0 0-.38 2.1 1.9 1.9 0 0 0 1.75 1.15H22a2.3 2.3 0 0 1 0 4.6h-.08A1.9 1.9 0 0 0 19.4 15Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="visually-hidden">Settings</span>
-          </button>
+              <svg
+                className="nav-settings-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M19.4 15a1.9 1.9 0 0 0 .38 2.1l.05.05a2.3 2.3 0 0 1-1.63 3.93 2.3 2.3 0 0 1-1.63-.67l-.05-.05a1.9 1.9 0 0 0-2.1-.38 1.9 1.9 0 0 0-1.15 1.75V22a2.3 2.3 0 0 1-4.6 0v-.08a1.9 1.9 0 0 0-1.15-1.75 1.9 1.9 0 0 0-2.1.38l-.05.05a2.3 2.3 0 0 1-3.26 0 2.3 2.3 0 0 1 0-3.26l.05-.05a1.9 1.9 0 0 0 .38-2.1 1.9 1.9 0 0 0-1.75-1.15H2a2.3 2.3 0 0 1 0-4.6h.08a1.9 1.9 0 0 0 1.75-1.15 1.9 1.9 0 0 0-.38-2.1l-.05-.05a2.3 2.3 0 0 1 3.26-3.26l.05.05a1.9 1.9 0 0 0 2.1.38 1.9 1.9 0 0 0 1.15-1.75V2a2.3 2.3 0 0 1 4.6 0v.08a1.9 1.9 0 0 0 1.15 1.75 1.9 1.9 0 0 0 2.1-.38l.05-.05a2.3 2.3 0 1 1 3.26 3.26l-.05.05a1.9 1.9 0 0 0-.38 2.1 1.9 1.9 0 0 0 1.75 1.15H22a2.3 2.3 0 0 1 0 4.6h-.08A1.9 1.9 0 0 0 19.4 15Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="visually-hidden">Settings</span>
+            </button>
+          )}
           <div className="nav-more-menu" role="menu" aria-label="Settings">
             {isLoggedIn ? (
               <>
@@ -299,45 +349,6 @@ export default function Navbar({
             )}
           </div>
         </div>
-
-        <button
-          type="button"
-          className="nav-theme-toggle nav-mobile-only"
-          onClick={onToggleTheme}
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          aria-pressed={theme === "dark"}
-        >
-          <span className="theme-toggle-label">Dark</span>
-          <span
-            className={`theme-toggle-slider ${
-              theme === "dark"
-                ? "theme-toggle-slider-on"
-                : "theme-toggle-slider-off"
-            }`}
-          >
-            <span className="theme-toggle-knob" />
-          </span>
-        </button>
-        {isLoggedIn ? (
-          <button
-            type="button"
-            className="nav-logout nav-mobile-only"
-            onClick={() => {
-              closeNav();
-              onLogout();
-            }}
-          >
-            Logout
-          </button>
-        ) : (
-          <NavLink
-            to={loginHref}
-            onClick={closeNav}
-            className="nav-mobile-only"
-          >
-            Login
-          </NavLink>
-        )}
       </nav>
     </header>
   );
