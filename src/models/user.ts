@@ -22,6 +22,9 @@ export type User = {
   isCreator: boolean;
   subscriptionPrice?: number;
   subscriptionDeals?: SubscriptionDeal[];
+  payoutMethod?: "cashapp" | "venmo" | "zelle";
+  payoutHandle?: string;
+  payoutZelleContact?: string;
   identityVerified: boolean;
   isAdmin: boolean;
 };

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import CreatorApplicationCard from "../components/creator/CreatorApplicationCard";
+import CreatorPayoutSettingsCard from "../components/creator/CreatorPayoutSettingsCard";
 import CreatorSubscriptionSettingsCard from "../components/creator/CreatorSubscriptionSettingsCard";
 import { getCurrentUser } from "../helpers/api/apiHelpers";
 import { isUserLoggedIn } from "../helpers/auth/authHelpers";
@@ -104,10 +105,16 @@ export default function Creator() {
 
         <div style={{ marginTop: "1rem" }}>
           {currentUser?.isCreator ? (
-            <CreatorSubscriptionSettingsCard
-              user={currentUser}
-              onUserUpdated={(u) => setCurrentUser(u)}
-            />
+            <div style={{ display: "grid", gap: "1rem" }}>
+              <CreatorSubscriptionSettingsCard
+                user={currentUser}
+                onUserUpdated={(u) => setCurrentUser(u)}
+              />
+              <CreatorPayoutSettingsCard
+                user={currentUser}
+                onUserUpdated={(u) => setCurrentUser(u)}
+              />
+            </div>
           ) : (
             <CreatorApplicationCard />
           )}
