@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { setTitle } from "../helpers/metadataHelper";
+import { useCurrentUser } from "../context/CurrentUserContext";
+import type { User } from "../models/user";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -17,6 +19,7 @@ export default function Login() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { setAuthSession } = useCurrentUser();
 
   useEffect(() => {
     const cleanup = setTitle("Login • prcvme");
@@ -141,13 +144,10 @@ export default function Login() {
       const token = data?.token as string | undefined;
       const user = data?.user as unknown;
 
-      if (token) {
-        window.localStorage.setItem("authToken", token);
-      }
-
-      if (user) {
-        window.localStorage.setItem("authUser", JSON.stringify(user));
-      }
+      setAuthSession({
+        token: token ?? null,
+        user: (user as User) ?? null,
+      });
 
       navigate(redirectPath, { replace: true });
     } catch (err) {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { DetailedHTMLProps, ImgHTMLAttributes } from "react";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export interface SecureImageProps {
   src: string;
@@ -28,6 +29,7 @@ const SecureImage = ({
 }: SecureImageProps) => {
   const [resolvedSrc, setResolvedSrc] = useState(src);
   const objectUrlRef = useRef<string | null>(null);
+  const { token, authedFetch } = useCurrentUser();
 
   useEffect(() => {
     // Revoke any previous blob URL.
@@ -40,19 +42,13 @@ const SecureImage = ({
 
     if (typeof window === "undefined") return;
 
-    const token = window.localStorage.getItem("authToken");
     if (!token) return;
 
     const controller = new AbortController();
 
     (async () => {
       try {
-        const response = await fetch(src, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal: controller.signal,
-        });
+        const response = await authedFetch(src, { signal: controller.signal });
 
         if (!response.ok) {
           throw new Error(`Image request failed (${response.status})`);
@@ -77,7 +73,7 @@ const SecureImage = ({
         objectUrlRef.current = null;
       }
     };
-  }, [src]);
+  }, [src, authedFetch, token]);
 
   const secureImageStyle: React.CSSProperties = {
     userSelect: !isOwner ? "none" : undefined,

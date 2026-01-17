@@ -3,21 +3,16 @@ import { Link } from "react-router-dom";
 import CreatorApplicationCard from "../components/creator/CreatorApplicationCard";
 import CreatorPayoutSettingsCard from "../components/creator/CreatorPayoutSettingsCard";
 import CreatorSubscriptionSettingsCard from "../components/creator/CreatorSubscriptionSettingsCard";
-import { getCurrentUser } from "../helpers/api/apiHelpers";
-import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import { setTitle } from "../helpers/metadataHelper";
-import type { User } from "../models/user";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export default function Creator() {
-  const [isLoggedIn] = useState(() => isUserLoggedIn());
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const raw = window.localStorage.getItem("authUser");
-      return raw ? (JSON.parse(raw) as User) : null;
-    } catch {
-      return null;
-    }
-  });
+  const {
+    user: currentUser,
+    isAuthenticated,
+    refreshCurrentUser,
+    setCurrentUser,
+  } = useCurrentUser();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,15 +29,13 @@ export default function Creator() {
   }, []);
 
   const refreshMe = async () => {
-    if (!isLoggedIn) return;
+    if (!isAuthenticated) return;
 
     try {
       setError(null);
       setIsLoading(true);
 
-      // Refresh current user (also refreshes localStorage authUser).
-      const me = await getCurrentUser();
-      setCurrentUser(me);
+      await refreshCurrentUser({ force: true });
     } catch (err) {
       const message =
         (err instanceof Error && err.message) ||
@@ -56,9 +49,9 @@ export default function Creator() {
   useEffect(() => {
     void refreshMe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn]);
+  }, [isAuthenticated]);
 
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return (
       <main>
         <p>You need to log in to access creator settings.</p>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "../../models/user";
 import { getAPIBase } from "../../helpers/api/apiHelpers";
+import { useCurrentUser } from "../../context/CurrentUserContext";
 
 const API_BASE = getAPIBase();
 
@@ -24,6 +25,7 @@ export default function CreatorPayoutSettingsCard({
   user,
   onUserUpdated,
 }: Props) {
+  const { isAuthenticated, authedFetch } = useCurrentUser();
   const [method, setMethod] = useState<PayoutMethod | "">("");
   const [value, setValue] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
@@ -111,8 +113,7 @@ export default function CreatorPayoutSettingsCard({
         return;
       }
 
-      const token = window.localStorage.getItem("authToken");
-      if (!token) {
+      if (!isAuthenticated) {
         setError("You need to be signed in to update payout settings.");
         return;
       }
@@ -129,13 +130,13 @@ export default function CreatorPayoutSettingsCard({
         payload.payoutHandle = normalizedInput;
       }
 
-      const response = await fetch(`${API_BASE}/users/me`, {
+      const response = await authedFetch(`${API_BASE}/users/me`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -149,7 +150,6 @@ export default function CreatorPayoutSettingsCard({
 
       if (data && data.user) {
         const updated = data.user as User;
-        window.localStorage.setItem("authUser", JSON.stringify(updated));
         onUserUpdated?.(updated);
       }
 

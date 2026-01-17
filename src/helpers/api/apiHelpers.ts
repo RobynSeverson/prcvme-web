@@ -6,6 +6,15 @@ import type {
 } from "../../models/favorite";
 import type { MediaType } from "../../models/userPost";
 
+export type AuthedFetch = (
+  input: RequestInfo | URL,
+  init?: (RequestInit & { requireAuth?: boolean }) | undefined
+) => Promise<Response>;
+
+type AuthedOptions = {
+  authedFetch: AuthedFetch;
+};
+
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 const PROFILE_API_BASE = import.meta.env.VITE_PROFILE_API_URL ?? API_BASE;
 
@@ -55,18 +64,27 @@ const getUserByUserName = async (userName: string) => {
   }
 };
 
-const getCurrentUser = async (): Promise<User | null> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
-    return null;
+const authedRequest = async (
+  options: AuthedOptions | undefined,
+  input: RequestInfo | URL,
+  init: RequestInit,
+  unauthenticatedMessage: string
+): Promise<Response> => {
+  if (!options?.authedFetch) {
+    throw new Error(unauthenticatedMessage);
   }
 
+  return options.authedFetch(input, { ...init, requireAuth: true });
+};
+
+const getCurrentUser = async (
+  options: AuthedOptions & { persistToStorage?: boolean }
+): Promise<User | null> => {
+  const persistToStorage = options?.persistToStorage !== false;
+
   try {
-    const response = await fetch(`${API_BASE}/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await options.authedFetch(`${API_BASE}/auth/me`, {
+      requireAuth: true,
     });
 
     const data = await response.json().catch(() => null);
@@ -79,7 +97,9 @@ const getCurrentUser = async (): Promise<User | null> => {
     }
 
     if (data && data.user) {
-      window.localStorage.setItem("authUser", JSON.stringify(data.user));
+      if (persistToStorage) {
+        window.localStorage.setItem("authUser", JSON.stringify(data.user));
+      }
       return data.user as User;
     }
 
@@ -164,17 +184,15 @@ type PaymentMethodsResponse = {
   defaultId: string | null;
 };
 
-const getMyPaymentMethods = async (): Promise<PaymentMethodsResponse> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You need to be signed in to manage payment methods.");
-  }
-
-  const response = await fetch(`${API_BASE}/me/payment/methods`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+const getMyPaymentMethods = async (
+  options: AuthedOptions
+): Promise<PaymentMethodsResponse> => {
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/me/payment/methods`,
+    {},
+    "You need to be signed in to manage payment methods."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -196,25 +214,27 @@ const getMyPaymentMethods = async (): Promise<PaymentMethodsResponse> => {
   return { methods, defaultId };
 };
 
-const addMyPaymentMethod = async (payload: {
-  nameOnCard: string;
-  cardNumber: string;
-  expirationDate: string;
-  cardCode?: string;
-}): Promise<PaymentMethodsResponse> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You need to be signed in to add payment methods.");
-  }
-
-  const response = await fetch(`${API_BASE}/me/payment/methods`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+const addMyPaymentMethod = async (
+  payload: {
+    nameOnCard: string;
+    cardNumber: string;
+    expirationDate: string;
+    cardCode?: string;
+  },
+  options: AuthedOptions
+): Promise<PaymentMethodsResponse> => {
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/me/payment/methods`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  });
+    "You need to be signed in to add payment methods."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -237,21 +257,16 @@ const addMyPaymentMethod = async (payload: {
 };
 
 const removeMyPaymentMethod = async (
-  paymentProfileId: string
+  paymentProfileId: string,
+  options: AuthedOptions
 ): Promise<PaymentMethodsResponse> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You need to be signed in to remove payment methods.");
-  }
-
-  const response = await fetch(
+  const response = await authedRequest(
+    options,
     `${API_BASE}/me/payment/methods/${encodeURIComponent(paymentProfileId)}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    },
+    "You need to be signed in to remove payment methods."
   );
 
   const data = await response.json().catch(() => null);
@@ -275,21 +290,21 @@ const removeMyPaymentMethod = async (
 };
 
 const setMyDefaultPaymentMethod = async (
-  paymentProfileId: string | null
+  paymentProfileId: string | null,
+  options: AuthedOptions
 ): Promise<{ defaultId: string | null }> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You need to be signed in to update payment methods.");
-  }
-
-  const response = await fetch(`${API_BASE}/me/payment/default`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/me/payment/default`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ paymentProfileId }),
     },
-    body: JSON.stringify({ paymentProfileId }),
-  });
+    "You need to be signed in to update payment methods."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -306,18 +321,15 @@ const setMyDefaultPaymentMethod = async (
   return { defaultId };
 };
 
-const getMySubscriptions = async (): Promise<UserSubscription[]> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
-    return [];
-  }
-
-  const response = await fetch(`${API_BASE}/subscriptions`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+const getMySubscriptions = async (
+  options: AuthedOptions
+): Promise<UserSubscription[]> => {
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/subscriptions`,
+    {},
+    "Not authenticated"
+  );
 
   const data = await response.json().catch(() => null);
 
@@ -335,14 +347,10 @@ const getMySubscriptions = async (): Promise<UserSubscription[]> => {
   return [];
 };
 
-const getMySubscribers = async (args?: {
-  includeInactive?: boolean;
-}): Promise<CreatorSubscriber[]> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You must be logged in to view subscribers.");
-  }
-
+const getMySubscribers = async (
+  args?: { includeInactive?: boolean },
+  options?: AuthedOptions
+): Promise<CreatorSubscriber[]> => {
   const params = new URLSearchParams();
   if (args?.includeInactive) {
     params.set("includeInactive", "1");
@@ -352,11 +360,12 @@ const getMySubscribers = async (args?: {
     ? `${API_BASE}/me/subscribers?${params.toString()}`
     : `${API_BASE}/me/subscribers`;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authedRequest(
+    options,
+    url,
+    {},
+    "You must be logged in to view subscribers."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -383,27 +392,23 @@ const subscribeToUser = async (
       expirationDate: string;
       cardCode?: string;
     };
-  }
+  },
+  options?: AuthedOptions
 ): Promise<UserSubscription> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
-    throw new Error("You must be logged in to subscribe.");
-  }
-
-  const response = await fetch(
+  const response = await authedRequest(
+    options,
     `${API_BASE}/subscriptions/${encodeURIComponent(userId)}`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         paymentProfileId: args?.paymentProfileId,
         cardInfo: args?.cardInfo,
       }),
-    }
+    },
+    "You must be logged in to subscribe."
   );
 
   const data = await response.json().catch(() => null);
@@ -434,21 +439,14 @@ export type MySubscriptionStatus = {
 };
 
 const getMySubscription = async (
-  userId: string
+  userId: string,
+  options: AuthedOptions
 ): Promise<MySubscriptionStatus> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
-    return { subscribed: false };
-  }
-
-  const response = await fetch(
+  const response = await authedRequest(
+    options,
     `${API_BASE}/subscriptions/${encodeURIComponent(userId)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    {},
+    "Not authenticated"
   );
 
   const data = await response.json().catch(() => null);
@@ -477,21 +475,18 @@ const getMySubscription = async (
   return { subscribed, subscription };
 };
 
-const getMySubscriptionStatus = async (userId: string): Promise<boolean> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
-    return false;
-  }
-
-  const inFlightKey = `${token}|${userId}`;
+const getMySubscriptionStatus = async (
+  userId: string,
+  options: AuthedOptions
+): Promise<boolean> => {
+  const inFlightKey = `authed|${userId}`;
   const existing = subscriptionStatusInFlight.get(inFlightKey);
   if (existing) {
     return existing;
   }
 
   const promise = (async () => {
-    const result = await getMySubscription(userId);
+    const result = await getMySubscription(userId, options);
     return !!result.subscribed;
   })();
 
@@ -504,22 +499,16 @@ const getMySubscriptionStatus = async (userId: string): Promise<boolean> => {
 };
 
 const unsubscribeFromUser = async (
-  userId: string
+  userId: string,
+  options: AuthedOptions
 ): Promise<UserSubscription> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
-    throw new Error("You must be logged in to unsubscribe.");
-  }
-
-  const response = await fetch(
+  const response = await authedRequest(
+    options,
     `${API_BASE}/subscriptions/${encodeURIComponent(userId)}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    },
+    "You must be logged in to unsubscribe."
   );
 
   const data = await response.json().catch(() => null);
@@ -538,20 +527,17 @@ const unsubscribeFromUser = async (
   throw new Error("Subscription data is missing.");
 };
 
-const deleteMyPost = async (postId: string): Promise<void> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You must be logged in to delete posts.");
-  }
-
-  const response = await fetch(
+const deleteMyPost = async (
+  postId: string,
+  options: AuthedOptions
+): Promise<void> => {
+  const response = await authedRequest(
+    options,
     `${API_BASE}/users/me/post/${encodeURIComponent(postId)}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    },
+    "You must be logged in to delete posts."
   );
 
   const data = await response.json().catch(() => null);
@@ -563,17 +549,15 @@ const deleteMyPost = async (postId: string): Promise<void> => {
   }
 };
 
-const getMyProfit = async (): Promise<ProfitSummaryResponse> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You must be logged in to view profit.");
-  }
-
-  const response = await fetch(`${API_BASE}/me/profit`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+const getMyProfit = async (
+  options: AuthedOptions
+): Promise<ProfitSummaryResponse> => {
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/me/profit`,
+    {},
+    "You must be logged in to view profit."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -592,14 +576,9 @@ const getMyProfit = async (): Promise<ProfitSummaryResponse> => {
 
 const getDirectMessages = async (
   userId: string,
-  before?: string
+  before?: string,
+  options?: AuthedOptions
 ): Promise<{ messages: DirectMessage[]; nextCursor: string | null }> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
-    throw new Error("You must be logged in to load messages.");
-  }
-
   const url = new URL(
     `${API_BASE}/messages/${encodeURIComponent(userId)}`,
     window.location.origin
@@ -608,11 +587,12 @@ const getDirectMessages = async (
     url.searchParams.set("before", before);
   }
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authedRequest(
+    options,
+    url.toString(),
+    {},
+    "You must be logged in to load messages."
+  );
 
   const data = await response.json().catch(() => null);
 
@@ -642,10 +622,10 @@ const sendDirectMessage = async (
     text?: string;
     mediaFiles?: FileList | File[] | null;
     price?: number | null;
-  }
+  },
+  options: AuthedOptions
 ): Promise<DirectMessage> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
+  if (!options?.authedFetch) {
     throw new Error("You must be logged in to send messages.");
   }
 
@@ -678,15 +658,14 @@ const sendDirectMessage = async (
     }
   }
 
-  const response = await fetch(
+  const response = await authedRequest(
+    options,
     `${API_BASE}/messages/${encodeURIComponent(userId)}`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
       body: formData,
-    }
+    },
+    "You must be logged in to send messages."
   );
 
   const data = await response.json().catch(() => null);
@@ -705,26 +684,25 @@ const sendDirectMessage = async (
   throw new Error("Message data is missing.");
 };
 
-const purchaseDirectMessageMedia = async (args: {
-  messageId: string;
-  paymentProfileId?: string;
-  cardInfo?: {
-    nameOnCard: string;
-    cardNumber: string;
-    expirationDate: string;
-    cardCode?: string;
-  };
-}): Promise<{ ok: true; messageId: string; isUnlocked: true }> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You must be logged in to purchase media.");
-  }
-
+const purchaseDirectMessageMedia = async (
+  args: {
+    messageId: string;
+    paymentProfileId?: string;
+    cardInfo?: {
+      nameOnCard: string;
+      cardNumber: string;
+      expirationDate: string;
+      cardCode?: string;
+    };
+  },
+  options: AuthedOptions
+): Promise<{ ok: true; messageId: string; isUnlocked: true }> => {
   if (!args.messageId) {
     throw new Error("Missing messageId.");
   }
 
-  const response = await fetch(
+  const response = await authedRequest(
+    options,
     `${API_BASE}/messages/direct/${encodeURIComponent(
       args.messageId
     )}/purchase`,
@@ -732,13 +710,13 @@ const purchaseDirectMessageMedia = async (args: {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         paymentProfileId: args.paymentProfileId,
         cardInfo: args.cardInfo,
       }),
-    }
+    },
+    "You must be logged in to purchase media."
   );
 
   const data = await response.json().catch(() => null);
@@ -757,25 +735,20 @@ const purchaseDirectMessageMedia = async (args: {
 };
 
 const deleteDirectMessage = async (
-  messageId: string
+  messageId: string,
+  options: AuthedOptions
 ): Promise<{ ok: true; messageId: string; deleted: true }> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You must be logged in to delete messages.");
-  }
-
   if (!messageId) {
     throw new Error("Missing messageId.");
   }
 
-  const response = await fetch(
+  const response = await authedRequest(
+    options,
     `${API_BASE}/messages/direct/${encodeURIComponent(messageId)}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    },
+    "You must be logged in to delete messages."
   );
 
   const data = await response.json().catch(() => null);
@@ -795,11 +768,10 @@ const deleteDirectMessage = async (
 
 const getMyMessageThreads = async (
   before?: string,
-  limit?: number
+  limit?: number,
+  options?: AuthedOptions
 ): Promise<{ threads: MessageThread[]; nextCursor: string | null }> => {
-  const token = window.localStorage.getItem("authToken");
-
-  if (!token) {
+  if (!options?.authedFetch) {
     throw new Error("You must be logged in to load message threads.");
   }
 
@@ -811,11 +783,12 @@ const getMyMessageThreads = async (
     url.searchParams.set("limit", String(limit));
   }
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authedRequest(
+    options,
+    url.toString(),
+    {},
+    "You must be logged in to load message threads."
+  );
 
   const data = await response.json().catch(() => null);
 
@@ -839,15 +812,23 @@ const getMyMessageThreads = async (
   return { threads, nextCursor };
 };
 
-const getUnreadMessageThreadCount = async (): Promise<number> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) return 0;
+const getUnreadMessageThreadCount = async (
+  options: AuthedOptions
+): Promise<number> => {
+  if (!options?.authedFetch) {
+    return 0;
+  }
 
-  const response = await fetch(`${API_BASE}/messages/unread-count`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/messages/unread-count`,
+    {},
+    "Not authenticated"
+  ).catch(() => null);
+
+  if (!response) {
+    return 0;
+  }
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -859,20 +840,26 @@ const getUnreadMessageThreadCount = async (): Promise<number> => {
     : 0;
 };
 
-const markMessageThreadRead = async (userId: string): Promise<void> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) return;
+const markMessageThreadRead = async (
+  userId: string,
+  options: AuthedOptions
+): Promise<void> => {
+  if (!options?.authedFetch) return;
 
-  await fetch(`${API_BASE}/messages/${encodeURIComponent(userId)}/read`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
+  await authedRequest(
+    options,
+    `${API_BASE}/messages/${encodeURIComponent(userId)}/read`,
+    {
+      method: "POST",
     },
-  }).catch(() => null);
+    "Not authenticated"
+  ).catch(() => null);
 };
 
-const getMessagesWebSocketUrl = (userId: string): string | null => {
-  const token = window.localStorage.getItem("authToken");
+const getMessagesWebSocketUrl = (
+  userId: string,
+  token: string | null
+): string | null => {
   if (!token) return null;
 
   const wsBase = getWebSocketBase();
@@ -947,20 +934,22 @@ export type CreateFavoriteArgs = {
 /**
  * Create a favorite (like or bookmark) for a target.
  */
-const createFavorite = async (args: CreateFavoriteArgs): Promise<void> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You must be logged in to like or bookmark.");
-  }
-
-  const response = await fetch(`${API_BASE}/favorites`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+const createFavorite = async (
+  args: CreateFavoriteArgs,
+  options: AuthedOptions
+): Promise<void> => {
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/favorites`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(args),
     },
-    body: JSON.stringify(args),
-  });
+    "You must be logged in to like or bookmark."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -981,20 +970,22 @@ export type DeleteFavoriteArgs = {
 /**
  * Delete a favorite (unlike or unbookmark).
  */
-const deleteFavorite = async (args: DeleteFavoriteArgs): Promise<void> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    throw new Error("You must be logged in to unlike or unbookmark.");
-  }
-
-  const response = await fetch(`${API_BASE}/favorites`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+const deleteFavorite = async (
+  args: DeleteFavoriteArgs,
+  options: AuthedOptions
+): Promise<void> => {
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/favorites`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(args),
     },
-    body: JSON.stringify(args),
-  });
+    "You must be logged in to unlike or unbookmark."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -1016,12 +1007,10 @@ export type GetFavoriteStatusArgs = {
  * Check if the current user has favorited a specific target.
  */
 const getFavoriteStatus = async (
-  args: GetFavoriteStatusArgs
+  args: GetFavoriteStatusArgs,
+  options: AuthedOptions
 ): Promise<boolean> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
-    return false;
-  }
+  if (!options?.authedFetch) return false;
 
   const params = new URLSearchParams({
     kind: args.kind,
@@ -1032,11 +1021,16 @@ const getFavoriteStatus = async (
     params.set("mediaKey", args.mediaKey);
   }
 
-  const response = await fetch(`${API_BASE}/favorites/status?${params}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/favorites/status?${params}`,
+    {},
+    "Not authenticated"
+  ).catch(() => null);
+
+  if (!response) {
+    return false;
+  }
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -1060,21 +1054,27 @@ export type GetBulkFavoriteStatusArgs = {
  * Returns a map of "targetType:targetId" or "targetType:targetId:mediaKey" to boolean.
  */
 const getBulkFavoriteStatus = async (
-  args: GetBulkFavoriteStatusArgs
+  args: GetBulkFavoriteStatusArgs,
+  options: AuthedOptions
 ): Promise<Record<string, boolean>> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
+  if (!options?.authedFetch) return {};
+
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/favorites/status/bulk`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(args),
+    },
+    "Not authenticated"
+  ).catch(() => null);
+
+  if (!response) {
     return {};
   }
-
-  const response = await fetch(`${API_BASE}/favorites/status/bulk`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(args),
-  });
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -1132,10 +1132,10 @@ export type GetMyFavoritesResponse = {
  * Get the current user's favorites for the Collections page.
  */
 const getMyFavorites = async (
-  args: GetMyFavoritesArgs
+  args: GetMyFavoritesArgs,
+  options: AuthedOptions
 ): Promise<GetMyFavoritesResponse> => {
-  const token = window.localStorage.getItem("authToken");
-  if (!token) {
+  if (!options?.authedFetch) {
     throw new Error("You must be logged in to view your collections.");
   }
 
@@ -1150,11 +1150,12 @@ const getMyFavorites = async (
     params.set("cursor", args.cursor);
   }
 
-  const response = await fetch(`${API_BASE}/me/favorites?${params}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/me/favorites?${params}`,
+    {},
+    "You must be logged in to view your collections."
+  );
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {

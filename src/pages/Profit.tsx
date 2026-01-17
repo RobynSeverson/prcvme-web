@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getCurrentUser, getMyProfit } from "../helpers/api/apiHelpers";
-import { isUserLoggedIn } from "../helpers/auth/authHelpers";
-import type { User } from "../models/user";
+import { getMyProfit } from "../helpers/api/apiHelpers";
 import { setTitle } from "../helpers/metadataHelper";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 type ProfitSummary = {
   currency: string;
@@ -41,15 +40,13 @@ const formatMoney = (value: number, currency: string) => {
 };
 
 export default function Profit() {
-  const [isLoggedIn] = useState(() => isUserLoggedIn());
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const raw = window.localStorage.getItem("authUser");
-      return raw ? (JSON.parse(raw) as User) : null;
-    } catch {
-      return null;
-    }
-  });
+  const {
+    user: currentUser,
+    isAuthenticated,
+    authedFetch,
+    refreshCurrentUser,
+  } = useCurrentUser();
+  const isLoggedIn = isAuthenticated;
 
   const [summary, setSummary] = useState<ProfitSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,13 +71,9 @@ export default function Profit() {
         setError(null);
         setIsLoading(true);
 
-        // Refresh current user (also refreshes localStorage authUser).
-        const me = await getCurrentUser();
-        if (me) {
-          setCurrentUser(me);
-        }
+        await refreshCurrentUser();
 
-        const result = await getMyProfit();
+        const result = await getMyProfit({ authedFetch });
         setSummary(result);
       } catch (err) {
         const message =
@@ -92,7 +85,7 @@ export default function Profit() {
     };
 
     void load();
-  }, [isLoggedIn]);
+  }, [authedFetch, isLoggedIn, refreshCurrentUser]);
 
   if (!isLoggedIn) {
     return (

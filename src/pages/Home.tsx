@@ -1,21 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { useLocation } from "react-router-dom";
 import Login from "./Login";
 import UserPosts from "../components/UserPosts";
-import { getLoggedInUserFromStorage } from "../helpers/auth/authHelpers";
 import { setTitle } from "../helpers/metadataHelper";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export default function Home() {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      !!window.localStorage.getItem("authToken")
-  );
-  const [userId, setUserId] = useState<string | null>(null);
-  const [canUploadMedia, setCanUploadMedia] = useState(false);
+  const { user: currentUser, isAuthenticated, authedFetch } = useCurrentUser();
+  const isLoggedIn = isAuthenticated;
+  const userId = currentUser?.id ?? null;
+  const canUploadMedia = currentUser?.isCreator === true;
   const [postsRefreshKey, setPostsRefreshKey] = useState(0);
   const [newText, setNewText] = useState("");
   const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
@@ -48,28 +44,6 @@ export default function Home() {
     };
   }, [mediaPreviews]);
 
-  const location = useLocation();
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const hasToken = !!window.localStorage.getItem("authToken");
-    setIsLoggedIn(hasToken);
-
-    if (hasToken) {
-      try {
-        const me = getLoggedInUserFromStorage();
-        setUserId(me?.id ?? null);
-        setCanUploadMedia(me?.isCreator === true);
-        return;
-      } catch {
-        // ignore parse errors, userId will remain null
-      }
-    } else {
-      setUserId(null);
-      setCanUploadMedia(false);
-    }
-  }, [location]);
-
   useEffect(() => {
     if (canUploadMedia) return;
     if (newMediaFiles.length === 0) return;
@@ -86,9 +60,6 @@ export default function Home() {
   const handleSubmitPost = async (event: FormEvent) => {
     event.preventDefault();
     if (!isLoggedIn) return;
-
-    const token = window.localStorage.getItem("authToken");
-    if (!token) return;
 
     const hasMedia = canUploadMedia && newMediaFiles.length > 0;
     if (!newText.trim() && !hasMedia) {
@@ -108,12 +79,10 @@ export default function Home() {
         });
       }
 
-      const response = await fetch(`${API_BASE}/users/me/post`, {
+      const response = await authedFetch(`${API_BASE}/users/me/post`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);

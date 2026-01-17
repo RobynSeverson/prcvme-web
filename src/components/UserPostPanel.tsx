@@ -7,6 +7,7 @@ import SecureVideo from "./SecureVideo";
 import LikeBookmarkButtons from "./LikeBookmarkButtons";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import { deleteMyPost } from "../helpers/api/apiHelpers";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export type UserPostProps = {
   post: UserPost;
@@ -85,6 +86,7 @@ export default function UserPostPanel({
   currentUserId,
   onDeleted,
 }: UserPostProps) {
+  const { authedFetch } = useCurrentUser();
   const [author, setAuthor] = useState<PublicAuthor | null>(() => {
     return authorCache.get(post.userId) ?? null;
   });
@@ -772,7 +774,7 @@ export default function UserPostPanel({
                 try {
                   setDeleteError(null);
                   setIsDeleting(true);
-                  await deleteMyPost(post.id);
+                  await deleteMyPost(post.id, { authedFetch });
                   setIsDeleteOpen(false);
                   onDeleted?.(post.id);
                 } catch (err) {

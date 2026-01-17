@@ -11,7 +11,7 @@ import type {
 } from "../models/favorite";
 import { getMyFavorites } from "../helpers/api/apiHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
-import { isUserLoggedIn } from "../helpers/auth/authHelpers";
+import { useCurrentUser } from "../context/CurrentUserContext";
 import SecureImage from "../components/SecureImage";
 import SecureVideo from "../components/SecureVideo";
 import Lightbox from "../components/Lightbox";
@@ -36,6 +36,7 @@ const KIND_TO_FAVORITE_KIND: Record<CollectionKind, FavoriteKind> = {
 };
 
 export default function Collections() {
+  const { authedFetch, isAuthenticated } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Parse tab and kind from URL
@@ -92,12 +93,15 @@ export default function Collections() {
       }
       setError(null);
 
-      const result = await getMyFavorites({
-        kind: KIND_TO_FAVORITE_KIND[currentKind],
-        targetType: TAB_TO_TARGET_TYPE[currentTab],
-        limit: 20,
-        cursor: opts.cursor ?? undefined,
-      });
+      const result = await getMyFavorites(
+        {
+          kind: KIND_TO_FAVORITE_KIND[currentKind],
+          targetType: TAB_TO_TARGET_TYPE[currentTab],
+          limit: 20,
+          cursor: opts.cursor ?? undefined,
+        },
+        { authedFetch }
+      );
 
       setNextCursor(result.nextCursor);
       setHasMore(Boolean(result.nextCursor));
@@ -136,7 +140,7 @@ export default function Collections() {
 
   // Reset and load when tab or kind changes
   useEffect(() => {
-    if (!isUserLoggedIn()) {
+    if (!isAuthenticated) {
       setError("You need to be signed in to view your collections.");
       setIsLoading(false);
       return;
@@ -149,7 +153,7 @@ export default function Collections() {
 
     void loadFavorites({ cursor: null, append: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTab, currentKind]);
+  }, [authedFetch, currentTab, currentKind, isAuthenticated]);
 
   // Infinite scroll
   useEffect(() => {
@@ -176,7 +180,7 @@ export default function Collections() {
     setFavorites((prev) => prev.filter((f) => f.id !== favoriteId));
   };
 
-  if (!isUserLoggedIn()) {
+  if (!isAuthenticated) {
     return (
       <main>
         <h1>Collections</h1>

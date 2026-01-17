@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import DriversLicenseIcon from "../DriversLicenseIcon";
 import PersonHoldingIdIcon from "../PersonHoldingIdIcon";
 import { getAPIBase } from "../../helpers/api/apiHelpers";
+import { useCurrentUser } from "../../context/CurrentUserContext";
 
 const API_BASE = getAPIBase();
 
@@ -13,6 +14,7 @@ type CreatorRequest = {
 };
 
 export default function CreatorApplicationCard() {
+  const { isAuthenticated, authedFetch } = useCurrentUser();
   const [creatorRequest, setCreatorRequest] = useState<CreatorRequest | null>(
     null
   );
@@ -40,16 +42,13 @@ export default function CreatorApplicationCard() {
   const holdingIdentityDocumentInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadCreatorRequest = async () => {
-    const token = window.localStorage.getItem("authToken");
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     setCreatorRequestError(null);
     setIsCreatorRequestLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/creator-request/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await authedFetch(`${API_BASE}/creator-request/me`, {
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -113,8 +112,7 @@ export default function CreatorApplicationCard() {
     setCreatorRequestError(null);
     setSuccess(null);
 
-    const token = window.localStorage.getItem("authToken");
-    if (!token) {
+    if (!isAuthenticated) {
       setCreatorRequestError("You need to be signed in.");
       return;
     }
@@ -132,12 +130,10 @@ export default function CreatorApplicationCard() {
       formData.append("document", identityDocumentFile);
       formData.append("holdingDocument", holdingIdentityDocumentFile);
 
-      const response = await fetch(`${API_BASE}/creator-request`, {
+      const response = await authedFetch(`${API_BASE}/creator-request`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);

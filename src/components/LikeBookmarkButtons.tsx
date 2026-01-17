@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { FavoriteKind, FavoriteTargetType } from "../models/favorite";
 import type { MediaType } from "../models/userPost";
 import {
@@ -7,6 +7,7 @@ import {
   getFavoriteStatus,
   getFavoriteCount,
 } from "../helpers/api/apiHelpers";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export type LikeBookmarkButtonsProps = {
   targetType: FavoriteTargetType;
@@ -103,42 +104,23 @@ export default function LikeBookmarkButtons({
   className,
   style,
 }: LikeBookmarkButtonsProps) {
+  const { isAuthenticated, authedFetch } = useCurrentUser();
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
   const [likeCount, setLikeCount] = useState<number | null>(null);
   const [bookmarkCount, setBookmarkCount] = useState<number | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isLoggedIn = isAuthenticated;
 
   const showLike = !bookmarkOnly;
   const showBookmark = !likeOnly;
 
   const isInteractive = !readonly && isLoggedIn;
 
-  // Check login status on mount (needs to be in useEffect for SSR compatibility)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsLoggedIn(!!window.localStorage.getItem("authToken"));
-    }
-  }, []);
-
   // Check initial status on mount
   useEffect(() => {
     if (!targetId) return;
-
-    // Wait until login status is determined
-    if (!isLoggedIn && checkInitialStatus && !readonly) {
-      // Only skip if we need to check status but login state isn't set yet
-      // Check if there's actually a token - if not, we can proceed with just counts
-      const hasToken =
-        typeof window !== "undefined" &&
-        !!window.localStorage.getItem("authToken");
-      if (hasToken) {
-        // Token exists but isLoggedIn not yet set, wait for it
-        return;
-      }
-    }
 
     let cancelled = false;
 
@@ -147,22 +129,28 @@ export default function LikeBookmarkButtons({
         // Only check user's favorite status if logged in and not readonly
         if (checkInitialStatus && isLoggedIn && !readonly) {
           if (showLike) {
-            const liked = await getFavoriteStatus({
-              kind: "like",
-              targetType,
-              targetId,
-              mediaKey,
-            });
+            const liked = await getFavoriteStatus(
+              {
+                kind: "like",
+                targetType,
+                targetId,
+                mediaKey,
+              },
+              { authedFetch }
+            );
             if (!cancelled) setIsLiked(liked);
           }
 
           if (showBookmark) {
-            const bookmarked = await getFavoriteStatus({
-              kind: "bookmark",
-              targetType,
-              targetId,
-              mediaKey,
-            });
+            const bookmarked = await getFavoriteStatus(
+              {
+                kind: "bookmark",
+                targetType,
+                targetId,
+                mediaKey,
+              },
+              { authedFetch }
+            );
             if (!cancelled) setIsBookmarked(bookmarked);
           }
         }
@@ -231,12 +219,15 @@ export default function LikeBookmarkButtons({
 
       try {
         if (isCurrentlyActive) {
-          await deleteFavorite({
-            kind,
-            targetType,
-            targetId,
-            mediaKey,
-          });
+          await deleteFavorite(
+            {
+              kind,
+              targetType,
+              targetId,
+              mediaKey,
+            },
+            { authedFetch }
+          );
           setActive(false);
           // Update count if we're showing counts
           if (showCounts && currentCount !== null) {
@@ -244,13 +235,16 @@ export default function LikeBookmarkButtons({
           }
           onChangeCallback?.(false);
         } else {
-          await createFavorite({
-            kind,
-            targetType,
-            targetId,
-            mediaKey,
-            mediaType,
-          });
+          await createFavorite(
+            {
+              kind,
+              targetType,
+              targetId,
+              mediaKey,
+              mediaType,
+            },
+            { authedFetch }
+          );
           setActive(true);
           // Update count if we're showing counts
           if (showCounts && currentCount !== null) {

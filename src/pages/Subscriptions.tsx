@@ -2,16 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Lightbox from "../components/Lightbox";
 import {
-  getCurrentUser,
   getMySubscribers,
   getMySubscriptions,
   getUserByUserName,
   unsubscribeFromUser,
 } from "../helpers/api/apiHelpers";
-import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import type { User } from "../models/user";
 import { setTitle } from "../helpers/metadataHelper";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 type SubscriptionRow = {
   subscribedToUserId: string;
@@ -30,8 +29,8 @@ type SubscriberRow = {
 };
 
 export default function Subscriptions() {
-  const [isLoggedIn] = useState(() => isUserLoggedIn());
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { user: currentUser, isAuthenticated, authedFetch } = useCurrentUser();
+  const isLoggedIn = isAuthenticated;
 
   const [subscriberRows, setSubscriberRows] = useState<SubscriberRow[]>([]);
   const [isSubscribersLoading, setIsSubscribersLoading] = useState(false);
@@ -66,19 +65,10 @@ export default function Subscriptions() {
       if (!isLoggedIn) return;
 
       try {
-        // Load current user (needed to decide whether to render Subscribers section).
-        try {
-          const me = await getCurrentUser();
-          setCurrentUser(me);
-        } catch {
-          // Non-fatal; page can still show subscriptions.
-          setCurrentUser(null);
-        }
-
         setError(null);
         setIsLoading(true);
 
-        const subs = await getMySubscriptions();
+        const subs = await getMySubscriptions({ authedFetch });
         const normalized = subs
           .map((s) => ({
             subscribedToUserId: s.subscribedToUserId,
@@ -137,7 +127,7 @@ export default function Subscriptions() {
     };
 
     void load();
-  }, [isLoggedIn]);
+  }, [authedFetch, isLoggedIn]);
 
   useEffect(() => {
     const loadSubscribers = async () => {
@@ -148,7 +138,7 @@ export default function Subscriptions() {
         setSubscribersError(null);
         setIsSubscribersLoading(true);
 
-        const subs = await getMySubscribers();
+        const subs = await getMySubscribers(undefined, { authedFetch });
         const normalized = subs
           .map((s) => ({
             subscriberUserId: s.subscriberUserId,
@@ -186,7 +176,7 @@ export default function Subscriptions() {
     };
 
     void loadSubscribers();
-  }, [isLoggedIn, currentUser?.isCreator]);
+  }, [authedFetch, isLoggedIn, currentUser?.isCreator]);
 
   if (!isLoggedIn) {
     return (
@@ -663,7 +653,9 @@ export default function Subscriptions() {
                   setConfirmError(null);
                   setIsUnsubscribing(true);
 
-                  await unsubscribeFromUser(confirmTarget.subscribedToUserId);
+                  await unsubscribeFromUser(confirmTarget.subscribedToUserId, {
+                    authedFetch,
+                  });
 
                   setRows((prev) =>
                     prev.map((r) =>

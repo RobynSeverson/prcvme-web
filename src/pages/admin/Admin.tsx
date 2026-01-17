@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { isUserLoggedIn } from "../../helpers/auth/authHelpers";
 import Lightbox from "../../components/Lightbox";
 import { setTitle } from "../../helpers/metadataHelper";
 import styles from "./Admin.module.css";
+import { useCurrentUser } from "../../context/CurrentUserContext";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -29,6 +29,9 @@ type CreatorRequestRow = {
 };
 
 export default function Admin() {
+  const { user: currentUser, isAuthenticated, authedFetch } = useCurrentUser();
+  const isAdmin = currentUser?.isAdmin === true;
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AdminUserRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,24 +70,6 @@ export default function Admin() {
     [location.pathname, location.search]
   );
 
-  const token =
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("authToken")
-      : null;
-
-  const isAdmin = useMemo(() => {
-    try {
-      const raw =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("authUser")
-          : null;
-      const parsed = raw ? (JSON.parse(raw) as { isAdmin?: boolean }) : null;
-      return Boolean(parsed && parsed.isAdmin === true);
-    } catch {
-      return false;
-    }
-  }, []);
-
   useEffect(() => {
     const cleanup = setTitle("Admin • prcvme");
     return () => {
@@ -93,7 +78,7 @@ export default function Admin() {
   }, []);
 
   useEffect(() => {
-    if (!isUserLoggedIn()) {
+    if (!isAuthenticated) {
       setError("You need to be signed in to view admin tools.");
       return;
     }
@@ -101,12 +86,12 @@ export default function Admin() {
       setError("Admin access required.");
       return;
     }
-  }, [isAdmin]);
+  }, [isAdmin, isAuthenticated]);
 
   const loadPendingCreatorRequests = async () => {
     setCreatorRequestsError(null);
 
-    if (!token) {
+    if (!isAuthenticated) {
       setCreatorRequestsError("You need to be signed in to view admin tools.");
       return;
     }
@@ -121,11 +106,7 @@ export default function Admin() {
       url.searchParams.set("status", "pending");
       url.searchParams.set("limit", "100");
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await authedFetch(url.toString(), { requireAuth: true });
 
       const data = await response.json().catch(() => null);
       if (!response.ok) {
@@ -153,15 +134,11 @@ export default function Admin() {
     requestId: string,
     type: "document" | "holdingDocument"
   ) => {
-    if (!token) throw new Error("Not signed in.");
+    if (!isAuthenticated) throw new Error("Not signed in.");
 
-    const response = await fetch(
+    const response = await authedFetch(
       `${API_BASE}/admin/creator-requests/${requestId}/identity/${type}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      { requireAuth: true }
     );
 
     if (!response.ok) {
@@ -207,20 +184,15 @@ export default function Admin() {
   };
 
   const approveRequest = async (requestId: string) => {
-    if (!token) return;
+    if (!isAuthenticated || !isAdmin) return;
 
     const updateKey = `${requestId}:approve`;
     setIsUpdating((prev) => ({ ...prev, [updateKey]: true }));
     setCreatorRequestsError(null);
     try {
-      const response = await fetch(
+      const response = await authedFetch(
         `${API_BASE}/admin/creator-requests/${requestId}/approve`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { method: "POST", requireAuth: true }
       );
 
       const data = await response.json().catch(() => null);
@@ -245,7 +217,7 @@ export default function Admin() {
   };
 
   const submitReject = async () => {
-    if (!token || !rejectModal.request) return;
+    if (!isAuthenticated || !isAdmin || !rejectModal.request) return;
     const requestId = rejectModal.request.id;
     const trimmed = rejectModal.reason.trim();
     if (!trimmed) {
@@ -255,15 +227,15 @@ export default function Admin() {
 
     setRejectModal((prev) => ({ ...prev, isSubmitting: true, error: null }));
     try {
-      const response = await fetch(
+      const response = await authedFetch(
         `${API_BASE}/admin/creator-requests/${requestId}/reject`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ reason: trimmed }),
+          requireAuth: true,
         }
       );
 
@@ -297,11 +269,10 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    if (!isUserLoggedIn() || !isAdmin) return;
-    if (!token) return;
+    if (!isAuthenticated || !isAdmin) return;
     void loadPendingCreatorRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [isAdmin, isAuthenticated]);
 
   useEffect(() => {
     return () => {
@@ -316,7 +287,7 @@ export default function Admin() {
   const search = async () => {
     setError(null);
 
-    if (!token) {
+    if (!isAuthenticated) {
       setError("You need to be signed in to view admin tools.");
       return;
     }
@@ -338,11 +309,7 @@ export default function Admin() {
       url.searchParams.set("query", trimmed);
       url.searchParams.set("limit", "20");
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await authedFetch(url.toString(), { requireAuth: true });
 
       const data = await response.json().catch(() => null);
 
@@ -366,18 +333,18 @@ export default function Admin() {
   };
 
   const toggleCreator = async (user: AdminUserRow) => {
-    if (!token) return;
+    if (!isAuthenticated || !isAdmin) return;
 
     const updateKey = `${user.id}:creator`;
     setIsUpdating((prev) => ({ ...prev, [updateKey]: true }));
     try {
-      const response = await fetch(`${API_BASE}/admin/users/${user.id}`, {
+      const response = await authedFetch(`${API_BASE}/admin/users/${user.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ isCreator: !user.isCreator }),
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -408,18 +375,18 @@ export default function Admin() {
   };
 
   const toggleActive = async (user: AdminUserRow) => {
-    if (!token) return;
+    if (!isAuthenticated || !isAdmin) return;
 
     const updateKey = `${user.id}:active`;
     setIsUpdating((prev) => ({ ...prev, [updateKey]: true }));
     try {
-      const response = await fetch(`${API_BASE}/admin/users/${user.id}`, {
+      const response = await authedFetch(`${API_BASE}/admin/users/${user.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ isActive: !user.isActive }),
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -449,7 +416,7 @@ export default function Admin() {
     }
   };
 
-  if (!isUserLoggedIn()) {
+  if (!isAuthenticated) {
     return (
       <main>
         <h1>Admin</h1>

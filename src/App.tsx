@@ -28,7 +28,6 @@ import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
 import Admin from "./pages/admin/Admin";
 import Creator from "./pages/Creator";
-import { isUserLoggedIn } from "./helpers/auth/authHelpers";
 import {
   getUnreadMessageThreadCount,
   getUserByUserName,
@@ -37,6 +36,7 @@ import { buildProfileImageUrl } from "./helpers/userHelpers";
 import Navbar from "./components/navbar/Navbar";
 import Footer from "./components/footer/Footer";
 import CookieBanner from "./components/cookiebanner/CookieBanner";
+import { useCurrentUser } from "./context/CurrentUserContext";
 
 function upsertMetaTag(
   kind: "name" | "property",
@@ -141,13 +141,12 @@ function UserMessageRoute() {
 
 function App() {
   const gaInitializedRef = useRef(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      !!window.localStorage.getItem("authToken")
-  );
-  const [isCreator, setIsCreator] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const {
+    user: currentUser,
+    isAuthenticated,
+    authedFetch,
+    clearAuthSession,
+  } = useCurrentUser();
   const [unreadMessageThreads, setUnreadMessageThreads] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") {
@@ -169,6 +168,10 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isLoggedIn = isAuthenticated;
+  const isCreator = currentUser?.isCreator === true;
+  const isAdmin = currentUser?.isAdmin === true;
+
   useEffect(() => {
     const isLocalhost =
       typeof window !== "undefined" &&
@@ -187,20 +190,6 @@ function App() {
     }
 
     if (typeof window === "undefined") return;
-
-    setIsLoggedIn(isUserLoggedIn());
-
-    try {
-      const raw = window.localStorage.getItem("authUser");
-      const parsed = raw
-        ? (JSON.parse(raw) as { isCreator?: boolean; isAdmin?: boolean })
-        : null;
-      setIsCreator(Boolean(parsed && parsed.isCreator === true));
-      setIsAdmin(Boolean(parsed && parsed.isAdmin === true));
-    } catch {
-      setIsCreator(false);
-      setIsAdmin(false);
-    }
   }, [location]);
 
   useEffect(() => {
@@ -216,7 +205,7 @@ function App() {
       }
 
       try {
-        const count = await getUnreadMessageThreadCount();
+        const count = await getUnreadMessageThreadCount({ authedFetch });
         if (!cancelled) {
           setUnreadMessageThreads(Math.max(0, count));
         }
@@ -259,11 +248,8 @@ function App() {
   };
 
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("authToken");
-      window.localStorage.removeItem("authUser");
-    }
-    setIsLoggedIn(false);
+    clearAuthSession();
+    setUnreadMessageThreads(0);
     navigate(
       `/account/login?redirect=${encodeURIComponent(
         location.pathname + location.search

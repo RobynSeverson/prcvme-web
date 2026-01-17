@@ -6,6 +6,7 @@ import {
   getMyPaymentMethods,
   type PaymentMethod,
 } from "../helpers/api/apiHelpers";
+import { useCurrentUser } from "../context/CurrentUserContext";
 import type {
   NewPaymentMethodPayload,
   NewPaymentMethodSummary,
@@ -33,6 +34,7 @@ export default function PayToViewPaymentModal({
   isConfirmLoading,
   errorMessage,
 }: PayToViewPaymentModalProps) {
+  const { authedFetch } = useCurrentUser();
   const [storedMethods, setStoredMethods] = useState<PaymentMethod[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export default function PayToViewPaymentModal({
       try {
         setPaymentError(null);
         setIsLoadingMethods(true);
-        const loaded = await getMyPaymentMethods();
+        const loaded = await getMyPaymentMethods({ authedFetch });
         if (cancelled) return;
 
         setStoredMethods(loaded.methods);
@@ -102,7 +104,7 @@ export default function PayToViewPaymentModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [authedFetch, isOpen]);
 
   const isAddingNew = selectedMethodId === "new";
 
@@ -143,7 +145,9 @@ export default function PayToViewPaymentModal({
     try {
       setPaymentError(null);
       setIsSavingMethod(true);
-      const result = await addMyPaymentMethod(newMethodPayload);
+      const result = await addMyPaymentMethod(newMethodPayload, {
+        authedFetch,
+      });
       setStoredMethods(result.methods);
 
       const selected =

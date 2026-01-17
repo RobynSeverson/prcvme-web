@@ -3,10 +3,13 @@ import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { User } from "../models/user";
 import { setTitle } from "../helpers/metadataHelper";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export default function EditProfile() {
+  const { isAuthenticated, authedFetch, clearAuthSession, setAuthSession } =
+    useCurrentUser();
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -46,9 +49,7 @@ export default function EditProfile() {
   }, []);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("authToken");
-
-    if (!token) {
+    if (!isAuthenticated) {
       setIsLoading(false);
       setError("You need to be signed in to edit your profile.");
       return;
@@ -56,10 +57,8 @@ export default function EditProfile() {
 
     const loadUser = async () => {
       try {
-        const response = await fetch(`${API_BASE}/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await authedFetch(`${API_BASE}/me`, {
+          requireAuth: true,
         });
 
         const data = await response.json().catch(() => null);
@@ -70,8 +69,7 @@ export default function EditProfile() {
             "Failed to load profile.";
           setError(message);
           if (response.status === 401 || response.status === 404) {
-            window.localStorage.removeItem("authToken");
-            window.localStorage.removeItem("authUser");
+            clearAuthSession();
           }
           return;
         }
@@ -86,7 +84,7 @@ export default function EditProfile() {
           setProfileBackgroundUrl(loadedUser.profileBackgroundUrl ?? "");
           setProfilePicturePreview(null);
           setProfileBackgroundPreview(null);
-          window.localStorage.setItem("authUser", JSON.stringify(loadedUser));
+          setAuthSession({ user: loadedUser });
         }
       } catch (err) {
         console.error("Error loading profile", err);
@@ -97,7 +95,7 @@ export default function EditProfile() {
     };
 
     void loadUser();
-  }, []);
+  }, [authedFetch, clearAuthSession, isAuthenticated, setAuthSession]);
 
   const normalizeUserName = (raw: string): string => {
     // Enforce URL-safe username characters: letters, numbers, '.', '_', '-'
@@ -125,9 +123,7 @@ export default function EditProfile() {
       return;
     }
 
-    const token = window.localStorage.getItem("authToken");
-
-    if (!token) {
+    if (!isAuthenticated) {
       setError("You need to be signed in to edit your profile.");
       return;
     }
@@ -143,13 +139,13 @@ export default function EditProfile() {
         profileBackgroundUrl: profileBackgroundUrl || undefined,
       };
 
-      const response = await fetch(`${API_BASE}/users/me`, {
+      const response = await authedFetch(`${API_BASE}/users/me`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -167,7 +163,7 @@ export default function EditProfile() {
       if (data && data.user) {
         updatedUser = data.user as User;
         setUser(updatedUser);
-        window.localStorage.setItem("authUser", JSON.stringify(updatedUser));
+        setAuthSession({ user: updatedUser });
       }
 
       if (profilePictureFile || profileBackgroundFile) {
@@ -179,14 +175,12 @@ export default function EditProfile() {
           formData.append("profileBackground", profileBackgroundFile);
         }
 
-        const imageResponse = await fetch(
+        const imageResponse = await authedFetch(
           `${API_BASE}/users/me/profile-images`,
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
             body: formData,
+            requireAuth: true,
           }
         );
 
@@ -209,7 +203,7 @@ export default function EditProfile() {
           setProfileBackgroundUrl(updatedUser.profileBackgroundUrl ?? "");
           setProfilePicturePreview(null);
           setProfileBackgroundPreview(null);
-          window.localStorage.setItem("authUser", JSON.stringify(updatedUser));
+          setAuthSession({ user: updatedUser });
         }
 
         setProfilePictureFile(null);

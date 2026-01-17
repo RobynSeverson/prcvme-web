@@ -11,10 +11,7 @@ import {
   sendDirectMessage,
 } from "../../helpers/api/apiHelpers";
 import type { User } from "../../models/user";
-import {
-  getLoggedInUserFromStorage,
-  isUserLoggedIn,
-} from "../../helpers/auth/authHelpers";
+import { useCurrentUser } from "../../context/CurrentUserContext";
 import SecureImage from "../../components/SecureImage";
 import SecureVideo from "../../components/SecureVideo";
 import Lightbox from "../../components/Lightbox";
@@ -95,7 +92,14 @@ export default function MessageThread() {
   const { userName } = useParams();
   const location = useLocation();
 
-  const [isLoggedIn, setIsLoggedIn] = useState(() => isUserLoggedIn());
+  const {
+    user: currentUser,
+    token,
+    isAuthenticated,
+    authedFetch,
+  } = useCurrentUser();
+
+  const [isLoggedIn, setIsLoggedIn] = useState(() => isAuthenticated);
   const [meUserId, setMeUserId] = useState<string | null>(null);
   const [canUploadMedia, setCanUploadMedia] = useState(false);
   const [canDeleteMessages, setCanDeleteMessages] = useState(false);
@@ -182,12 +186,13 @@ export default function MessageThread() {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    setIsLoggedIn(isUserLoggedIn());
-    const me = getLoggedInUserFromStorage();
-    setMeUserId(me?.id ?? null);
-    setCanUploadMedia(me?.isCreator === true || me?.isAdmin === true);
-    setCanDeleteMessages(me?.isCreator === true);
-  }, []);
+    setIsLoggedIn(isAuthenticated);
+    setMeUserId(currentUser?.id ?? null);
+    setCanUploadMedia(
+      currentUser?.isCreator === true || currentUser?.isAdmin === true
+    );
+    setCanDeleteMessages(currentUser?.isCreator === true);
+  }, [currentUser, isAuthenticated]);
 
   useEffect(() => {
     if (canUploadMedia) return;
@@ -237,7 +242,9 @@ export default function MessageThread() {
         setMessages([]);
         messageIdsRef.current = new Set();
 
-        const result = await getDirectMessages(otherUser.id);
+        const result = await getDirectMessages(otherUser.id, undefined, {
+          authedFetch,
+        });
         const ui = result.messages.map((m) => ({
           id: m.id,
           fromUserId: m.fromUserId,
@@ -256,7 +263,7 @@ export default function MessageThread() {
         setNextCursor(result.nextCursor);
 
         // Best-effort: opening the thread marks it read.
-        void markMessageThreadRead(otherUser.id);
+        void markMessageThreadRead(otherUser.id, { authedFetch });
 
         // Ensure we start at the latest message.
         initialScrolledRef.current = false;
@@ -292,7 +299,7 @@ export default function MessageThread() {
     if (!otherUser) return;
     if (!isLoggedIn) return;
 
-    const wsUrl = getMessagesWebSocketUrl(otherUser.id);
+    const wsUrl = getMessagesWebSocketUrl(otherUser.id, token);
     if (!wsUrl) {
       return;
     }
@@ -400,7 +407,7 @@ export default function MessageThread() {
 
         // If we're viewing this thread, consider any incoming message as read.
         if (fromUserId !== meUserId && otherUser) {
-          void markMessageThreadRead(otherUser.id);
+          void markMessageThreadRead(otherUser.id, { authedFetch });
         }
       } catch {
         // ignore
@@ -433,7 +440,9 @@ export default function MessageThread() {
 
     try {
       setIsLoadingMessages(true);
-      const result = await getDirectMessages(otherUser.id, nextCursor);
+      const result = await getDirectMessages(otherUser.id, nextCursor, {
+        authedFetch,
+      });
 
       const ui = result.messages.map((m) => ({
         id: m.id,
@@ -506,12 +515,16 @@ export default function MessageThread() {
         return Number(n.toFixed(2));
       })();
 
-      const created = await sendDirectMessage(otherUser.id, {
-        text: draft,
-        mediaFiles:
-          canUploadMedia && newMediaFiles.length > 0 ? newMediaFiles : null,
-        price: parsedPrice,
-      });
+      const created = await sendDirectMessage(
+        otherUser.id,
+        {
+          text: draft,
+          mediaFiles:
+            canUploadMedia && newMediaFiles.length > 0 ? newMediaFiles : null,
+          price: parsedPrice,
+        },
+        { authedFetch }
+      );
 
       if (!messageIdsRef.current.has(created.id)) {
         messageIdsRef.current.add(created.id);
@@ -1327,11 +1340,14 @@ export default function MessageThread() {
             try {
               setPayError(null);
               setIsPaying(true);
-              await purchaseDirectMessageMedia({
-                messageId: payMessage.id,
-                paymentProfileId,
-                cardInfo,
-              });
+              await purchaseDirectMessageMedia(
+                {
+                  messageId: payMessage.id,
+                  paymentProfileId,
+                  cardInfo,
+                },
+                { authedFetch }
+              );
 
               setMessages((prev) =>
                 prev.map((mm) =>
@@ -1410,7 +1426,9 @@ export default function MessageThread() {
                       if (!deleteMessageTarget) return;
                       setDeleteError(null);
                       setIsDeleting(true);
-                      await deleteDirectMessage(deleteMessageTarget.id);
+                      await deleteDirectMessage(deleteMessageTarget.id, {
+                        authedFetch,
+                      });
                       setMessages((prev) =>
                         prev.map((m) =>
                           m.id === deleteMessageTarget.id

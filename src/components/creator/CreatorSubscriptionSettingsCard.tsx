@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { SubscriptionDeal, User } from "../../models/user";
 import { getAPIBase } from "../../helpers/api/apiHelpers";
+import { useCurrentUser } from "../../context/CurrentUserContext";
 
 const API_BASE = getAPIBase();
 
@@ -22,6 +23,7 @@ export default function CreatorSubscriptionSettingsCard({
   user,
   onUserUpdated,
 }: Props) {
+  const { isAuthenticated, authedFetch } = useCurrentUser();
   const [subscriptionPrice, setSubscriptionPrice] = useState<string>("");
   const [subscriptionDeals, setSubscriptionDeals] = useState<DealFormRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -156,8 +158,7 @@ export default function CreatorSubscriptionSettingsCard({
     setSuccess(null);
     setValidationError(null);
 
-    const token = window.localStorage.getItem("authToken");
-    if (!token) {
+    if (!isAuthenticated) {
       setError("You need to be signed in to edit creator settings.");
       return;
     }
@@ -276,13 +277,13 @@ export default function CreatorSubscriptionSettingsCard({
 
       payload.subscriptionDeals = deals;
 
-      const response = await fetch(`${API_BASE}/users/me`, {
+      const response = await authedFetch(`${API_BASE}/users/me`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -296,7 +297,6 @@ export default function CreatorSubscriptionSettingsCard({
 
       if (data && data.user) {
         const updated = data.user as User;
-        window.localStorage.setItem("authUser", JSON.stringify(updated));
         onUserUpdated?.(updated);
       }
 

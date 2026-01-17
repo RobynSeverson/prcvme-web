@@ -10,6 +10,7 @@ import Lightbox from "./Lightbox";
 import LikeBookmarkButtons from "./LikeBookmarkButtons";
 import SecureImage from "./SecureImage";
 import SecureVideo from "./SecureVideo";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -43,6 +44,7 @@ export default function UserMediaGrid({
   reloadToken,
   onStats,
 }: UserMediaGridProps) {
+  const { authedFetch } = useCurrentUser();
   const [items, setItems] = useState<MediaItemEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -128,24 +130,13 @@ export default function UserMediaGrid({
     const url = buildApiUrl(opts.cursor);
     if (!url) return;
 
-    const token =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("authToken")
-        : null;
-
     inFlightRef.current = true;
     try {
       if (opts.append) setIsLoadingMore(true);
       else setIsLoading(true);
       setError(null);
 
-      const response = await fetch(url, {
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
-      });
+      const response = await authedFetch(url);
 
       const data = await response.json().catch(() => null);
 

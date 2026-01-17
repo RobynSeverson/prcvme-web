@@ -5,7 +5,6 @@ import type { User } from "../models/user";
 import UserPosts from "../components/UserPosts";
 import UserMediaGrid from "../components/UserMediaGrid";
 import {
-  getCurrentUser,
   getMySubscription,
   getUserByUserName,
   subscribeToUser,
@@ -16,16 +15,20 @@ import SubscribePaymentModal from "../components/SubscribePaymentModal";
 import Lightbox from "../components/Lightbox";
 import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
-import {
-  getLoggedInUserFromStorage,
-  isUserLoggedIn,
-} from "../helpers/auth/authHelpers";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export default function Profile({ userName }: { userName?: string }) {
+  const {
+    user: loggedInUser,
+    isAuthenticated,
+    authedFetch,
+    refreshCurrentUser,
+  } = useCurrentUser();
+  const isLoggedIn = isAuthenticated;
+
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubscriptionActive, setIsSubscriptionActive] = useState(false);
@@ -45,11 +48,6 @@ export default function Profile({ userName }: { userName?: string }) {
     imageCount: number;
     videoCount: number;
   } | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      !!window.localStorage.getItem("authToken")
-  );
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -80,15 +78,18 @@ export default function Profile({ userName }: { userName?: string }) {
             return;
           }
         } else {
-          if (!isUserLoggedIn()) {
+          if (!isAuthenticated) {
             setError("You need to be signed in to view your profile.");
             return;
           }
 
           try {
-            const currentUser = await getCurrentUser();
-
-            setUser(currentUser);
+            if (loggedInUser) {
+              setUser(loggedInUser);
+            } else {
+              const me = await refreshCurrentUser();
+              setUser(me);
+            }
           } catch (error) {
             const message =
               (typeof error === "string" && error) || "Failed to load profile.";
@@ -104,13 +105,7 @@ export default function Profile({ userName }: { userName?: string }) {
     };
 
     void loadUser();
-  }, [userName]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setIsLoggedIn(isUserLoggedIn());
-    setLoggedInUser(getLoggedInUserFromStorage());
-  }, []);
+  }, [userName, isAuthenticated, loggedInUser, refreshCurrentUser]);
 
   const isOwner =
     !!loggedInUser?.id && !!user?.id && loggedInUser.id === user.id;
@@ -125,7 +120,7 @@ export default function Profile({ userName }: { userName?: string }) {
         setSubError(null);
         setIsSubLoading(true);
 
-        const result = await getMySubscription(user.id);
+        const result = await getMySubscription(user.id, { authedFetch });
         const subscribed = !!result.subscribed;
         const isActive = !!(result.subscription
           ? result.subscription.isActive !== false
@@ -153,14 +148,14 @@ export default function Profile({ userName }: { userName?: string }) {
     };
 
     void loadSubscriptionStatus();
-  }, [user, isLoggedIn, isOwner]);
+  }, [authedFetch, user, isLoggedIn, isOwner]);
 
   const refreshSubscriptionStatus = async () => {
     if (!user) return;
     if (!isLoggedIn) return;
     if (isOwner) return;
 
-    const result = await getMySubscription(user.id);
+    const result = await getMySubscription(user.id, { authedFetch });
     const subscribed = !!result.subscribed;
     const isActive = !!(result.subscription
       ? result.subscription.isActive !== false
@@ -375,7 +370,7 @@ export default function Profile({ userName }: { userName?: string }) {
     try {
       setSubError(null);
       setIsSubLoading(true);
-      await subscribeToUser(user.id, args);
+      await subscribeToUser(user.id, args, { authedFetch });
       await refreshSubscriptionStatus();
       setPostsReloadToken((prev) => prev + 1);
       setIsPaymentModalOpen(false);
@@ -950,7 +945,7 @@ export default function Profile({ userName }: { userName?: string }) {
                   setUnsubscribeError(null);
                   setIsUnsubscribing(true);
 
-                  await unsubscribeFromUser(user.id);
+                  await unsubscribeFromUser(user.id, { authedFetch });
                   await refreshSubscriptionStatus();
 
                   setIsUnsubscribeModalOpen(false);

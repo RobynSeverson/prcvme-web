@@ -3,25 +3,20 @@ import { Link, useLocation } from "react-router-dom";
 import { getAPIBase } from "../../helpers/api/apiHelpers";
 import { setTitle } from "../../helpers/metadataHelper";
 import styles from "./Account.module.css";
+import { useCurrentUser } from "../../context/CurrentUserContext";
+import type { User } from "../../models/user";
 
 const API_BASE = getAPIBase();
 
-type User = {
-  id: string;
-  email: string;
-  createdAt: string;
-  lastUpdatedAt?: string;
-  profilePictureUrl?: string;
-  profileBackgroundUrl?: string;
-  userName: string;
-  isActive: boolean;
-  isCreator: boolean;
-  identityVerified: boolean;
-  isAdmin: boolean;
-};
-
 export default function Account() {
-  const [user, setUser] = useState<User | null>(null);
+  const {
+    user,
+    isAuthenticated,
+    authedFetch,
+    refreshCurrentUser,
+    setAuthSession,
+    clearAuthSession,
+  } = useCurrentUser();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
@@ -57,41 +52,16 @@ export default function Account() {
   }, []);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("authToken");
+    const load = async () => {
+      if (!isAuthenticated) {
+        setIsLoading(false);
+        setError("You need to be signed in to view your account.");
+        return;
+      }
 
-    if (!token) {
-      setIsLoading(false);
-      setError("You need to be signed in to view your account.");
-      return;
-    }
-
-    const loadUser = async () => {
       try {
-        const response = await fetch(`${API_BASE}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          const message =
-            (data && typeof data.error === "string" && data.error) ||
-            "Failed to load account details.";
-          setError(message);
-          if (response.status === 401 || response.status === 404) {
-            window.localStorage.removeItem("authToken");
-            window.localStorage.removeItem("authUser");
-          }
-          return;
-        }
-
-        if (data && data.user) {
-          const loadedUser = data.user as User;
-          setUser(loadedUser);
-          window.localStorage.setItem("authUser", JSON.stringify(loadedUser));
-        }
+        setError(null);
+        await refreshCurrentUser();
       } catch (err) {
         console.error("Error loading account", err);
         setError("Something went wrong while loading your account.");
@@ -100,8 +70,8 @@ export default function Account() {
       }
     };
 
-    void loadUser();
-  }, []);
+    void load();
+  }, [isAuthenticated, refreshCurrentUser]);
 
   useEffect(() => {
     if (user?.email) {
@@ -145,9 +115,7 @@ export default function Account() {
     : null;
 
   const clearAuthAndPromptLogin = (message: string) => {
-    window.localStorage.removeItem("authToken");
-    window.localStorage.removeItem("authUser");
-    setUser(null);
+    clearAuthSession();
     setError(message);
   };
 
@@ -156,8 +124,7 @@ export default function Account() {
     setEmailUpdateError(null);
     setEmailUpdateSuccess(null);
 
-    const token = window.localStorage.getItem("authToken");
-    if (!token) {
+    if (!isAuthenticated) {
       clearAuthAndPromptLogin("You need to be signed in to update your email.");
       return;
     }
@@ -178,16 +145,16 @@ export default function Account() {
 
     setIsUpdatingEmail(true);
     try {
-      const response = await fetch(`${API_BASE}/auth/me`, {
+      const response = await authedFetch(`${API_BASE}/auth/me`, {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: nextEmail,
           currentPassword: emailCurrentPassword,
         }),
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -213,11 +180,10 @@ export default function Account() {
 
       if (data && data.user) {
         const updatedUser = data.user as User;
-        setUser(updatedUser);
-        window.localStorage.setItem("authUser", JSON.stringify(updatedUser));
+        setAuthSession({ user: updatedUser });
       }
       if (data && typeof data.token === "string") {
-        window.localStorage.setItem("authToken", data.token);
+        setAuthSession({ token: data.token });
       }
 
       setEmailCurrentPassword("");
@@ -235,8 +201,7 @@ export default function Account() {
     setPasswordUpdateError(null);
     setPasswordUpdateSuccess(null);
 
-    const token = window.localStorage.getItem("authToken");
-    if (!token) {
+    if (!isAuthenticated) {
       clearAuthAndPromptLogin(
         "You need to be signed in to update your password."
       );
@@ -258,16 +223,16 @@ export default function Account() {
 
     setIsUpdatingPassword(true);
     try {
-      const response = await fetch(`${API_BASE}/auth/me`, {
+      const response = await authedFetch(`${API_BASE}/auth/me`, {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           currentPassword: passwordCurrent,
           newPassword: passwordNext,
         }),
+        requireAuth: true,
       });
 
       const data = await response.json().catch(() => null);
@@ -293,11 +258,10 @@ export default function Account() {
 
       if (data && data.user) {
         const updatedUser = data.user as User;
-        setUser(updatedUser);
-        window.localStorage.setItem("authUser", JSON.stringify(updatedUser));
+        setAuthSession({ user: updatedUser });
       }
       if (data && typeof data.token === "string") {
-        window.localStorage.setItem("authToken", data.token);
+        setAuthSession({ token: data.token });
       }
 
       setPasswordCurrent("");

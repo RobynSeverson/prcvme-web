@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import PaymentMethodForm from "../components/PaymentMethodForm";
-import { isUserLoggedIn } from "../helpers/auth/authHelpers";
+import { useCurrentUser } from "../context/CurrentUserContext";
 import {
   addMyPaymentMethod,
   getMyPaymentMethods,
@@ -13,6 +13,7 @@ import { setTitle } from "../helpers/metadataHelper";
 
 export default function PaymentMethods() {
   const location = useLocation();
+  const { authedFetch, isAuthenticated } = useCurrentUser();
 
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [defaultId, setDefaultId] = useState<string | null>(null);
@@ -51,7 +52,7 @@ export default function PaymentMethods() {
       try {
         setError(null);
         setIsLoading(true);
-        const loaded = await getMyPaymentMethods();
+        const loaded = await getMyPaymentMethods({ authedFetch });
         if (cancelled) return;
         setMethods(loaded.methods);
         setDefaultId(loaded.defaultId);
@@ -70,7 +71,7 @@ export default function PaymentMethods() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authedFetch]);
 
   const handleFormChange = useCallback(
     (change: {
@@ -92,7 +93,7 @@ export default function PaymentMethods() {
     try {
       setError(null);
       setIsSaving(true);
-      const next = await addMyPaymentMethod(formState.payload);
+      const next = await addMyPaymentMethod(formState.payload, { authedFetch });
       setMethods(next.methods);
       setDefaultId(next.defaultId);
 
@@ -113,7 +114,7 @@ export default function PaymentMethods() {
     try {
       setError(null);
       setIsSaving(true);
-      const next = await removeMyPaymentMethod(id);
+      const next = await removeMyPaymentMethod(id, { authedFetch });
       setMethods(next.methods);
       setDefaultId(next.defaultId);
     } catch (err) {
@@ -130,7 +131,7 @@ export default function PaymentMethods() {
     try {
       setError(null);
       setIsSaving(true);
-      const result = await setMyDefaultPaymentMethod(id);
+      const result = await setMyDefaultPaymentMethod(id, { authedFetch });
       setDefaultId(result.defaultId);
     } catch (err) {
       const message =
@@ -142,7 +143,7 @@ export default function PaymentMethods() {
     }
   };
 
-  if (!isUserLoggedIn()) {
+  if (!isAuthenticated) {
     return (
       <main>
         <h1>Payment methods</h1>

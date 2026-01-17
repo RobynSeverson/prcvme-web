@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { DetailedHTMLProps, VideoHTMLAttributes } from "react";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export interface SecureVideoProps {
   src: string;
@@ -21,6 +22,7 @@ const SecureVideo = ({
 }: SecureVideoProps) => {
   const [resolvedSrc, setResolvedSrc] = useState(src);
   const objectUrlRef = useRef<string | null>(null);
+  const { token, authedFetch } = useCurrentUser();
 
   useEffect(() => {
     // Revoke any previous blob URL.
@@ -33,19 +35,13 @@ const SecureVideo = ({
 
     if (typeof window === "undefined") return;
 
-    const token = window.localStorage.getItem("authToken");
     if (!token) return;
 
     const controller = new AbortController();
 
     (async () => {
       try {
-        const response = await fetch(src, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal: controller.signal,
-        });
+        const response = await authedFetch(src, { signal: controller.signal });
 
         if (!response.ok) {
           throw new Error(`Video request failed (${response.status})`);
@@ -70,7 +66,7 @@ const SecureVideo = ({
         objectUrlRef.current = null;
       }
     };
-  }, [src]);
+  }, [src, authedFetch, token]);
 
   const secureVideoStyle: React.CSSProperties = {
     pointerEvents: protectContent ? "none" : undefined,

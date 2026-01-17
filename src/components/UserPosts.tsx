@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UserPost } from "../models/userPost";
 import UserPostPanel from "./UserPostPanel";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -27,6 +28,7 @@ export default function UserPosts({
   reloadToken,
   onStats,
 }: UserPostsProps) {
+  const { authedFetch, user: currentUser } = useCurrentUser();
   const [posts, setPosts] = useState<UserPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -70,7 +72,6 @@ export default function UserPosts({
     if (inFlightRef.current) return;
     if (opts.append && !hasMore) return;
 
-    const token = window.localStorage.getItem("authToken");
     const url = buildApiUrl(opts.cursor);
     if (!url) return;
 
@@ -83,13 +84,7 @@ export default function UserPosts({
       }
       setError(null);
 
-      const response = await fetch(url, {
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
-      });
+      const response = await authedFetch(url);
 
       const data = await response.json().catch(() => null);
 
@@ -189,17 +184,7 @@ export default function UserPosts({
     return () => observer.disconnect();
   }, [apiPathBase, hasMore, isLoading, isLoadingMore, nextCursor]);
 
-  const currentUserId = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = window.localStorage.getItem("authUser");
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as { id?: string };
-      return typeof parsed.id === "string" ? parsed.id : null;
-    } catch {
-      return null;
-    }
-  }, []);
+  const currentUserId = currentUser?.id ?? null;
 
   return (
     <section>

@@ -2,16 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  getCurrentUser,
   getMyMessageThreads,
   getMySubscribers,
   getMySubscriptions,
   getUserByUserName,
 } from "../helpers/api/apiHelpers";
 import type { User } from "../models/user";
-import { isUserLoggedIn } from "../helpers/auth/authHelpers";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import { setTitle } from "../helpers/metadataHelper";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 type ThreadRow = {
   user: User;
@@ -21,8 +20,8 @@ type ThreadRow = {
 };
 
 export default function Messages() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => isUserLoggedIn());
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { user: currentUser, isAuthenticated, authedFetch } = useCurrentUser();
+  const isLoggedIn = isAuthenticated;
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,28 +48,6 @@ export default function Messages() {
   }, []);
 
   useEffect(() => {
-    setIsLoggedIn(isUserLoggedIn());
-  }, []);
-
-  useEffect(() => {
-    const loadMe = async () => {
-      if (!isLoggedIn) {
-        setCurrentUser(null);
-        return;
-      }
-
-      try {
-        const me = await getCurrentUser();
-        setCurrentUser(me);
-      } catch {
-        setCurrentUser(null);
-      }
-    };
-
-    void loadMe();
-  }, [isLoggedIn]);
-
-  useEffect(() => {
     const loadSubscribedUsers = async () => {
       if (!isLoggedIn) {
         setSubscribedUsers([]);
@@ -82,7 +59,10 @@ export default function Messages() {
         setIsLoadingSubscribedUsers(true);
 
         if (currentUser?.isCreator === true) {
-          const subs = await getMySubscribers({ includeInactive: true });
+          const subs = await getMySubscribers(
+            { includeInactive: true },
+            { authedFetch }
+          );
           const users = (
             subs.map((s) => s.user).filter(Boolean) as User[]
           ).sort((a, b) => {
@@ -92,7 +72,7 @@ export default function Messages() {
           });
           setSubscribedUsers(users);
         } else {
-          const subs = await getMySubscriptions();
+          const subs = await getMySubscriptions({ authedFetch });
           const now = new Date();
           const active = subs.filter((s) => {
             const isActive = s.isActive !== false;
@@ -145,7 +125,7 @@ export default function Messages() {
     };
 
     void loadSubscribedUsers();
-  }, [isLoggedIn, currentUser?.isCreator]);
+  }, [authedFetch, isLoggedIn, currentUser?.isCreator]);
 
   useEffect(() => {
     const load = async () => {
@@ -155,7 +135,9 @@ export default function Messages() {
         setError(null);
         setIsLoading(true);
 
-        const result = await getMyMessageThreads(undefined, 30);
+        const result = await getMyMessageThreads(undefined, 30, {
+          authedFetch,
+        });
 
         const resolved = await Promise.all(
           result.threads.map(async (t) => {
@@ -186,7 +168,7 @@ export default function Messages() {
     };
 
     void load();
-  }, [isLoggedIn]);
+  }, [authedFetch, isLoggedIn]);
 
   const normalizedSearch = search.trim().toLowerCase();
 
