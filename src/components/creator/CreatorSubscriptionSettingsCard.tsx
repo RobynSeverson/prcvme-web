@@ -311,7 +311,7 @@ export default function CreatorSubscriptionSettingsCard({
 
   return (
     <div className="app-card" style={{ padding: "1rem" }}>
-      <h2 style={{ marginTop: 0 }}>Creator settings</h2>
+      <h2 style={{ marginTop: 0 }}>Subscription settings</h2>
 
       <label className="auth-field">
         <span>Monthly price (USD)</span>

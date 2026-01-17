@@ -7,6 +7,11 @@ export type SubscriptionDeal = {
   expiresAt?: string;
 };
 
+export type WelcomeMessageMediaItem = {
+  mediaKey: string;
+  mediaType: "image" | "video" | "audio";
+};
+
 export type User = {
   id: string;
   email: string;
@@ -22,6 +27,10 @@ export type User = {
   isCreator: boolean;
   subscriptionPrice?: number;
   subscriptionDeals?: SubscriptionDeal[];
+  welcomeMessageEnabled?: boolean;
+  welcomeMessageText?: string;
+  welcomeMessagePrice?: number;
+  welcomeMessageMediaItems?: WelcomeMessageMediaItem[];
   payoutMethod?: "cashapp" | "venmo" | "zelle";
   payoutHandle?: string;
   payoutZelleContact?: string;

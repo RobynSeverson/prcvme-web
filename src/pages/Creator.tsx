@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import CreatorApplicationCard from "../components/creator/CreatorApplicationCard";
 import CreatorPayoutSettingsCard from "../components/creator/CreatorPayoutSettingsCard";
 import CreatorSubscriptionSettingsCard from "../components/creator/CreatorSubscriptionSettingsCard";
+import CreatorWelcomeMessageCard from "../components/creator/CreatorWelcomeMessageCard";
 import { setTitle } from "../helpers/metadataHelper";
 import { useCurrentUser } from "../context/CurrentUserContext";
 
@@ -100,6 +101,10 @@ export default function Creator() {
           {currentUser?.isCreator ? (
             <div style={{ display: "grid", gap: "1rem" }}>
               <CreatorSubscriptionSettingsCard
+                user={currentUser}
+                onUserUpdated={(u) => setCurrentUser(u)}
+              />
+              <CreatorWelcomeMessageCard
                 user={currentUser}
                 onUserUpdated={(u) => setCurrentUser(u)}
               />
