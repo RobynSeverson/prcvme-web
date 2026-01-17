@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Route,
   Routes,
@@ -140,6 +140,7 @@ function UserMessageRoute() {
 }
 
 function App() {
+  const gaInitializedRef = useRef(false);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -169,8 +170,21 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    ReactGA.initialize("G-BS3RK8L7E7");
-    ReactGA.send({ hitType: "pageview", page: location.pathname });
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "::1");
+
+    const shouldTrackAnalytics = !isLocalhost && !import.meta.env.DEV;
+
+    if (shouldTrackAnalytics) {
+      if (!gaInitializedRef.current) {
+        ReactGA.initialize("G-BS3RK8L7E7");
+        gaInitializedRef.current = true;
+      }
+      ReactGA.send({ hitType: "pageview", page: location.pathname });
+    }
 
     if (typeof window === "undefined") return;
 
