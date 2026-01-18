@@ -17,6 +17,7 @@ import SecureVideo from "../../components/SecureVideo";
 import Lightbox from "../../components/Lightbox";
 import PayToViewPaymentModal from "../../components/PayToViewPaymentModal";
 import LikeBookmarkButtons from "../../components/LikeBookmarkButtons";
+import { buildProfileImageUrl } from "../../helpers/userHelpers";
 import styles from "./MessageThread.module.css";
 
 type UiMessage = {
@@ -184,6 +185,11 @@ export default function MessageThread() {
       location.pathname + location.search
     )}`;
   }, [location.pathname, location.search]);
+
+  const otherAvatarSrc = useMemo(() => {
+    if (!otherUser) return undefined;
+    return buildProfileImageUrl(otherUser.id, otherUser.profilePictureUrl);
+  }, [otherUser]);
 
   useEffect(() => {
     setIsLoggedIn(isAuthenticated);
@@ -622,7 +628,8 @@ export default function MessageThread() {
         overflow: "hidden",
       }}
     >
-      <section style={{ marginBottom: "1rem" }}>
+      <section className={styles.actions} style={{ marginBottom: "1rem" }}>
+        <Link to="/me/messages">Back</Link>
         <p className="text-muted" style={{ margin: 0 }}>
           <Link
             to={`/${encodeURIComponent(otherUser.userName)}`}
@@ -646,10 +653,6 @@ export default function MessageThread() {
           minHeight: 0,
         }}
       >
-        <div className={styles.actions}>
-          <Link to="/me/messages">Back</Link>
-        </div>
-
         <div
           className={styles.list}
           ref={messageListRef}
@@ -677,6 +680,53 @@ export default function MessageThread() {
                   key={m.id}
                   className={`${styles.row} ${isMine ? styles.rowMine : ""}`}
                 >
+                  {!isMine ? (
+                    <Link
+                      to={`/${encodeURIComponent(otherUser.userName)}`}
+                      title="View profile"
+                      style={{ textDecoration: "none" }}
+                      aria-label={`View ${
+                        otherUser.displayName || otherUser.userName
+                      } profile`}
+                    >
+                      <span className={styles.avatar} aria-hidden="true">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          style={{ position: "absolute" }}
+                        >
+                          <path
+                            d="M20 21a8 8 0 0 0-16 0"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        {otherAvatarSrc ? (
+                          <img
+                            src={otherAvatarSrc}
+                            alt=""
+                            loading="lazy"
+                            draggable={false}
+                            className={styles.avatarImg}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : null}
+                      </span>
+                    </Link>
+                  ) : null}
                   <div
                     className={styles.bubble}
                     style={{ position: "relative" }}
