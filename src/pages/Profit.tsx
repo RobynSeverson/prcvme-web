@@ -40,12 +40,7 @@ const formatMoney = (value: number, currency: string) => {
 };
 
 export default function Profit() {
-  const {
-    user: currentUser,
-    isAuthenticated,
-    authedFetch,
-    refreshCurrentUser,
-  } = useCurrentUser();
+  const { user: currentUser, isAuthenticated, authedFetch } = useCurrentUser();
   const isLoggedIn = isAuthenticated;
 
   const [summary, setSummary] = useState<ProfitSummary | null>(null);
@@ -64,28 +59,38 @@ export default function Profit() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
       if (!isLoggedIn) return;
+      if (currentUser && currentUser.isCreator !== true) return;
 
       try {
         setError(null);
         setIsLoading(true);
 
-        await refreshCurrentUser();
-
         const result = await getMyProfit({ authedFetch });
-        setSummary(result);
+        if (!cancelled) {
+          setSummary(result);
+        }
       } catch (err) {
         const message =
           (err instanceof Error && err.message) || "Failed to load profit.";
-        setError(message);
+        if (!cancelled) {
+          setError(message);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     void load();
-  }, [authedFetch, isLoggedIn, refreshCurrentUser]);
+    return () => {
+      cancelled = true;
+    };
+  }, [authedFetch, currentUser, isLoggedIn]);
 
   if (!isLoggedIn) {
     return (
