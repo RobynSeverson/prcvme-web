@@ -14,6 +14,7 @@ import {
 import SubscribePaymentModal from "../components/SubscribePaymentModal";
 import Lightbox from "../components/Lightbox";
 import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
+import Deal from "../components/Deal";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import styles from "./Profile.module.css";
@@ -409,47 +410,6 @@ export default function Profile({ userName }: { userName?: string }) {
   }, [user?.subscriptionDeals]);
 
   const hasDeals = sortedDeals.length > 0;
-
-  const formatDealDiscountPct = (deal: SubscriptionDeal): string | null => {
-    const monthly = user?.subscriptionPrice;
-    if (
-      typeof monthly !== "number" ||
-      !Number.isFinite(monthly) ||
-      monthly <= 0
-    )
-      return null;
-    if (
-      typeof deal.months !== "number" ||
-      !Number.isFinite(deal.months) ||
-      deal.months <= 0
-    )
-      return null;
-    if (
-      typeof deal.price !== "number" ||
-      !Number.isFinite(deal.price) ||
-      deal.price <= 0
-    )
-      return null;
-
-    const regularTotal = monthly * deal.months;
-    if (!Number.isFinite(regularTotal) || regularTotal <= 0) return null;
-
-    const pct = Math.round((1 - deal.price / regularTotal) * 100);
-    if (!Number.isFinite(pct) || pct <= 0) return null;
-    return `${pct}% off`;
-  };
-
-  const formatDealExpiresLabel = (deal: SubscriptionDeal): string | null => {
-    if (typeof deal.expiresAt !== "string" || !deal.expiresAt.trim())
-      return null;
-    const date = new Date(deal.expiresAt);
-    if (Number.isNaN(date.getTime())) return null;
-    return `Offer ends ${date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })}`;
-  };
 
   if (isLoading) {
     return (
@@ -891,79 +851,20 @@ export default function Profile({ userName }: { userName?: string }) {
         >
           <ul style={{ paddingLeft: 0, marginTop: 0, marginBottom: 0 }}>
             {sortedDeals.map((deal) => {
-              const discount = formatDealDiscountPct(deal);
-              const expiresLabel = formatDealExpiresLabel(deal);
-
               return (
-                <li key={deal.dealId} className={styles.dealItem}>
-                  <div className={styles.dealMeta}>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <strong>{deal.title}</strong>
-                      {discount ? (
-                        <span className={styles.dealDiscountBadge}>
-                          {discount}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {deal.description ? (
-                      <div
-                        className={`text-muted ${styles.dealDescriptionRow}`}
-                      >
-                        {profilePictureSrc ? (
-                          <img
-                            src={profilePictureSrc}
-                            alt=""
-                            aria-hidden="true"
-                            className={styles.dealDescriptionAvatar}
-                            draggable={false}
-                          />
-                        ) : null}
-                        <span>{deal.description}</span>
-                      </div>
-                    ) : null}
-
-                    {expiresLabel ? (
-                      <div className={`text-muted ${styles.dealExpires}`}>
-                        {expiresLabel}
-                      </div>
-                    ) : null}
-
-                    <div
-                      className="text-muted"
-                      style={{ marginTop: "0.25rem" }}
-                    >
-                      {deal.months} month{deal.months === 1 ? "" : "s"} for $
-                      {typeof deal.price === "number" &&
-                      Number.isFinite(deal.price)
-                        ? deal.price.toFixed(2)
-                        : "0.00"}{" "}
-                      then $
-                      {typeof user.subscriptionPrice === "number" &&
-                      Number.isFinite(user.subscriptionPrice)
-                        ? user.subscriptionPrice.toFixed(2)
-                        : "0.00"}
-                      /mo
-                    </div>
-                  </div>
-
-                  {!isSubscribed ? (
-                    <div className={styles.dealCta}>
-                      <button
-                        type="button"
-                        className={`auth-submit ${styles.dealButton}`}
-                        disabled={isSubLoading || isUnsubscribing}
-                        onClick={() => {
-                          void handleSelectDealSubscribe(deal.dealId);
-                        }}
-                      >
-                        Subscribe {deal.months} month
-                        {deal.months === 1 ? "" : "s"} for ($
-                        {deal.price.toFixed(2)})
-                      </button>
-                    </div>
-                  ) : null}
-                </li>
+                <Deal
+                  key={deal.dealId}
+                  deal={deal}
+                  monthlyPrice={user.subscriptionPrice}
+                  creatorProfilePictureSrc={profilePictureSrc}
+                  isSubscribed={isSubscribed}
+                  isSubLoading={isSubLoading}
+                  isUnsubscribing={isUnsubscribing}
+                  onSubscribe={(dealId) => {
+                    void handleSelectDealSubscribe(dealId);
+                  }}
+                  styles={styles}
+                />
               );
             })}
           </ul>
