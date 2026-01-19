@@ -26,6 +26,7 @@ export default function CreatorSubscriptionSettingsCard({
   const { isAuthenticated, authedFetch } = useCurrentUser();
   const [subscriptionPrice, setSubscriptionPrice] = useState<string>("");
   const [subscriptionDeals, setSubscriptionDeals] = useState<DealFormRow[]>([]);
+  const [expandedDealId, setExpandedDealId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -111,35 +112,40 @@ export default function CreatorSubscriptionSettingsCard({
     const defaultDescription = (months: number) =>
       `Pay for ${months} month${months === 1 ? "" : "s"} up front.`;
 
-    setSubscriptionDeals(
-      loadedDeals.map((d) => ({
-        dealId:
-          typeof (d as any).dealId === "string" && (d as any).dealId.trim()
-            ? (d as any).dealId
-            : createDealId(),
-        months: String(d.months),
-        price: String(d.price),
-        title:
-          typeof (d as any).title === "string" && (d as any).title.trim()
-            ? (d as any).title
-            : defaultTitle(d.months),
-        description:
-          typeof (d as any).description === "string" &&
-          (d as any).description.trim()
-            ? (d as any).description
-            : defaultDescription(d.months),
-        expiresAt: toDateInputValue((d as any).expiresAt),
-      }))
-    );
+    const nextDeals = loadedDeals.map((d) => ({
+      dealId:
+        typeof (d as any).dealId === "string" && (d as any).dealId.trim()
+          ? (d as any).dealId
+          : createDealId(),
+      months: String(d.months),
+      price: String(d.price),
+      title:
+        typeof (d as any).title === "string" && (d as any).title.trim()
+          ? (d as any).title
+          : defaultTitle(d.months),
+      description:
+        typeof (d as any).description === "string" &&
+        (d as any).description.trim()
+          ? (d as any).description
+          : defaultDescription(d.months),
+      expiresAt: toDateInputValue((d as any).expiresAt),
+    }));
+
+    setSubscriptionDeals(nextDeals);
+    setExpandedDealId((prev) => {
+      if (prev && nextDeals.some((d) => d.dealId === prev)) return prev;
+      return nextDeals.length > 0 ? nextDeals[0].dealId : null;
+    });
 
     setValidationError(null);
   }, [user]);
 
   const handleAddDealRow = () => {
+    const dealId = createDealId();
     setSubscriptionDeals((prev) => [
       ...prev,
       {
-        dealId: createDealId(),
+        dealId,
         months: "",
         price: "",
         title: "",
@@ -147,10 +153,22 @@ export default function CreatorSubscriptionSettingsCard({
         expiresAt: "",
       },
     ]);
+    setExpandedDealId(dealId);
   };
 
   const handleRemoveDealRow = (index: number) => {
-    setSubscriptionDeals((prev) => prev.filter((_, i) => i !== index));
+    setSubscriptionDeals((prev) => {
+      const removed = prev[index];
+      const next = prev.filter((_, i) => i !== index);
+
+      if (removed && removed.dealId === expandedDealId) {
+        setExpandedDealId(
+          next.length > 0 ? next[Math.max(0, index - 1)].dealId : null
+        );
+      }
+
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -359,122 +377,189 @@ export default function CreatorSubscriptionSettingsCard({
             marginTop: "0.75rem",
           }}
         >
-          {subscriptionDeals.map((deal, index) => (
-            <div
-              key={deal.dealId}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "0.75rem",
-                alignItems: "end",
-                padding: "0.75rem",
-                border: "1px solid var(--border-color)",
-                borderRadius: "0.75rem",
-              }}
-            >
-              <label className="auth-field" style={{ margin: 0 }}>
-                <span>Months</span>
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={deal.months}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSubscriptionDeals((prev) =>
-                      prev.map((d, i) =>
-                        i === index ? { ...d, months: value } : d
-                      )
-                    );
-                  }}
-                />
-              </label>
-              <label className="auth-field" style={{ margin: 0 }}>
-                <span>Price (USD)</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  step={0.01}
-                  value={deal.price}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSubscriptionDeals((prev) =>
-                      prev.map((d, i) =>
-                        i === index ? { ...d, price: value } : d
-                      )
-                    );
-                  }}
-                />
-              </label>
+          {subscriptionDeals.map((deal, index) => {
+            const isExpanded = expandedDealId === deal.dealId;
+            const title = deal.title.trim() || `Deal ${index + 1}`;
+            const months = deal.months.trim();
+            const price = deal.price.trim();
+            const expires = deal.expiresAt.trim();
+            const summaryParts = [
+              months ? `${months} mo` : null,
+              price ? `$${price}` : null,
+              expires ? `ends ${expires}` : null,
+            ].filter(Boolean);
 
-              <label
-                className="auth-field"
-                style={{ margin: 0, gridColumn: "1 / -1" }}
+            return (
+              <div
+                key={deal.dealId}
+                style={{
+                  padding: "0.75rem",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "0.75rem",
+                }}
               >
-                <span>Title</span>
-                <input
-                  type="text"
-                  value={deal.title}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSubscriptionDeals((prev) =>
-                      prev.map((d, i) =>
-                        i === index ? { ...d, title: value } : d
-                      )
-                    );
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.75rem",
                   }}
-                />
-              </label>
-
-              <label
-                className="auth-field"
-                style={{ margin: 0, gridColumn: "1 / -1" }}
-              >
-                <span>Description</span>
-                <textarea
-                  rows={2}
-                  value={deal.description}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSubscriptionDeals((prev) =>
-                      prev.map((d, i) =>
-                        i === index ? { ...d, description: value } : d
-                      )
-                    );
-                  }}
-                  className="new-post-textarea"
-                />
-              </label>
-
-              <label className="auth-field" style={{ margin: 0 }}>
-                <span>Expires (optional)</span>
-                <input
-                  type="date"
-                  value={deal.expiresAt}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSubscriptionDeals((prev) =>
-                      prev.map((d, i) =>
-                        i === index ? { ...d, expiresAt: value } : d
-                      )
-                    );
-                  }}
-                />
-              </label>
-
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  className="auth-toggle"
-                  style={{ marginTop: 0 }}
-                  onClick={() => handleRemoveDealRow(index)}
                 >
-                  Remove
-                </button>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{title}</div>
+                    <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                      {summaryParts.length > 0
+                        ? summaryParts.join(" • ")
+                        : "New deal"}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-expanded={isExpanded}
+                      aria-controls={`deal-row-${deal.dealId}`}
+                      onClick={() => {
+                        setExpandedDealId((prev) =>
+                          prev === deal.dealId ? null : deal.dealId
+                        );
+                      }}
+                      style={{ marginTop: 0 }}
+                    >
+                      {isExpanded ? "Collapse" : "Edit"}
+                    </button>
+                    <button
+                      type="button"
+                      className="auth-toggle"
+                      style={{ marginTop: 0 }}
+                      onClick={() => handleRemoveDealRow(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
+                {isExpanded ? (
+                  <div
+                    id={`deal-row-${deal.dealId}`}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "0.75rem",
+                      alignItems: "end",
+                      marginTop: "0.75rem",
+                    }}
+                  >
+                    <label className="auth-field" style={{ margin: 0 }}>
+                      <span>Months</span>
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={deal.months}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSubscriptionDeals((prev) =>
+                            prev.map((d, i) =>
+                              i === index ? { ...d, months: value } : d
+                            )
+                          );
+                        }}
+                      />
+                    </label>
+                    <label className="auth-field" style={{ margin: 0 }}>
+                      <span>Price (USD)</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        step={0.01}
+                        value={deal.price}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSubscriptionDeals((prev) =>
+                            prev.map((d, i) =>
+                              i === index ? { ...d, price: value } : d
+                            )
+                          );
+                        }}
+                      />
+                    </label>
+
+                    <label
+                      className="auth-field"
+                      style={{ margin: 0, gridColumn: "1 / -1" }}
+                    >
+                      <span>Title</span>
+                      <input
+                        type="text"
+                        value={deal.title}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSubscriptionDeals((prev) =>
+                            prev.map((d, i) =>
+                              i === index ? { ...d, title: value } : d
+                            )
+                          );
+                        }}
+                      />
+                    </label>
+
+                    <label
+                      className="auth-field"
+                      style={{ margin: 0, gridColumn: "1 / -1" }}
+                    >
+                      <span>Description</span>
+                      <textarea
+                        rows={2}
+                        value={deal.description}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSubscriptionDeals((prev) =>
+                            prev.map((d, i) =>
+                              i === index ? { ...d, description: value } : d
+                            )
+                          );
+                        }}
+                        className="new-post-textarea"
+                      />
+                    </label>
+
+                    <label className="auth-field" style={{ margin: 0 }}>
+                      <span>Expires (optional)</span>
+                      <input
+                        type="date"
+                        value={deal.expiresAt}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSubscriptionDeals((prev) =>
+                            prev.map((d, i) =>
+                              i === index ? { ...d, expiresAt: value } : d
+                            )
+                          );
+                        }}
+                      />
+                    </label>
+
+                    <div
+                      style={{ display: "flex", justifyContent: "flex-end" }}
+                    >
+                      <button
+                        type="button"
+                        className="icon-button"
+                        style={{ marginTop: 0 }}
+                        onClick={() => setExpandedDealId(null)}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
