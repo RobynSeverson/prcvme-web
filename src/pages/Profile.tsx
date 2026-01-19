@@ -19,6 +19,11 @@ import { buildProfileImageUrl } from "../helpers/userHelpers";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import styles from "./Profile.module.css";
 
+import PostsIcon from "../assets/icons/posts.svg?react";
+import ImageIcon from "../assets/icons/image.svg?react";
+import VideoIcon from "../assets/icons/video.svg?react";
+import MessageIcon from "../assets/icons/message.svg?react";
+
 export default function Profile({ userName }: { userName?: string }) {
   const {
     user: loggedInUser,
@@ -582,26 +587,7 @@ export default function Profile({ userName }: { userName?: string }) {
                 gap: "0.25rem",
               }}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                fill="none"
-              >
-                <path
-                  d="M7 7h10M7 12h10M7 17h6"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8l-3 2v-2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <PostsIcon width={16} height={16} aria-hidden="true" />
               {postStats.postCount}
             </span>
             <span style={{ opacity: 0.6 }}>•</span>
@@ -613,32 +599,7 @@ export default function Profile({ userName }: { userName?: string }) {
                 gap: "0.25rem",
               }}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                fill="none"
-              >
-                <path
-                  d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                />
-                <path
-                  d="M8 14l2.5-3 2.5 3 2-2 3 4"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M9 9.5h.01"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <ImageIcon width={16} height={16} aria-hidden="true" />
               {postStats.imageCount}
             </span>
             <span style={{ opacity: 0.6 }}>•</span>
@@ -650,25 +611,7 @@ export default function Profile({ userName }: { userName?: string }) {
                 gap: "0.25rem",
               }}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                fill="none"
-              >
-                <path
-                  d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                />
-                <path
-                  d="M10 9l6 3-6 3V9z"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <VideoIcon width={16} height={16} aria-hidden="true" />
               {postStats.videoCount}
             </span>
           </div>
@@ -792,26 +735,7 @@ export default function Profile({ userName }: { userName?: string }) {
                 aria-label={`Message ${user.displayName || user.userName}`}
                 title="Message"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M21 12a8 8 0 0 1-8 8H8l-5 2 2-5v-5a8 8 0 0 1 8-8h0a8 8 0 0 1 8 8Z"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M8 12h8"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M8 16h5"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                <MessageIcon width={18} height={18} aria-hidden="true" />
               </Link>
             ) : null}
 
