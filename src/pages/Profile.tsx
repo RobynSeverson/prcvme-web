@@ -543,43 +543,6 @@ export default function Profile({ userName }: { userName?: string }) {
           />
         )}
 
-        {profileBackgroundSrc && canMessageUser ? (
-          <Link
-            to={`/me/messages/${encodeURIComponent(user.userName)}`}
-            className="icon-button"
-            aria-label={`Message ${user.displayName || user.userName}`}
-            title="Message"
-            style={{
-              position: "absolute",
-              right: "0.75rem",
-              top: "160px",
-              transform: "translateY(0.5rem)",
-              zIndex: 3,
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M21 12a8 8 0 0 1-8 8H8l-5 2 2-5v-5a8 8 0 0 1 8-8h0a8 8 0 0 1 8 8Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8 12h8"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-              <path
-                d="M8 16h5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-          </Link>
-        ) : null}
-
         {profileBackgroundSrc && !isOwner && user.id ? (
           <div
             aria-label="Profile actions"
@@ -738,6 +701,54 @@ export default function Profile({ userName }: { userName?: string }) {
         )}
       </section>
 
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "0.5rem",
+          flexWrap: "wrap",
+          marginBottom: "1.5rem",
+        }}
+      >
+        {!isOwner && (!hasDeals || isSubscribed) && (
+          <button
+            type="button"
+            onClick={handleSubscribeToggle}
+            className="auth-submit"
+            disabled={isSubLoading || isUnsubscribing}
+            style={{ width: "auto" }}
+          >
+            {!isLoggedIn
+              ? subscribeLabel()
+              : isSubLoading
+              ? "Loading..."
+              : isSubscribed
+              ? isSubscriptionActive
+                ? "Unsubscribe"
+                : "Resubscribe"
+              : subscribeLabel()}
+          </button>
+        )}
+        {loggedInUser?.id === user.id && (
+          <button
+            type="button"
+            onClick={handleEditProfile}
+            className="auth-submit"
+            style={{ width: "auto" }}
+          >
+            Edit profile
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleShareProfile}
+          className="auth-submit"
+          style={{ width: "auto" }}
+        >
+          {copyStatus === "copied" ? "Copied" : "Copy link"}
+        </button>
+      </div>
+
       <section
         style={{
           marginBottom: "1.5rem",
@@ -765,15 +776,55 @@ export default function Profile({ userName }: { userName?: string }) {
               @{user.userName}
             </p>
           </div>
-          {/* If there is no background image, keep the profile actions here as a fallback. */}
-          {!profileBackgroundSrc && !isOwner && user.id && (
-            <LikeBookmarkButtons
-              targetType="profile"
-              targetId={user.id}
-              size={22}
-              showCounts={true}
-            />
-          )}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: "0.5rem",
+              flexWrap: "wrap",
+            }}
+          >
+            {canMessageUser ? (
+              <Link
+                to={`/me/messages/${encodeURIComponent(user.userName)}`}
+                className="icon-button"
+                aria-label={`Message ${user.displayName || user.userName}`}
+                title="Message"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M21 12a8 8 0 0 1-8 8H8l-5 2 2-5v-5a8 8 0 0 1 8-8h0a8 8 0 0 1 8 8Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M8 12h8"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M8 16h5"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </Link>
+            ) : null}
+
+            {/* If there is no background image, keep the profile actions here as a fallback. */}
+            {!profileBackgroundSrc && !isOwner && user.id && (
+              <LikeBookmarkButtons
+                targetType="profile"
+                targetId={user.id}
+                size={22}
+                showCounts={true}
+              />
+            )}
+          </div>
         </div>
         {user.bio && (
           <p
@@ -786,52 +837,6 @@ export default function Profile({ userName }: { userName?: string }) {
           </p>
         )}
       </section>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: "1.5rem",
-        }}
-      >
-        {!isOwner && (!hasDeals || isSubscribed) && (
-          <button
-            type="button"
-            onClick={handleSubscribeToggle}
-            className="auth-submit"
-            disabled={isSubLoading || isUnsubscribing}
-            style={{ width: "auto", marginRight: "0.5rem" }}
-          >
-            {!isLoggedIn
-              ? subscribeLabel()
-              : isSubLoading
-              ? "Loading..."
-              : isSubscribed
-              ? isSubscriptionActive
-                ? "Unsubscribe"
-                : "Resubscribe"
-              : subscribeLabel()}
-          </button>
-        )}
-        {loggedInUser?.id === user.id && (
-          <button
-            type="button"
-            onClick={handleEditProfile}
-            className="auth-submit"
-            style={{ width: "auto", marginRight: "0.5rem" }}
-          >
-            Edit profile
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={handleShareProfile}
-          className="auth-submit"
-          style={{ width: "auto" }}
-        >
-          {copyStatus === "copied" ? "Copied" : "Copy link"}
-        </button>
-      </div>
 
       {subError && <p className="auth-error">{subError}</p>}
 
