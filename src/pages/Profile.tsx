@@ -439,6 +439,18 @@ export default function Profile({ userName }: { userName?: string }) {
     return `${pct}% off`;
   };
 
+  const formatDealExpiresLabel = (deal: SubscriptionDeal): string | null => {
+    if (typeof deal.expiresAt !== "string" || !deal.expiresAt.trim())
+      return null;
+    const date = new Date(deal.expiresAt);
+    if (Number.isNaN(date.getTime())) return null;
+    return `Offer ends ${date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })}`;
+  };
+
   if (isLoading) {
     return (
       <main>
@@ -880,6 +892,7 @@ export default function Profile({ userName }: { userName?: string }) {
           <ul style={{ paddingLeft: 0, marginTop: 0, marginBottom: 0 }}>
             {sortedDeals.map((deal) => {
               const discount = formatDealDiscountPct(deal);
+              const expiresLabel = formatDealExpiresLabel(deal);
 
               return (
                 <li key={deal.dealId} className={styles.dealItem}>
@@ -895,10 +908,24 @@ export default function Profile({ userName }: { userName?: string }) {
 
                     {deal.description ? (
                       <div
-                        className="text-muted"
-                        style={{ marginTop: "0.25rem" }}
+                        className={`text-muted ${styles.dealDescriptionRow}`}
                       >
-                        {deal.description}
+                        {profilePictureSrc ? (
+                          <img
+                            src={profilePictureSrc}
+                            alt=""
+                            aria-hidden="true"
+                            className={styles.dealDescriptionAvatar}
+                            draggable={false}
+                          />
+                        ) : null}
+                        <span>{deal.description}</span>
+                      </div>
+                    ) : null}
+
+                    {expiresLabel ? (
+                      <div className={`text-muted ${styles.dealExpires}`}>
+                        {expiresLabel}
                       </div>
                     ) : null}
 
