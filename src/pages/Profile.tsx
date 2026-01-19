@@ -933,7 +933,7 @@ export default function Profile({ userName }: { userName?: string }) {
                       className="text-muted"
                       style={{ marginTop: "0.25rem" }}
                     >
-                      {deal.months} month{deal.months === 1 ? "" : "s"} • $
+                      {deal.months} month{deal.months === 1 ? "" : "s"} for $
                       {typeof deal.price === "number" &&
                       Number.isFinite(deal.price)
                         ? deal.price.toFixed(2)
@@ -957,7 +957,9 @@ export default function Profile({ userName }: { userName?: string }) {
                           void handleSelectDealSubscribe(deal.dealId);
                         }}
                       >
-                        Subscribe (${deal.price.toFixed(2)})
+                        Subscribe {deal.months} month
+                        {deal.months === 1 ? "" : "s"} for ($
+                        {deal.price.toFixed(2)})
                       </button>
                     </div>
                   ) : null}
