@@ -392,6 +392,7 @@ const subscribeToUser = async (
       expirationDate: string;
       cardCode?: string;
     };
+    dealId?: string;
   },
   options?: AuthedOptions
 ): Promise<UserSubscription> => {
@@ -406,6 +407,7 @@ const subscribeToUser = async (
       body: JSON.stringify({
         paymentProfileId: args?.paymentProfileId,
         cardInfo: args?.cardInfo,
+        dealId: args?.dealId,
       }),
     },
     "You must be logged in to subscribe."

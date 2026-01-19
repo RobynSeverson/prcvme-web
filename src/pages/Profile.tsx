@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
-import type { User } from "../models/user";
+import type { SubscriptionDeal, User } from "../models/user";
 import UserPosts from "../components/UserPosts";
 import UserMediaGrid from "../components/UserMediaGrid";
 import {
@@ -16,6 +16,7 @@ import Lightbox from "../components/Lightbox";
 import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
 import { buildProfileImageUrl } from "../helpers/userHelpers";
 import { useCurrentUser } from "../context/CurrentUserContext";
+import styles from "./Profile.module.css";
 
 export default function Profile({ userName }: { userName?: string }) {
   const {
@@ -36,6 +37,7 @@ export default function Profile({ userName }: { userName?: string }) {
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [subError, setSubError] = useState<string | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [isUnsubscribeModalOpen, setIsUnsubscribeModalOpen] = useState(false);
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [unsubscribeError, setUnsubscribeError] = useState<string | null>(null);
@@ -335,6 +337,7 @@ export default function Profile({ userName }: { userName?: string }) {
 
     if (!isSubscribed) {
       setSubError(null);
+      setSelectedDealId(null);
       setIsPaymentModalOpen(true);
       return;
     }
@@ -348,6 +351,7 @@ export default function Profile({ userName }: { userName?: string }) {
 
     // Cancelled-but-paid-through: show "Resubscribe" and reopen the payment modal.
     setSubError(null);
+    setSelectedDealId(null);
     setIsPaymentModalOpen(true);
   };
 
@@ -370,10 +374,18 @@ export default function Profile({ userName }: { userName?: string }) {
     try {
       setSubError(null);
       setIsSubLoading(true);
-      await subscribeToUser(user.id, args, { authedFetch });
+      await subscribeToUser(
+        user.id,
+        {
+          ...args,
+          dealId: selectedDealId ?? undefined,
+        },
+        { authedFetch }
+      );
       await refreshSubscriptionStatus();
       setPostsReloadToken((prev) => prev + 1);
       setIsPaymentModalOpen(false);
+      setSelectedDealId(null);
     } catch (err) {
       const message =
         (err instanceof Error && err.message) || "Failed to subscribe.";
@@ -381,6 +393,50 @@ export default function Profile({ userName }: { userName?: string }) {
     } finally {
       setIsSubLoading(false);
     }
+  };
+
+  // Deals/discounts must be derived before any early returns to keep hook order stable.
+  const sortedDeals = useMemo<SubscriptionDeal[]>(() => {
+    const deals = Array.isArray(user?.subscriptionDeals)
+      ? (user?.subscriptionDeals as SubscriptionDeal[])
+      : ([] as SubscriptionDeal[]);
+
+    return [...deals].sort((a, b) => {
+      const am = typeof a.months === "number" ? a.months : 0;
+      const bm = typeof b.months === "number" ? b.months : 0;
+      return am - bm;
+    });
+  }, [user?.subscriptionDeals]);
+
+  const hasDeals = sortedDeals.length > 0;
+
+  const formatDealDiscountPct = (deal: SubscriptionDeal): string | null => {
+    const monthly = user?.subscriptionPrice;
+    if (
+      typeof monthly !== "number" ||
+      !Number.isFinite(monthly) ||
+      monthly <= 0
+    )
+      return null;
+    if (
+      typeof deal.months !== "number" ||
+      !Number.isFinite(deal.months) ||
+      deal.months <= 0
+    )
+      return null;
+    if (
+      typeof deal.price !== "number" ||
+      !Number.isFinite(deal.price) ||
+      deal.price <= 0
+    )
+      return null;
+
+    const regularTotal = monthly * deal.months;
+    if (!Number.isFinite(regularTotal) || regularTotal <= 0) return null;
+
+    const pct = Math.round((1 - deal.price / regularTotal) * 100);
+    if (!Number.isFinite(pct) || pct <= 0) return null;
+    return `${pct}% off`;
   };
 
   if (isLoading) {
@@ -437,6 +493,26 @@ export default function Profile({ userName }: { userName?: string }) {
 
     if (!priceLabel) return "Subscribe";
     return `Subscribe (${priceLabel})`;
+  };
+
+  const handleSelectDealSubscribe = async (dealId: string) => {
+    if (!user) return;
+    if (isOwner) return;
+
+    ReactGA.event({
+      category: "User Interaction",
+      action: "Clicked Subscribe Deal",
+      label: `${userName || "Unknown Profile"} | ${dealId}`,
+    });
+
+    if (!isLoggedIn) {
+      navigate(loginLink);
+      return;
+    }
+
+    setSubError(null);
+    setSelectedDealId(dealId);
+    setIsPaymentModalOpen(true);
   };
 
   const now = new Date();
@@ -535,20 +611,11 @@ export default function Profile({ userName }: { userName?: string }) {
         {profileBackgroundSrc && !isOwner && user.id ? (
           <div
             aria-label="Profile actions"
+            className={styles.profileHeaderPill}
             style={{
               position: "absolute",
               right: "0.75rem",
               bottom: "0.75rem",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.35rem 0.55rem",
-              borderRadius: "999px",
-              background: "rgba(0,0,0,0.45)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              color: "rgba(255,255,255,0.92)",
               zIndex: 2,
             }}
           >
@@ -564,21 +631,11 @@ export default function Profile({ userName }: { userName?: string }) {
         {profileBackgroundSrc && postStats ? (
           <div
             aria-label="Profile post stats"
+            className={`${styles.profileHeaderPill} ${styles.profileStatsPill}`}
             style={{
               position: "absolute",
               top: "0.75rem",
               right: "0.75rem",
-              display: "inline-flex",
-              gap: "0.4rem",
-              padding: "0.4rem 0.55rem",
-              borderRadius: "999px",
-              background: "rgba(0,0,0,0.45)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              color: "rgba(255,255,255,0.92)",
-              fontSize: "0.85rem",
-              fontWeight: 600,
               pointerEvents: "auto",
             }}
           >
@@ -765,7 +822,7 @@ export default function Profile({ userName }: { userName?: string }) {
           marginBottom: "1.5rem",
         }}
       >
-        {!isOwner && (
+        {!isOwner && (!hasDeals || isSubscribed) && (
           <button
             type="button"
             onClick={handleSubscribeToggle}
@@ -811,6 +868,78 @@ export default function Profile({ userName }: { userName?: string }) {
           Cancelled • active until {accessUntilDate.toLocaleDateString()}
         </p>
       ) : null}
+
+      {!isOwner && hasDeals && !isSubscribed && (
+        <section
+          style={{
+            border: "1px solid var(--border-color)",
+            borderRadius: "0.75rem",
+            backgroundColor: "var(--bg-secondary-color)",
+          }}
+        >
+          <ul style={{ paddingLeft: 0, marginTop: 0, marginBottom: 0 }}>
+            {sortedDeals.map((deal) => {
+              const discount = formatDealDiscountPct(deal);
+
+              return (
+                <li key={deal.dealId} className={styles.dealItem}>
+                  <div className={styles.dealMeta}>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <strong>{deal.title}</strong>
+                      {discount ? (
+                        <span className={styles.dealDiscountBadge}>
+                          {discount}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {deal.description ? (
+                      <div
+                        className="text-muted"
+                        style={{ marginTop: "0.25rem" }}
+                      >
+                        {deal.description}
+                      </div>
+                    ) : null}
+
+                    <div
+                      className="text-muted"
+                      style={{ marginTop: "0.25rem" }}
+                    >
+                      {deal.months} month{deal.months === 1 ? "" : "s"} • $
+                      {typeof deal.price === "number" &&
+                      Number.isFinite(deal.price)
+                        ? deal.price.toFixed(2)
+                        : "0.00"}{" "}
+                      then $
+                      {typeof user.subscriptionPrice === "number" &&
+                      Number.isFinite(user.subscriptionPrice)
+                        ? user.subscriptionPrice.toFixed(2)
+                        : "0.00"}
+                      /mo
+                    </div>
+                  </div>
+
+                  {!isSubscribed ? (
+                    <div className={styles.dealCta}>
+                      <button
+                        type="button"
+                        className={`auth-submit ${styles.dealButton}`}
+                        disabled={isSubLoading || isUnsubscribing}
+                        onClick={() => {
+                          void handleSelectDealSubscribe(deal.dealId);
+                        }}
+                      >
+                        Subscribe (${deal.price.toFixed(2)})
+                      </button>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <section>
         {isLoggedIn ? (
@@ -875,7 +1004,10 @@ export default function Profile({ userName }: { userName?: string }) {
 
       <SubscribePaymentModal
         isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
+        onClose={() => {
+          setIsPaymentModalOpen(false);
+          setSelectedDealId(null);
+        }}
         isConfirmLoading={isSubLoading}
         errorMessage={isPaymentModalOpen ? subError : null}
         onConfirm={(args) => {

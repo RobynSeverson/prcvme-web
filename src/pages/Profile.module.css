@@ -1,0 +1,75 @@
+.dealItem {
+  list-style: none;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dealMeta {
+  min-width: 0;
+}
+
+.dealCta {
+  flex: 0 0 auto;
+}
+
+.dealButton {
+  width: auto;
+  margin-top: 0;
+}
+
+.dealDiscountBadge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--payment-badge-border);
+  color: var(--payment-badge-text);
+  background: var(--payment-badge-bg);
+  white-space: nowrap;
+}
+
+.profileHeaderPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: var(--nav-toggle-bg);
+  border: 1px solid var(--nav-toggle-border);
+  color: var(--nav-link-color);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
+
+  /* Improves contrast for LikeBookmarkButtons' inactive state on photos. */
+  --text-muted: color-mix(in srgb, currentColor 72%, transparent);
+}
+
+.profileStatsPill {
+  gap: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .dealItem {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dealCta {
+    width: 100%;
+  }
+
+  .dealButton {
+    width: 100%;
+  }
+}
