@@ -768,6 +768,62 @@ const deleteDirectMessage = async (
   throw new Error("Delete response is missing.");
 };
 
+const sendTip = async (
+  args: {
+    userId: string;
+    amount: number;
+    paymentProfileId?: string;
+    cardInfo?: {
+      nameOnCard: string;
+      cardNumber: string;
+      expirationDate: string; // MMYY
+      cardCode?: string;
+    };
+  },
+  options: AuthedOptions
+): Promise<{ ok: true; tipId: string }> => {
+  if (!args.userId) {
+    throw new Error("Missing userId.");
+  }
+  if (!args.amount || args.amount < 1) {
+    throw new Error("Tip amount must be at least $1.");
+  }
+  if (args.amount > 200) {
+    throw new Error("Tip amount cannot exceed $200.");
+  }
+
+  const response = await authedRequest(
+    options,
+    `${API_BASE}/users/${encodeURIComponent(args.userId)}/tip`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: args.amount,
+        paymentProfileId: args.paymentProfileId,
+        cardInfo: args.cardInfo,
+      }),
+    },
+    "You must be logged in to send a tip."
+  );
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      (data && typeof data.error === "string" && data.error) ||
+      "Failed to send tip.";
+    throw new Error(message);
+  }
+
+  if (data && data.ok === true && typeof data.tipId === "string") {
+    return { ok: true, tipId: data.tipId };
+  }
+
+  throw new Error("Tip response is missing.");
+};
+
 const getMyMessageThreads = async (
   before?: string,
   limit?: number,
@@ -1202,6 +1258,7 @@ export {
   sendDirectMessage,
   purchaseDirectMessageMedia,
   deleteDirectMessage,
+  sendTip,
   markMessageThreadRead,
   getMessagesWebSocketUrl,
   // Password reset

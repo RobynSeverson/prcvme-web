@@ -9,6 +9,8 @@ import {
   markMessageThreadRead,
   purchaseDirectMessageMedia,
   sendDirectMessage,
+  sendTip,
+  getMySubscriptionStatus,
 } from "../../helpers/api/apiHelpers";
 import type { User } from "../../models/user";
 import { useCurrentUser } from "../../context/CurrentUserContext";
@@ -108,6 +110,7 @@ export default function MessageThread() {
   const [otherUser, setOtherUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -138,6 +141,12 @@ export default function MessageThread() {
     useState<UiMessage | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [showTipDialog, setShowTipDialog] = useState(false);
+  const [tipAmount, setTipAmount] = useState<string>("");
+  const [showTipPayment, setShowTipPayment] = useState(false);
+  const [tipError, setTipError] = useState<string | null>(null);
+  const [isSendingTip, setIsSendingTip] = useState(false);
 
   const preventDefault = (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -236,6 +245,31 @@ export default function MessageThread() {
 
     void loadOtherUser();
   }, [userName]);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!otherUser) {
+        setIsSubscribed(false);
+        return;
+      }
+      if (!isLoggedIn) {
+        setIsSubscribed(false);
+        return;
+      }
+
+      try {
+        const subscribed = await getMySubscriptionStatus(otherUser.id, {
+          authedFetch,
+        });
+        setIsSubscribed(subscribed);
+      } catch (err) {
+        // If we can't check subscription status, default to false
+        setIsSubscribed(false);
+      }
+    };
+
+    void checkSubscription();
+  }, [otherUser, isLoggedIn, authedFetch]);
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -630,7 +664,7 @@ export default function MessageThread() {
     >
       <section className={styles.actions} style={{ marginBottom: "1rem" }}>
         <Link to="/me/messages">Back</Link>
-        <p className="text-muted" style={{ margin: 0 }}>
+        <p className="text-muted" style={{ margin: 0, flex: 1 }}>
           <Link
             to={`/${encodeURIComponent(otherUser.userName)}`}
             title="View profile"
@@ -640,6 +674,25 @@ export default function MessageThread() {
             {otherUser.userName}
           </Link>
         </p>
+        {currentUser && isSubscribed && (
+          <button
+            type="button"
+            className="auth-submit"
+            onClick={() => {
+              setTipError(null);
+              setTipAmount("");
+              setShowTipDialog(true);
+            }}
+            style={{
+              width: "auto",
+              marginTop: 0,
+              padding: "0.4rem 0.8rem",
+              fontSize: "0.9rem",
+            }}
+          >
+            💝 Send Tip
+          </button>
+        )}
       </section>
 
       {error && <p className="auth-error">{error}</p>}
@@ -1510,6 +1563,179 @@ export default function MessageThread() {
             </div>
           ) : null}
         </Lightbox>
+
+        {/* Tip Amount Selection Dialog */}
+        <Lightbox
+          isOpen={showTipDialog}
+          onClose={() => {
+            setShowTipDialog(false);
+            setTipError(null);
+          }}
+          zIndex={1200}
+        >
+          <div
+            className="app-card"
+            style={{
+              width: "min(92vw, 480px)",
+              padding: "1.25rem",
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: "0.5rem" }}>
+              Send a Tip
+            </h3>
+            <p className="text-muted" style={{ marginTop: 0, marginBottom: "1rem" }}>
+              Show your appreciation to{" "}
+              {otherUser?.displayName || otherUser?.userName}
+            </p>
+
+            {tipError ? <p className="auth-error">{tipError}</p> : null}
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                htmlFor="tip-amount"
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 600,
+                }}
+              >
+                Select Amount ($1 - $200)
+              </label>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                {["5", "10", "20", "50", "100"].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setTipAmount(amt)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      borderRadius: "8px",
+                      border: tipAmount === amt ? "2px solid var(--primary-color)" : "1px solid rgba(255,255,255,0.18)",
+                      background: tipAmount === amt ? "rgba(99,102,241,0.15)" : "rgba(255,255,255,0.05)",
+                      color: "var(--text-color)",
+                      cursor: "pointer",
+                      fontWeight: tipAmount === amt ? 600 : 400,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    ${amt}
+                  </button>
+                ))}
+              </div>
+              <input
+                id="tip-amount"
+                type="number"
+                placeholder="Or enter custom amount"
+                value={tipAmount}
+                onChange={(e) => setTipAmount(e.target.value)}
+                min="1"
+                max="200"
+                step="1"
+                style={{
+                  width: "100%",
+                  padding: "0.6rem",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "var(--text-color)",
+                  fontSize: "1rem",
+                }}
+              />
+              {tipAmount && (parseFloat(tipAmount) < 1 || parseFloat(tipAmount) > 200) ? (
+                <p
+                  style={{
+                    marginTop: "0.5rem",
+                    marginBottom: 0,
+                    fontSize: "0.85rem",
+                    color: "#f87171",
+                  }}
+                >
+                  {parseFloat(tipAmount) < 1
+                    ? "⚠️ Tip amount must be at least $1"
+                    : "⚠️ Tip amount cannot exceed $200"}
+                </p>
+              ) : null}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                type="button"
+                className="auth-submit"
+                style={{ width: "auto", marginTop: 0, opacity: 0.9 }}
+                onClick={() => {
+                  setShowTipDialog(false);
+                  setTipError(null);
+                  setTipAmount("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="auth-submit"
+                style={{
+                  width: "auto",
+                  marginTop: 0,
+                }}
+                disabled={!tipAmount || parseFloat(tipAmount) < 1 || parseFloat(tipAmount) > 200}
+                onClick={() => {
+                  setTipError(null);
+                  setShowTipDialog(false);
+                  setShowTipPayment(true);
+                }}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </Lightbox>
+
+        {/* Tip Payment Selection Dialog */}
+        <PayToViewPaymentModal
+          isOpen={showTipPayment}
+          amount={parseFloat(tipAmount) || 0}
+          onClose={() => {
+            if (isSendingTip) return;
+            setShowTipPayment(false);
+            setTipError(null);
+          }}
+          isConfirmLoading={isSendingTip}
+          errorMessage={tipError}
+          onConfirm={async ({ paymentProfileId, cardInfo }) => {
+            if (!otherUser) return;
+            try {
+              setTipError(null);
+              setIsSendingTip(true);
+              await sendTip(
+                {
+                  userId: otherUser.id,
+                  amount: parseFloat(tipAmount),
+                  paymentProfileId,
+                  cardInfo,
+                },
+                { authedFetch }
+              );
+
+              setShowTipPayment(false);
+              setTipAmount("");
+              // Show success message
+              alert(`Tip of $${tipAmount} sent successfully!`);
+            } catch (err) {
+              const message =
+                (err instanceof Error && err.message) ||
+                "Failed to send tip.";
+              setTipError(message);
+            } finally {
+              setIsSendingTip(false);
+            }
+          }}
+        />
       </section>
     </main>
   );
