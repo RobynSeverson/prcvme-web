@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Login from "./Login";
+import About from "./about/About";
 import UserPosts from "../components/UserPosts";
 import { setTitle } from "../helpers/metadataHelper";
 import { useCurrentUser } from "../context/CurrentUserContext";
@@ -23,10 +24,10 @@ export default function Home() {
       const kind = file.type.startsWith("image/")
         ? "image"
         : file.type.startsWith("video/")
-        ? "video"
-        : file.type.startsWith("audio/")
-        ? "audio"
-        : "file";
+          ? "video"
+          : file.type.startsWith("audio/")
+            ? "audio"
+            : "file";
       return { file, kind, url: URL.createObjectURL(file) };
     });
   }, [newMediaFiles]);
@@ -124,7 +125,12 @@ export default function Home() {
   };
 
   if (!isLoggedIn) {
-    return <Login />;
+    return (
+      <>
+        <About />
+        <Login />
+      </>
+    );
   }
 
   return (
