@@ -193,6 +193,9 @@ function App() {
     }
 
     if (typeof window === "undefined") return;
+
+    // Scroll to top on route change
+    window.scrollTo(0, 0);
   }, [location]);
 
   useEffect(() => {
