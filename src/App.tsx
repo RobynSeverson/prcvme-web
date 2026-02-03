@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import {
   Route,
   Routes,
@@ -21,14 +21,6 @@ import Subscriptions from "./pages/Subscriptions";
 import Profit from "./pages/Profit";
 import About from "./pages/about/About";
 import Contact from "./pages/Contact";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import RefundPolicy from "./pages/RefundPolicy";
-import ComplaintsPolicy from "./pages/ComplaintsPolicy";
-import UserCreatorContract from "./pages/UserCreatorContract";
-import AcceptableUsePolicy from "./pages/AcceptableUsePolicy";
-import USC2257 from "./pages/USC2257";
-import DMCA from "./pages/DMCA";
 import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
 import Admin from "./pages/admin/Admin";
@@ -42,6 +34,16 @@ import Navbar from "./components/navbar/Navbar";
 import Footer from "./components/footer/Footer";
 import CookieBanner from "./components/cookiebanner/CookieBanner";
 import { useCurrentUser } from "./context/CurrentUserContext";
+
+// Lazy load policy pages to reduce initial bundle size
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const ComplaintsPolicy = lazy(() => import("./pages/ComplaintsPolicy"));
+const UserCreatorContract = lazy(() => import("./pages/UserCreatorContract"));
+const AcceptableUsePolicy = lazy(() => import("./pages/AcceptableUsePolicy"));
+const USC2257 = lazy(() => import("./pages/USC2257"));
+const DMCA = lazy(() => import("./pages/DMCA"));
 
 function upsertMetaTag(
   kind: "name" | "property",
@@ -285,41 +287,42 @@ function App() {
       <CookieBanner />
 
       <div className="app-content">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/:userName" element={<UserProfileRoute />} />
+        <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/:userName" element={<UserProfileRoute />} />
 
-          {/* Legacy Routes */}
+            {/* Legacy Routes */}
 
-          {/* Login routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+            {/* Login routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Account routes */}
-          <Route path="/account" element={<Account />} />
-          <Route path="/payment" element={<PaymentMethods />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/subscriptions" element={<Subscriptions />} />
-          <Route path="/collections" element={<Collections />} />
-          <Route path="/messages/:userName" element={<UserMessageRoute />} />
-          <Route path="/profile/edit" element={<EditProfile />} />
+            {/* Account routes */}
+            <Route path="/account" element={<Account />} />
+            <Route path="/payment" element={<PaymentMethods />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/subscriptions" element={<Subscriptions />} />
+            <Route path="/collections" element={<Collections />} />
+            <Route path="/messages/:userName" element={<UserMessageRoute />} />
+            <Route path="/profile/edit" element={<EditProfile />} />
 
-          {/* Creator routes */}
-          <Route path="/profit" element={<Profit />} />
+            {/* Creator routes */}
+            <Route path="/profit" element={<Profit />} />
 
-          {/* Company routes */}
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/refund-policy" element={<RefundPolicy />} />
-          <Route path="/complaints-policy" element={<ComplaintsPolicy />} />
-          <Route path="/user-creator-contract" element={<UserCreatorContract />} />
-          <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
-          <Route path="/usc-2257" element={<USC2257 />} />
-          <Route path="/dmca" element={<DMCA />} />
+            {/* Company routes */}
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/complaints-policy" element={<ComplaintsPolicy />} />
+            <Route path="/user-creator-contract" element={<UserCreatorContract />} />
+            <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
+            <Route path="/usc-2257" element={<USC2257 />} />
+            <Route path="/dmca" element={<DMCA />} />
 
           {/* New Routes */}
 
@@ -345,18 +348,19 @@ function App() {
           <Route path="/me/profit" element={<Profit />} />
           <Route path="/me/creator" element={<Creator />} />
 
-          {/* Company routes */}
-          <Route path="/company/about" element={<About />} />
-          <Route path="/company/contact" element={<Contact />} />
-          <Route path="/company/privacy" element={<Privacy />} />
-          <Route path="/company/terms" element={<Terms />} />
-          <Route path="/company/refund-policy" element={<RefundPolicy />} />
-          <Route path="/company/complaints-policy" element={<ComplaintsPolicy />} />
-          <Route path="/company/user-creator-contract" element={<UserCreatorContract />} />
-          <Route path="/company/acceptable-use-policy" element={<AcceptableUsePolicy />} />
-          <Route path="/company/usc-2257" element={<USC2257 />} />
-          <Route path="/company/dmca" element={<DMCA />} />
-        </Routes>
+            {/* Company routes */}
+            <Route path="/company/about" element={<About />} />
+            <Route path="/company/contact" element={<Contact />} />
+            <Route path="/company/privacy" element={<Privacy />} />
+            <Route path="/company/terms" element={<Terms />} />
+            <Route path="/company/refund-policy" element={<RefundPolicy />} />
+            <Route path="/company/complaints-policy" element={<ComplaintsPolicy />} />
+            <Route path="/company/user-creator-contract" element={<UserCreatorContract />} />
+            <Route path="/company/acceptable-use-policy" element={<AcceptableUsePolicy />} />
+            <Route path="/company/usc-2257" element={<USC2257 />} />
+            <Route path="/company/dmca" element={<DMCA />} />
+          </Routes>
+        </Suspense>
       </div>
 
       <Footer />
