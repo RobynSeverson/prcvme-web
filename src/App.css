@@ -116,11 +116,18 @@ body {
   overflow: auto;
 }
 
-/* On mobile, push footer to bottom of scrollable content */
+/* On mobile, make footer part of scrollable content */
 @media (max-width: 767px) {
+  .app-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
   .app-content {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    flex: 0 0 auto;
+    overflow: visible;
+    min-height: calc(100dvh - 60px); /* Subtract navbar height */
   }
 }
 
