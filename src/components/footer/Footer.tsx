@@ -14,6 +14,7 @@ export default function Footer() {
         <Link to="/company/user-creator-contract">User and Creator Contract</Link>
         <Link to="/company/acceptable-use-policy">Acceptable Use Policy</Link>
         <Link to="/company/usc-2257">USC 2257</Link>
+        <Link to="/company/dmca">DMCA</Link>
       </div>
       <p className={styles.copy}>&copy; {new Date().getFullYear()} prcvme</p>
     </footer>

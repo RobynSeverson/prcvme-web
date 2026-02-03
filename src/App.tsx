@@ -28,6 +28,7 @@ import ComplaintsPolicy from "./pages/ComplaintsPolicy";
 import UserCreatorContract from "./pages/UserCreatorContract";
 import AcceptableUsePolicy from "./pages/AcceptableUsePolicy";
 import USC2257 from "./pages/USC2257";
+import DMCA from "./pages/DMCA";
 import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
 import Admin from "./pages/admin/Admin";
@@ -318,6 +319,7 @@ function App() {
           <Route path="/user-creator-contract" element={<UserCreatorContract />} />
           <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
           <Route path="/usc-2257" element={<USC2257 />} />
+          <Route path="/dmca" element={<DMCA />} />
 
           {/* New Routes */}
 
@@ -353,6 +355,7 @@ function App() {
           <Route path="/company/user-creator-contract" element={<UserCreatorContract />} />
           <Route path="/company/acceptable-use-policy" element={<AcceptableUsePolicy />} />
           <Route path="/company/usc-2257" element={<USC2257 />} />
+          <Route path="/company/dmca" element={<DMCA />} />
         </Routes>
       </div>
 
