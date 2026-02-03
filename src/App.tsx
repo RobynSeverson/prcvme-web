@@ -24,6 +24,9 @@ import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
+import ComplaintsPolicy from "./pages/ComplaintsPolicy";
+import UserCreatorContract from "./pages/UserCreatorContract";
+import AcceptableUsePolicy from "./pages/AcceptableUsePolicy";
 import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
 import Admin from "./pages/admin/Admin";
@@ -307,6 +310,9 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/complaints-policy" element={<ComplaintsPolicy />} />
+          <Route path="/user-creator-contract" element={<UserCreatorContract />} />
+          <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
 
           {/* New Routes */}
 
@@ -338,6 +344,9 @@ function App() {
           <Route path="/company/privacy" element={<Privacy />} />
           <Route path="/company/terms" element={<Terms />} />
           <Route path="/company/refund-policy" element={<RefundPolicy />} />
+          <Route path="/company/complaints-policy" element={<ComplaintsPolicy />} />
+          <Route path="/company/user-creator-contract" element={<UserCreatorContract />} />
+          <Route path="/company/acceptable-use-policy" element={<AcceptableUsePolicy />} />
         </Routes>
       </div>
 

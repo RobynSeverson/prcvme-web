@@ -116,6 +116,14 @@ body {
   overflow: auto;
 }
 
+/* On mobile, push footer to bottom of scrollable content */
+@media (max-width: 767px) {
+  .app-content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 .app-content main {
   max-width: 720px;
   margin: 0 auto;

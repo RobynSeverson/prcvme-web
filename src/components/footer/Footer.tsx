@@ -10,6 +10,9 @@ export default function Footer() {
         <Link to="/company/privacy">Privacy</Link>
         <Link to="/company/terms">Terms</Link>
         <Link to="/company/refund-policy">Refund Policy</Link>
+        <Link to="/company/complaints-policy">Complaints Policy</Link>
+        <Link to="/company/user-creator-contract">User and Creator Contract</Link>
+        <Link to="/company/acceptable-use-policy">Acceptable Use Policy</Link>
       </div>
       <p className={styles.copy}>&copy; {new Date().getFullYear()} prcvme</p>
     </footer>

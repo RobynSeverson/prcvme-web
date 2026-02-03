@@ -6,14 +6,15 @@
 
 .links {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   margin-bottom: 0.5rem;
 }
 
 .links a {
   color: var(--footer-link-color);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .links a:hover {
@@ -29,5 +30,14 @@
 @media (min-width: 768px) {
   .footer {
     padding-inline: 2.5rem;
+  }
+
+  .links {
+    flex-wrap: nowrap;
+    gap: 1rem;
+  }
+
+  .links a {
+    font-size: 0.9rem;
   }
 }
