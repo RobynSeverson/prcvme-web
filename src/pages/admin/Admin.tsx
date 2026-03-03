@@ -15,6 +15,7 @@ type AdminUserRow = {
   isCreator: boolean;
   isAdmin: boolean;
   isActive: boolean;
+  skipReview: boolean;
 };
 
 type CreatorRequestRow = {
@@ -416,6 +417,48 @@ export default function Admin() {
     }
   };
 
+  const toggleSkipReview = async (user: AdminUserRow) => {
+    if (!isAuthenticated || !isAdmin) return;
+
+    const updateKey = `${user.id}:skipReview`;
+    setIsUpdating((prev) => ({ ...prev, [updateKey]: true }));
+    try {
+      const response = await authedFetch(`${API_BASE}/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ skipReview: !user.skipReview }),
+        requireAuth: true,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          (data && typeof data.error === "string" && data.error) ||
+          "Failed to update user.";
+        setError(message);
+        return;
+      }
+
+      const updated = data && data.user ? (data.user as AdminUserRow) : null;
+      if (!updated) {
+        setError("Failed to update user.");
+        return;
+      }
+
+      setResults((prev) =>
+        prev.map((u) => (u.id === updated.id ? updated : u))
+      );
+    } catch (err) {
+      console.error("Error updating user", err);
+      setError("Something went wrong while updating the user.");
+    } finally {
+      setIsUpdating((prev) => ({ ...prev, [updateKey]: false }));
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <main>
@@ -439,7 +482,24 @@ export default function Admin() {
 
   return (
     <main>
-      <h1>Admin</h1>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
+          flexWrap: "wrap",
+          marginBottom: "0.5rem",
+        }}
+      >
+        <h1 style={{ margin: 0 }}>Admin</h1>
+        <Link
+          to="/portal/admin/posts"
+          className="text-muted"
+          style={{ fontSize: "0.9rem" }}
+        >
+          Pending Posts →
+        </Link>
+      </div>
 
       <section
         className="app-card"
@@ -744,6 +804,23 @@ export default function Admin() {
                       ? "Deactivate"
                       : "Activate"}
                   </button>
+
+                  <button
+                    type="button"
+                    className="auth-toggle"
+                    disabled={Boolean(isUpdating[`${u.id}:skipReview`])}
+                    onClick={() => {
+                      setError(null);
+                      void toggleSkipReview(u);
+                    }}
+                    style={{ marginTop: 0 }}
+                  >
+                    {isUpdating[`${u.id}:skipReview`]
+                      ? "Updating..."
+                      : u.skipReview
+                      ? "Require review"
+                      : "Skip review"}
+                  </button>
                 </div>
 
                 <details
@@ -788,6 +865,23 @@ export default function Admin() {
                         : u.isActive
                         ? "Deactivate"
                         : "Activate"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`auth-toggle ${styles.toggleButton}`}
+                      disabled={Boolean(isUpdating[`${u.id}:skipReview`])}
+                      onClick={() => {
+                        setError(null);
+                        void toggleSkipReview(u);
+                      }}
+                      style={{ marginTop: 0 }}
+                    >
+                      {isUpdating[`${u.id}:skipReview`]
+                        ? "Updating..."
+                        : u.skipReview
+                        ? "Require review"
+                        : "Skip review"}
                     </button>
                   </div>
                 </details>

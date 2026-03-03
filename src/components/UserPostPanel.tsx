@@ -441,6 +441,47 @@ export default function UserPostPanel({
       </div>
 
       {post.text && <p style={{ marginBottom: "0.5rem" }}>{post.text}</p>}
+
+      {isPostOwner && post.reviewStatus ? (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.35rem",
+            padding: "0.25rem 0.65rem",
+            borderRadius: "999px",
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            marginBottom: "0.5rem",
+            ...(post.reviewStatus === "pending"
+              ? {
+                  background: "rgba(234, 179, 8, 0.15)",
+                  color: "rgb(202, 138, 4)",
+                  border: "1px solid rgba(234, 179, 8, 0.35)",
+                }
+              : post.reviewStatus === "approved"
+              ? {
+                  background: "rgba(34, 197, 94, 0.12)",
+                  color: "rgb(22, 163, 74)",
+                  border: "1px solid rgba(34, 197, 94, 0.3)",
+                }
+              : {
+                  background: "rgba(239, 68, 68, 0.12)",
+                  color: "rgb(220, 38, 38)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                }),
+          }}
+        >
+          {post.reviewStatus === "pending" && "⏳ Pending review"}
+          {post.reviewStatus === "approved" && "✓ Approved"}
+          {post.reviewStatus === "rejected" && (
+            <>
+              ✕ Rejected
+              {post.rejectionReason ? ` — ${post.rejectionReason}` : ""}
+            </>
+          )}
+        </div>
+      ) : null}
       {post.mediaItems && post.mediaItems.length > 0 && (
         <div
           style={{

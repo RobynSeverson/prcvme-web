@@ -14,4 +14,6 @@ export type UserPost = {
   isActive?: boolean;
   createdAt: string;
   updatedAt: string;
+  reviewStatus?: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
 };

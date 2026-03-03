@@ -24,6 +24,7 @@ import Contact from "./pages/Contact";
 import PaymentMethods from "./pages/PaymentMethods";
 import Collections from "./pages/Collections";
 import Admin from "./pages/admin/Admin";
+import AdminPosts from "./pages/admin/AdminPosts";
 import Creator from "./pages/Creator";
 import {
   getUnreadMessageThreadCount,
@@ -345,6 +346,7 @@ function App() {
 
           {/* Admin routes */}
           <Route path="/portal/admin" element={<Admin />} />
+          <Route path="/portal/admin/posts" element={<AdminPosts />} />
 
           {/* Creator routes */}
           <Route path="/me/profit" element={<Profit />} />
