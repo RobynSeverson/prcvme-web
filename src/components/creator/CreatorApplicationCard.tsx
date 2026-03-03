@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import DriversLicenseIcon from "../DriversLicenseIcon";
 import PersonHoldingIdIcon from "../PersonHoldingIdIcon";
 import { getAPIBase } from "../../helpers/api/apiHelpers";
@@ -37,6 +38,7 @@ export default function CreatorApplicationCard() {
     useState<string | null>(null);
   const [isSubmittingCreatorRequest, setIsSubmittingCreatorRequest] =
     useState(false);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
 
   const identityDocumentInputRef = useRef<HTMLInputElement | null>(null);
   const holdingIdentityDocumentInputRef = useRef<HTMLInputElement | null>(null);
@@ -124,6 +126,13 @@ export default function CreatorApplicationCard() {
       return;
     }
 
+    if (!agreementAccepted) {
+      setCreatorRequestError(
+        "You must acknowledge and agree to the terms before submitting."
+      );
+      return;
+    }
+
     setIsSubmittingCreatorRequest(true);
     try {
       const formData = new FormData();
@@ -155,6 +164,7 @@ export default function CreatorApplicationCard() {
         URL.revokeObjectURL(holdingIdentityDocumentPreview);
       setIdentityDocumentPreview(null);
       setHoldingIdentityDocumentPreview(null);
+      setAgreementAccepted(false);
 
       await loadCreatorRequest();
     } catch (err) {
@@ -388,6 +398,57 @@ export default function CreatorApplicationCard() {
                 <div
                   style={{
                     display: "flex",
+                    alignItems: "flex-start",
+                    gap: "0.65rem",
+                    padding: "0.9rem",
+                    border: "1px solid var(--surface-border)",
+                    background: "var(--surface-bg)",
+                    borderRadius: "0.75rem",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    id="agreement-checkbox"
+                    checked={agreementAccepted}
+                    onChange={(e) => setAgreementAccepted(e.target.checked)}
+                    style={{
+                      marginTop: "0.25rem",
+                      cursor: "pointer",
+                      width: "1rem",
+                      height: "1rem",
+                      accentColor: "#4f46e5",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <label
+                    htmlFor="agreement-checkbox"
+                    style={{
+                      fontSize: "0.9rem",
+                      lineHeight: "1.5",
+                      cursor: "pointer",
+                      color: "var(--text-color)",
+                    }}
+                  >
+                    I acknowledge and agree that my images will be used and
+                    displayed publicly on this site and I agree to the{" "}
+                    <Link
+                      to="/company/user-creator-contract"
+                      style={{
+                        color: "#6366f1",
+                        textDecoration: "underline",
+                      }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      User and Creator Contract
+                    </Link>
+                    .
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
                     justifyContent: "flex-end",
                     gap: "0.75rem",
                   }}
@@ -408,7 +469,7 @@ export default function CreatorApplicationCard() {
                     onClick={() => {
                       void submitCreatorRequest();
                     }}
-                    disabled={isSubmittingCreatorRequest}
+                    disabled={isSubmittingCreatorRequest || !agreementAccepted}
                   >
                     {isSubmittingCreatorRequest ? "Submitting..." : "Submit"}
                   </button>
