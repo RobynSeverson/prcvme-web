@@ -44,6 +44,7 @@ const UserCreatorContract = lazy(() => import("./pages/UserCreatorContract"));
 const AcceptableUsePolicy = lazy(() => import("./pages/AcceptableUsePolicy"));
 const USC2257 = lazy(() => import("./pages/USC2257"));
 const DMCA = lazy(() => import("./pages/DMCA"));
+const AntiSlaveryStatement = lazy(() => import("./pages/AntiSlaveryStatement"));
 
 function upsertMetaTag(
   kind: "name" | "property",
@@ -323,6 +324,7 @@ function App() {
             <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
             <Route path="/usc-2257" element={<USC2257 />} />
             <Route path="/dmca" element={<DMCA />} />
+            <Route path="/anti-slavery-statement" element={<AntiSlaveryStatement />} />
 
           {/* New Routes */}
 
@@ -359,6 +361,7 @@ function App() {
             <Route path="/company/acceptable-use-policy" element={<AcceptableUsePolicy />} />
             <Route path="/company/usc-2257" element={<USC2257 />} />
             <Route path="/company/dmca" element={<DMCA />} />
+            <Route path="/company/anti-slavery-statement" element={<AntiSlaveryStatement />} />
           </Routes>
         </Suspense>
       </div>
