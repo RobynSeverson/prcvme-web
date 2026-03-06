@@ -17,17 +17,17 @@ type CreatorRequest = {
 export default function CreatorApplicationCard() {
   const { isAuthenticated, authedFetch } = useCurrentUser();
   const [creatorRequest, setCreatorRequest] = useState<CreatorRequest | null>(
-    null
+    null,
   );
   const [isCreatorRequestLoading, setIsCreatorRequestLoading] = useState(false);
   const [creatorRequestError, setCreatorRequestError] = useState<string | null>(
-    null
+    null,
   );
   const [success, setSuccess] = useState<string | null>(null);
 
   const [showCreatorRequestForm, setShowCreatorRequestForm] = useState(false);
   const [identityDocumentFile, setIdentityDocumentFile] = useState<File | null>(
-    null
+    null,
   );
   const [holdingIdentityDocumentFile, setHoldingIdentityDocumentFile] =
     useState<File | null>(null);
@@ -90,7 +90,7 @@ export default function CreatorApplicationCard() {
     } catch (err) {
       console.error("Error loading creator request", err);
       setCreatorRequestError(
-        "Something went wrong while loading creator request."
+        "Something went wrong while loading creator request.",
       );
     } finally {
       setIsCreatorRequestLoading(false);
@@ -121,14 +121,14 @@ export default function CreatorApplicationCard() {
 
     if (!identityDocumentFile || !holdingIdentityDocumentFile) {
       setCreatorRequestError(
-        "Please select both a document image and a holding-document image."
+        "Please select both a document image and a holding-document image.",
       );
       return;
     }
 
     if (!agreementAccepted) {
       setCreatorRequestError(
-        "You must acknowledge and agree to the terms before submitting."
+        "You must acknowledge and agree to the terms before submitting.",
       );
       return;
     }
@@ -170,7 +170,7 @@ export default function CreatorApplicationCard() {
     } catch (err) {
       console.error("Error submitting creator request", err);
       setCreatorRequestError(
-        "Something went wrong while submitting your request."
+        "Something went wrong while submitting your request.",
       );
     } finally {
       setIsSubmittingCreatorRequest(false);
@@ -252,8 +252,8 @@ export default function CreatorApplicationCard() {
             {showCreatorRequestForm
               ? "Hide form"
               : creatorRequest?.status === "rejected"
-              ? "Resubmit creator request"
-              : "Apply to become a creator"}
+                ? "Resubmit creator request"
+                : "Apply to become a creator"}
           </button>
 
           {showCreatorRequestForm ? (
@@ -321,7 +321,7 @@ export default function CreatorApplicationCard() {
                         URL.revokeObjectURL(identityDocumentPreview);
                       }
                       setIdentityDocumentPreview(
-                        file ? URL.createObjectURL(file) : null
+                        file ? URL.createObjectURL(file) : null,
                       );
                     }}
                   />
@@ -389,7 +389,7 @@ export default function CreatorApplicationCard() {
                         URL.revokeObjectURL(holdingIdentityDocumentPreview);
                       }
                       setHoldingIdentityDocumentPreview(
-                        file ? URL.createObjectURL(file) : null
+                        file ? URL.createObjectURL(file) : null,
                       );
                     }}
                   />
@@ -441,6 +441,18 @@ export default function CreatorApplicationCard() {
                       rel="noopener noreferrer"
                     >
                       User and Creator Contract
+                    </Link>
+                    {" and "}
+                    <Link
+                      to="/company/acceptable-use-policy"
+                      style={{
+                        color: "#6366f1",
+                        textDecoration: "underline",
+                      }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Acceptable Use Policy
                     </Link>
                     .
                   </label>
