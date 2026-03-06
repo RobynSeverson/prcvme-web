@@ -12,7 +12,7 @@ export default function DMCA() {
   return (
     <main>
       <h1>DMCA Takedown Policy</h1>
-      <p style={{ opacity: 0.8 }}>Last updated: February 3, 2026</p>
+      <p style={{ opacity: 0.8 }}>Last updated: March 6, 2026</p>
 
       <section style={{ marginTop: "1.25rem" }}>
         <h2>Introduction</h2>
@@ -269,6 +269,130 @@ export default function DMCA() {
           action seeking a court order to restrain the Recipient from engaging
           in infringing activity relating to the material on the Site's system
           or network.
+        </p>
+      </section>
+
+      <section style={{ marginTop: "1.25rem" }}>
+        <h2>Non-Consensual Content Removal</h2>
+        <p>
+          We are committed to the safety and dignity of every person. If you
+          are depicted in content published on prcvme and you believe that
+          content was posted without your consent, you have the right to request
+          its removal regardless of whether a copyright claim applies.
+        </p>
+        <p>
+          To submit a non-consensual content removal request, please send an
+          email to{" "}
+          <strong>
+            <a href="mailto:consent@prcvme.com">consent@prcvme.com</a>
+          </strong>{" "}
+          with the subject line <strong>"Non-Consensual Content Removal
+          Request"</strong> and include the following information:
+        </p>
+        <ul>
+          <li>
+            (a) your full legal name and contact information (email address and,
+            optionally, a telephone number);
+          </li>
+          <li>
+            (b) a description of the content you believe depicts you without
+            your consent, including the URL(s) or any other identifying
+            information that helps us locate the material;
+          </li>
+          <li>
+            (c) a statement explaining why you believe the content was posted
+            without your consent; and
+          </li>
+          <li>
+            (d) a declaration, signed under penalty of perjury, that the
+            information you have provided is accurate and that you are the
+            person depicted in the content, or that you are an authorised
+            representative acting on that person's behalf.
+          </li>
+        </ul>
+        <p>
+          Upon receipt of a valid request, we will review the content
+          expeditiously and, where appropriate, remove or disable access to
+          it within{" "}
+          <strong>five (5) business days</strong>. We will notify you by email
+          once action has been taken. We treat all such requests with strict
+          confidentiality.
+        </p>
+        <p>
+          Submitting a false or misleading request may result in legal liability.
+          We reserve the right to take action against anyone who abuses this
+          process.
+        </p>
+      </section>
+
+      <section style={{ marginTop: "1.25rem" }}>
+        <h2>Dispute Resolution</h2>
+        <p>
+          If you believe a removal decision — whether made under this DMCA
+          policy or the Non-Consensual Content Removal process above — was
+          incorrect, you may appeal by contacting us at{" "}
+          <strong>
+            <a href="mailto:appeals@prcvme.com">appeals@prcvme.com</a>
+          </strong>{" "}
+          with the subject line <strong>"Content Removal Appeal"</strong>.
+          Please include:
+        </p>
+        <ul>
+          <li>
+            (a) a description of the content that was removed and the URL(s)
+            or other identifying information;
+          </li>
+          <li>
+            (b) the grounds on which you believe the decision was incorrect;
+            and
+          </li>
+          <li>
+            (c) any supporting evidence you wish us to consider.
+          </li>
+        </ul>
+        <p>
+          We will review all appeals in good faith and respond within{" "}
+          <strong>ten (10) business days</strong>.
+        </p>
+        <p>
+          <strong>Neutral Third-Party Resolution.</strong> If you remain
+          dissatisfied after exhausting our internal appeal process, you may
+          seek resolution through a neutral third party. We accept referrals
+          to independent dispute resolution services, including:
+        </p>
+        <ul>
+          <li>
+            The{" "}
+            <a
+              href="https://www.internetwatch.org.uk/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Internet Watch Foundation (IWF)
+            </a>{" "}
+            for matters involving intimate or sexual images shared without
+            consent.
+          </li>
+          <li>
+            The{" "}
+            <a
+              href="https://www.cybercivilrights.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Cyber Civil Rights Initiative (CCRI)
+            </a>
+            , which provides crisis support and referrals for victims of
+            non-consensual intimate image abuse.
+          </li>
+          <li>
+            Any accredited online dispute resolution (ODR) provider mutually
+            agreed upon by the parties.
+          </li>
+        </ul>
+        <p>
+          Nothing in this section limits your right to pursue legal remedies
+          through the courts or other competent authorities.
         </p>
       </section>
 
