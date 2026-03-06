@@ -16,6 +16,7 @@ export default function Login() {
   const [userName, setUserName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [termsAgreed, setTermsAgreed] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,7 +58,7 @@ export default function Login() {
   const userNameLengthOk =
     userNameNormalized.length >= 3 && userNameNormalized.length <= 30;
   const userNameFormatOk = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(
-    userNameNormalized
+    userNameNormalized,
   );
   const userNameOk = userNameLengthOk && userNameFormatOk;
 
@@ -85,14 +86,14 @@ export default function Login() {
     if (isRegister) {
       if (!userNameOk) {
         setError(
-          'Username must be 3-30 characters using only letters, numbers, ".", "_", or "-" (must start/end with a letter/number).'
+          'Username must be 3-30 characters using only letters, numbers, ".", "_", or "-" (must start/end with a letter/number).',
         );
         return;
       }
 
       if (!passwordOk) {
         setError(
-          "Password must be 10+ characters and include uppercase, lowercase, a number, and a symbol (no spaces)."
+          "Password must be 10+ characters and include uppercase, lowercase, a number, and a symbol (no spaces).",
         );
         return;
       }
@@ -104,6 +105,11 @@ export default function Login() {
 
       if (!birthday) {
         setError("Birthday is required.");
+        return;
+      }
+
+      if (!termsAgreed) {
+        setError("You must agree to the Terms and User and Creator Contract.");
         return;
       }
     }
@@ -161,6 +167,7 @@ export default function Login() {
   const toggleMode = () => {
     setMode((current) => (current === "login" ? "register" : "login"));
     setError(null);
+    setTermsAgreed(false);
   };
 
   return (
@@ -288,6 +295,82 @@ export default function Login() {
             </label>
           )}
 
+          {isRegister && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "0.65rem",
+                padding: "0.9rem",
+                border: "1px solid var(--surface-border)",
+                background: "var(--surface-bg)",
+                borderRadius: "0.75rem",
+              }}
+            >
+              <input
+                type="checkbox"
+                id="terms-checkbox"
+                checked={termsAgreed}
+                onChange={(e) => setTermsAgreed(e.target.checked)}
+                style={{
+                  marginTop: "0.25rem",
+                  cursor: "pointer",
+                  width: "1rem",
+                  height: "1rem",
+                  accentColor: "#4f46e5",
+                  flexShrink: 0,
+                }}
+              />
+              <label
+                htmlFor="terms-checkbox"
+                style={{
+                  fontSize: "0.9rem",
+                  lineHeight: "1.5",
+                  cursor: "pointer",
+                  color: "var(--text-color)",
+                }}
+              >
+                By creating an account, I agree to the{" "}
+                <Link
+                  to="/company/terms"
+                  style={{
+                    color: "#6366f1",
+                    textDecoration: "underline",
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Terms
+                </Link>
+                ,{" "}
+                <Link
+                  to="/company/user-creator-contract"
+                  style={{
+                    color: "#6366f1",
+                    textDecoration: "underline",
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  User and Creator Contract
+                </Link>
+                , and{" "}
+                <Link
+                  to="/company/acceptable-use-policy"
+                  style={{
+                    color: "#6366f1",
+                    textDecoration: "underline",
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Acceptable Use Policy
+                </Link>
+                .
+              </label>
+            </div>
+          )}
+
           {error && <p className="auth-error">{error}</p>}
 
           <button
@@ -299,7 +382,8 @@ export default function Login() {
                 (!userNameOk ||
                   !passwordOk ||
                   password !== passwordConfirm ||
-                  !birthday))
+                  !birthday ||
+                  !termsAgreed))
             }
           >
             {isSubmitting
@@ -307,8 +391,8 @@ export default function Login() {
                 ? "Creating account..."
                 : "Signing in..."
               : isRegister
-              ? "Create account"
-              : "Sign in"}
+                ? "Create account"
+                : "Sign in"}
           </button>
 
           {!isRegister && (
