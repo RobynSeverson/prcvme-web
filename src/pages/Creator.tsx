@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import CreatorApplicationCard from "../components/creator/CreatorApplicationCard";
+import CreatorConsentDocumentsCard from "../components/creator/CreatorConsentDocumentsCard";
 import CreatorPayoutSettingsCard from "../components/creator/CreatorPayoutSettingsCard";
 import CreatorSubscriptionSettingsCard from "../components/creator/CreatorSubscriptionSettingsCard";
 import CreatorWelcomeMessageCard from "../components/creator/CreatorWelcomeMessageCard";
@@ -112,6 +113,7 @@ export default function Creator() {
                 user={currentUser}
                 onUserUpdated={(u) => setCurrentUser(u)}
               />
+              <CreatorConsentDocumentsCard />
             </div>
           ) : (
             <CreatorApplicationCard />

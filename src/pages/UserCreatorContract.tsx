@@ -12,7 +12,7 @@ export default function UserCreatorContract() {
   return (
     <main>
       <h1>Contract Between User and Creator</h1>
-      <p style={{ opacity: 0.8 }}>Last updated: February 3, 2026</p>
+      <p style={{ opacity: 0.8 }}>Last updated: March 11, 2026</p>
 
       <section style={{ marginTop: "1.25rem" }}>
         <h2>Introduction</h2>
@@ -227,6 +227,60 @@ export default function UserCreatorContract() {
       </section>
 
       <section style={{ marginTop: "1.25rem" }}>
+        <h2>Consent and Age Verification Requirements</h2>
+        <p>
+          Creators must comply with all applicable laws regarding consent and
+          the depiction of individuals in Content. As a condition of using
+          prcvme as a Creator, you agree to the following obligations with
+          respect to every person depicted in any Content you Upload:
+        </p>
+        <ol>
+          <li>
+            <strong>Written consent to be depicted.</strong> You must obtain
+            and maintain written consent from every person depicted in your
+            Content confirming that they agree to appear in that Content.
+          </li>
+          <li>
+            <strong>Written consent for public distribution.</strong> You must
+            obtain and maintain written consent from every depicted person
+            authorising the public distribution of the Content on prcvme,
+            including display to subscribed and paying Users.
+          </li>
+          <li>
+            <strong>Written consent for download (where applicable).</strong>{" "}
+            Where your Content is made available for download by other Users,
+            you must obtain and maintain written consent from every depicted
+            person expressly authorising such downloads.
+          </li>
+          <li>
+            <strong>Identity and age verification.</strong> You must verify,
+            prior to Uploading any Content, that every person depicted in that
+            Content is at least 18 years of age, and you must retain
+            documentation sufficient to demonstrate such verification. Consent
+            forms and age verification records must be made available to the
+            Company upon request.
+          </li>
+          <li>
+            <strong>Retention of records.</strong> You must retain all consent
+            forms and age verification records for the duration of your use of
+            prcvme and for a minimum of seven (7) years thereafter, or such
+            longer period as may be required by applicable law. You must upload
+            copies of these records via the Creator Settings page as required.
+          </li>
+          <li>
+            <strong>Withdrawal of consent.</strong> If any depicted person
+            withdraws their consent, you must immediately remove the relevant
+            Content from your account and notify the Company.
+          </li>
+        </ol>
+        <p>
+          Failure to comply with these requirements is a material breach of
+          this Agreement and the prcvme Terms of Service and may result in
+          immediate suspension or termination of your Creator account.
+        </p>
+      </section>
+
+      <section style={{ marginTop: "1.25rem" }}>
         <h2>Obligations Between Creator and User in Creator Interactions</h2>
         <ul>
           <li>
@@ -239,7 +293,9 @@ export default function UserCreatorContract() {
           </li>
           <li>
             The Creator warrants that it possesses all necessary rights to grant
-            a Creator Interaction Licence.
+            a Creator Interaction Licence, including that all required consents
+            described in the Consent and Age Verification Requirements section
+            above have been obtained and are being maintained.
           </li>
           <li>
             The Creator agrees to provide Paid Relevant Content once the User
