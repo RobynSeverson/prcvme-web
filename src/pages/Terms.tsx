@@ -11,7 +11,7 @@ export default function Terms() {
   return (
     <main>
       <h1>Terms of Service</h1>
-      <p style={{ opacity: 0.8 }}>Last updated: January 5, 2026</p>
+      <p style={{ opacity: 0.8 }}>Last updated: March 11, 2026</p>
 
       <p>
         These Terms of Service ("Terms") govern your access to and use of PRCVME
@@ -64,6 +64,15 @@ export default function Terms() {
             You understand that content you choose to share may be visible to
             other users depending on your settings and how the Service is
             configured.
+          </li>
+          <li>
+            <strong>Content moderation and approval.</strong> All content
+            submitted by Creators is subject to review and must be approved by
+            PRCVME before it becomes visible to other users. Content will not
+            be published or accessible to any user until it has passed this
+            review process. PRCVME reserves the right to decline to publish, or
+            to remove after publication, any content that violates these Terms,
+            the Acceptable Use Policy, or applicable law.
           </li>
         </ul>
       </section>

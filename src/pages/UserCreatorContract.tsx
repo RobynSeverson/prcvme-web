@@ -198,6 +198,32 @@ export default function UserCreatorContract() {
       </section>
 
       <section style={{ marginTop: "1.25rem" }}>
+        <h2>Content Approval Before Publication</h2>
+        <p>
+          All Content submitted by a Creator is subject to review by the
+          Company before it is made visible to any User. Content will not be
+          published or accessible to other Users until it has been approved
+          through this review process. The Creator acknowledges that:
+        </p>
+        <ul>
+          <li>
+            Submitted Content may not appear immediately and will only become
+            visible once approved.
+          </li>
+          <li>
+            The Company reserves the right to decline to publish, or to remove
+            after publication, any Content that violates the Terms of Service,
+            the Acceptable Use Policy, or applicable law.
+          </li>
+          <li>
+            Approval of Content does not waive the Company's right to remove
+            that Content at a later date if it is subsequently found to be in
+            breach of any applicable policy or law.
+          </li>
+        </ul>
+      </section>
+
+      <section style={{ marginTop: "1.25rem" }}>
         <h2>Removal of Content</h2>
         <p>
           The Company reserves the right to remove any Content from a Creator's
