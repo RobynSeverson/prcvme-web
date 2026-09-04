@@ -1,294 +1,154 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Lightbox from "./Lightbox";
-import PaymentMethodForm from "./PaymentMethodForm";
-import {
-  addMyPaymentMethod,
-  getMyPaymentMethods,
-  type PaymentMethod,
-} from "../helpers/api/apiHelpers";
-import { useCurrentUser } from "../context/CurrentUserContext";
-import type {
-  NewPaymentMethodPayload,
-  NewPaymentMethodSummary,
-} from "./PaymentMethodForm";
+import { getPendingPaymentStatus } from "../helpers/api/apiHelpers";
 
 export type SubscribePaymentModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (args: {
-    paymentProfileId?: string;
-    cardInfo?: NewPaymentMethodPayload;
-  }) => void;
-  isConfirmLoading?: boolean;
+  flexFormUrl: string | null;
+  pendingToken: string | null;
+  onPaymentComplete: () => void;
+  onPaymentFailed?: (message: string) => void;
   errorMessage?: string | null;
 };
+
+const POLL_INTERVAL_MS = 2500;
+const MAX_POLL_ATTEMPTS = 120; // 5 minutes
 
 export default function SubscribePaymentModal({
   isOpen,
   onClose,
-  onConfirm,
-  isConfirmLoading,
+  flexFormUrl,
+  pendingToken,
+  onPaymentComplete,
+  onPaymentFailed,
   errorMessage,
 }: SubscribePaymentModalProps) {
-  const { authedFetch } = useCurrentUser();
-  const [storedMethods, setStoredMethods] = useState<PaymentMethod[]>([]);
-  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [isLoadingMethods, setIsLoadingMethods] = useState(false);
-  const [isSavingMethod, setIsSavingMethod] = useState(false);
-
-  const [newMethodSummary, setNewMethodSummary] =
-    useState<NewPaymentMethodSummary | null>(null);
-  const [newMethodPayload, setNewMethodPayload] =
-    useState<NewPaymentMethodPayload | null>(null);
-  const [isNewMethodValid, setIsNewMethodValid] = useState(false);
-  const [storeMethod, setStoreMethod] = useState(true);
-
-  const handleNewMethodChange = useCallback(
-    ({
-      isValid,
-      summary,
-      payload,
-    }: {
-      isValid: boolean;
-      summary: NewPaymentMethodSummary | null;
-      payload: NewPaymentMethodPayload | null;
-    }) => {
-      setIsNewMethodValid(isValid);
-      setNewMethodSummary(summary);
-      setNewMethodPayload(payload);
-    },
-    []
-  );
+  const [pollError, setPollError] = useState<string | null>(null);
+  const pollingRef = useRef(false);
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setPaymentError(null);
-        setIsLoadingMethods(true);
-        const loaded = await getMyPaymentMethods({ authedFetch });
-        if (cancelled) return;
-
-        setStoredMethods(loaded.methods);
-
-        if (loaded.methods.length > 0) {
-          setSelectedMethodId(loaded.defaultId ?? loaded.methods[0].id);
-        } else {
-          setSelectedMethodId("new");
-        }
-      } catch (err) {
-        if (cancelled) return;
-        const message =
-          (err instanceof Error && err.message) ||
-          "Failed to load payment methods.";
-        setPaymentError(message);
-        setStoredMethods([]);
-        setSelectedMethodId("new");
-      } finally {
-        if (!cancelled) setIsLoadingMethods(false);
-      }
-    };
-
-    void load();
-
-    setNewMethodSummary(null);
-    setNewMethodPayload(null);
-    setIsNewMethodValid(false);
-    setStoreMethod(true);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authedFetch, isOpen]);
-
-  const isAddingNew = selectedMethodId === "new";
-
-  const canConfirm =
-    !isConfirmLoading &&
-    !isLoadingMethods &&
-    !isSavingMethod &&
-    !!selectedMethodId &&
-    (isAddingNew ? isNewMethodValid : true);
-
-  const handleConfirm = async () => {
-    if (!canConfirm) return;
-
-    if (selectedMethodId !== "new") {
-      const selected = storedMethods.find((m) => m.id === selectedMethodId);
-      onConfirm({ paymentProfileId: selected?.id });
+    if (!isOpen || !pendingToken) {
+      pollingRef.current = false;
+      setPollError(null);
       return;
     }
 
-    if (!newMethodSummary) return;
+    pollingRef.current = true;
+    setPollError(null);
 
-    if (!storeMethod) {
-      // Not storing: use the one-time card info for the subscription.
-      if (!newMethodPayload) {
-        setPaymentError("Payment details are incomplete.");
+    let attempts = 0;
+
+    const poll = async () => {
+      if (!pollingRef.current) return;
+
+      const status = await getPendingPaymentStatus(pendingToken);
+
+      if (!pollingRef.current) return;
+
+      if (status === "completed") {
+        pollingRef.current = false;
+        onPaymentComplete();
         return;
       }
-      onConfirm({ cardInfo: newMethodPayload });
-      return;
-    }
 
-    if (!newMethodPayload) {
-      setPaymentError("Payment details are incomplete.");
-      return;
-    }
-
-    try {
-      setPaymentError(null);
-      setIsSavingMethod(true);
-      const result = await addMyPaymentMethod(newMethodPayload, {
-        authedFetch,
-      });
-      setStoredMethods(result.methods);
-
-      if (result.methods.length > 0) {
-        setSelectedMethodId(result.defaultId ?? result.methods[0].id);
+      if (status === "failed") {
+        pollingRef.current = false;
+        const msg = "Payment was declined. Please try again.";
+        setPollError(msg);
+        onPaymentFailed?.(msg);
+        return;
       }
 
-      const selected =
-        result.methods.find((m) => m.id === (result.defaultId ?? "")) ??
-        result.methods[0];
-      onConfirm({ paymentProfileId: selected?.id });
-    } catch (err) {
-      const message =
-        (err instanceof Error && err.message) ||
-        "Failed to add payment method.";
-      setPaymentError(message);
-    } finally {
-      setIsSavingMethod(false);
-    }
-  };
+      attempts += 1;
+      if (attempts >= MAX_POLL_ATTEMPTS) {
+        pollingRef.current = false;
+        setPollError(
+          "Payment confirmation timed out. If you completed payment please contact support.",
+        );
+        return;
+      }
+
+      setTimeout(poll, POLL_INTERVAL_MS);
+    };
+
+    setTimeout(poll, POLL_INTERVAL_MS);
+
+    return () => {
+      pollingRef.current = false;
+    };
+  }, [isOpen, pendingToken, onPaymentComplete, onPaymentFailed]);
 
   return (
     <Lightbox isOpen={isOpen} onClose={onClose} zIndex={2000}>
       <div
         className="app-card"
         style={{
-          width: "min(640px, 100%)",
+          width: "min(700px, 100%)",
           padding: "1.25rem 1.25rem 1rem",
           borderRadius: "1rem",
           boxShadow: "0 18px 55px rgba(2, 6, 23, 0.7)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
         }}
       >
-        <h2 style={{ margin: "0 0 0.25rem" }}>Choose a payment method</h2>
-        <p
-          className="text-muted"
-          style={{ marginTop: 0, marginBottom: "1rem" }}
-        >
-          Select an existing method or add a new one.
+        <h2 style={{ margin: 0 }}>Complete your subscription</h2>
+        <p className="text-muted" style={{ margin: 0 }}>
+          Fill in your payment details below. The page will automatically update
+          once payment is confirmed.
         </p>
 
         {errorMessage ? (
-          <p className="auth-error" style={{ marginTop: 0 }}>
+          <p className="auth-error" style={{ margin: 0 }}>
             {errorMessage}
           </p>
         ) : null}
 
-        {paymentError ? (
-          <p className="auth-error" style={{ marginTop: 0 }}>
-            {paymentError}
+        {pollError ? (
+          <p className="auth-error" style={{ margin: 0 }}>
+            {pollError}
           </p>
         ) : null}
 
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
-        >
-          {storedMethods.map((method) => (
-            <label
-              key={method.id}
-              className="payment-method-choice payment-method-surface"
-              style={{
-                padding: "0.65rem 0.75rem",
-              }}
-            >
-              <input
-                type="radio"
-                name="payment-method"
-                value={method.id}
-                checked={selectedMethodId === method.id}
-                onChange={() => setSelectedMethodId(method.id)}
-                disabled={isLoadingMethods || isSavingMethod}
-              />
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ fontWeight: 600, color: "var(--text-color)" }}>
-                  {method.label}
-                </span>
-                {method.nameOnCard ? (
-                  <span className="text-muted" style={{ fontSize: "0.85rem" }}>
-                    {method.nameOnCard}
-                  </span>
-                ) : null}
-              </div>
-            </label>
-          ))}
-
-          <label
-            className="payment-method-choice payment-method-surface payment-method-choice-dashed"
+        {flexFormUrl ? (
+          <iframe
+            src={flexFormUrl}
+            title="CCBill Payment"
+            allow="payment *"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
             style={{
-              padding: "0.65rem 0.75rem",
+              width: "100%",
+              minHeight: "480px",
+              border: "none",
+              borderRadius: "0.5rem",
             }}
-          >
-            <input
-              type="radio"
-              name="payment-method"
-              value="new"
-              checked={selectedMethodId === "new"}
-              onChange={() => setSelectedMethodId("new")}
-              disabled={isLoadingMethods || isSavingMethod}
-            />
-            <span style={{ fontWeight: 600, color: "var(--text-color)" }}>
-              Add new payment method
-            </span>
-          </label>
-        </div>
-
-        {isAddingNew ? (
+          />
+        ) : (
           <div
             style={{
-              marginTop: "1rem",
+              minHeight: "480px",
               display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <PaymentMethodForm onChange={handleNewMethodChange} />
+            <span className="text-muted">Loading payment form…</span>
           </div>
+        )}
+
+        {pendingToken && !pollError ? (
+          <p
+            className="text-muted"
+            style={{ margin: 0, fontSize: "0.85rem", textAlign: "center" }}
+          >
+            Waiting for payment confirmation…
+          </p>
         ) : null}
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "0.5rem",
-            marginTop: "1.25rem",
-          }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="icon-button"
-            disabled={isConfirmLoading || isLoadingMethods || isSavingMethod}
-          >
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button type="button" onClick={onClose} className="icon-button">
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            className="auth-submit"
-            disabled={!canConfirm}
-            style={{ width: "auto", marginTop: 0 }}
-          >
-            {isConfirmLoading
-              ? "Subscribing..."
-              : isSavingMethod
-              ? "Saving..."
-              : "Subscribe"}
           </button>
         </div>
       </div>

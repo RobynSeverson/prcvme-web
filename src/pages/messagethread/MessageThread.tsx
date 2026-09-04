@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import {
   getDirectMessages,
   getMessagesWebSocketUrl,
@@ -17,7 +17,6 @@ import { useCurrentUser } from "../../context/CurrentUserContext";
 import SecureImage from "../../components/SecureImage";
 import SecureVideo from "../../components/SecureVideo";
 import Lightbox from "../../components/Lightbox";
-import PayToViewPaymentModal from "../../components/PayToViewPaymentModal";
 import LikeBookmarkButtons from "../../components/LikeBookmarkButtons";
 import { buildProfileImageUrl } from "../../helpers/userHelpers";
 import styles from "./MessageThread.module.css";
@@ -94,6 +93,7 @@ function formatMessageTime(isoString: string): string {
 export default function MessageThread() {
   const { userName } = useParams();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const {
     user: currentUser,
@@ -135,7 +135,6 @@ export default function MessageThread() {
 
   const [payMessage, setPayMessage] = useState<UiMessage | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
-  const [isPaying, setIsPaying] = useState(false);
 
   const [deleteMessageTarget, setDeleteMessageTarget] =
     useState<UiMessage | null>(null);
@@ -144,9 +143,8 @@ export default function MessageThread() {
 
   const [showTipDialog, setShowTipDialog] = useState(false);
   const [tipAmount, setTipAmount] = useState<string>("");
-  const [showTipPayment, setShowTipPayment] = useState(false);
   const [tipError, setTipError] = useState<string | null>(null);
-  const [isSendingTip, setIsSendingTip] = useState(false);
+  const [tipSuccess, setTipSuccess] = useState<string | null>(null);
 
   const preventDefault = (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -208,6 +206,57 @@ export default function MessageThread() {
     );
     setCanDeleteMessages(currentUser?.isCreator === true);
   }, [currentUser, isAuthenticated]);
+
+  // Handle return from CCBill payment redirect.
+  useEffect(() => {
+    const result = searchParams.get("paymentResult");
+    if (!result) return;
+
+    const ptoken = searchParams.get("ptoken") ?? null;
+    const pendingMessageId = searchParams.get("pendingMessageId") ?? null;
+
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("paymentResult");
+    newParams.delete("ptoken");
+    newParams.delete("pendingMessageId");
+    setSearchParams(newParams, { replace: true });
+
+    if (result === "success") {
+      if (pendingMessageId) {
+        // Pay-to-view: mark the message unlocked locally.
+        setMessages((prev) =>
+          prev.map((m) => (m.id === pendingMessageId ? { ...m, isUnlocked: true } : m))
+        );
+      } else {
+        // Tip: show success banner.
+        let amount = "";
+        if (ptoken) {
+          try {
+            const raw = sessionStorage.getItem(`ccbill_pending_${ptoken}`);
+            if (raw) {
+              const data = JSON.parse(raw) as { tipAmount?: string };
+              amount = data.tipAmount ?? "";
+              sessionStorage.removeItem(`ccbill_pending_${ptoken}`);
+            }
+          } catch { /* ignore */ }
+        }
+        setTipSuccess(amount ? `Tip of $${amount} sent successfully!` : "Tip sent successfully!");
+      }
+    } else {
+      if (pendingMessageId) {
+        setPayError("Payment was not completed. Please try again.");
+        // Re-open the pay dialog for that message so the error is visible.
+        setMessages((prev) => {
+          const msg = prev.find((m) => m.id === pendingMessageId);
+          if (msg) setPayMessage(msg);
+          return prev;
+        });
+      } else {
+        setTipError("Payment was not completed. Please try again.");
+        setShowTipDialog(true);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (canUploadMedia) return;
@@ -1090,9 +1139,36 @@ export default function MessageThread() {
                                     type="button"
                                     className="auth-submit"
                                     style={{ width: "auto", marginTop: 0 }}
-                                    onClick={() => {
+                                    onClick={async () => {
                                       setPayError(null);
-                                      setPayMessage(m);
+                                      try {
+                                        const result = await purchaseDirectMessageMedia(
+                                          { messageId: m.id },
+                                          { authedFetch }
+                                        );
+                                        if (result.isUnlocked) {
+                                          setMessages((prev) =>
+                                            prev.map((mm) =>
+                                              mm.id === m.id ? { ...mm, isUnlocked: true } : mm
+                                            )
+                                          );
+                                        } else if (result.flexFormUrl && result.pendingToken) {
+                                          const returnUrl =
+                                            location.pathname +
+                                            `?pendingMessageId=${encodeURIComponent(m.id)}`;
+                                          sessionStorage.setItem(
+                                            `ccbill_pending_${result.pendingToken}`,
+                                            JSON.stringify({ returnUrl })
+                                          );
+                                          window.location.href = result.flexFormUrl;
+                                        }
+                                      } catch (err) {
+                                        const message =
+                                          (err instanceof Error && err.message) ||
+                                          "Failed to initiate payment.";
+                                        setPayError(message);
+                                        setPayMessage(m);
+                                      }
                                     }}
                                   >
                                     Pay {formatPriceUSD(price)} to view
@@ -1428,46 +1504,30 @@ export default function MessageThread() {
           ) : null}
         </Lightbox>
 
-        <PayToViewPaymentModal
+        {/* Pay-to-view error dialog (shown on return from a failed CCBill redirect) */}
+        <Lightbox
           isOpen={!!payMessage}
-          amount={typeof payMessage?.price === "number" ? payMessage.price : 0}
           onClose={() => {
-            if (isPaying) return;
             setPayMessage(null);
             setPayError(null);
           }}
-          isConfirmLoading={isPaying}
-          errorMessage={payError}
-          onConfirm={async ({ paymentProfileId, cardInfo }) => {
-            if (!payMessage) return;
-            try {
-              setPayError(null);
-              setIsPaying(true);
-              await purchaseDirectMessageMedia(
-                {
-                  messageId: payMessage.id,
-                  paymentProfileId,
-                  cardInfo,
-                },
-                { authedFetch }
-              );
-
-              setMessages((prev) =>
-                prev.map((mm) =>
-                  mm.id === payMessage.id ? { ...mm, isUnlocked: true } : mm
-                )
-              );
-              setPayMessage(null);
-            } catch (err) {
-              const message =
-                (err instanceof Error && err.message) ||
-                "Failed to purchase media.";
-              setPayError(message);
-            } finally {
-              setIsPaying(false);
-            }
-          }}
-        />
+          zIndex={1100}
+        >
+          {payMessage && payError ? (
+            <div className="app-card" style={{ width: "min(92vw, 380px)", padding: "1rem" }}>
+              <h3 style={{ marginTop: 0 }}>Payment failed</h3>
+              <p className="auth-error">{payError}</p>
+              <button
+                type="button"
+                className="auth-submit"
+                style={{ width: "auto", marginTop: "0.5rem" }}
+                onClick={() => { setPayMessage(null); setPayError(null); }}
+              >
+                Close
+              </button>
+            </div>
+          ) : null}
+        </Lightbox>
 
         <Lightbox
           isOpen={!!deleteMessageTarget}
@@ -1566,13 +1626,28 @@ export default function MessageThread() {
 
         {/* Tip Amount Selection Dialog */}
         <Lightbox
-          isOpen={showTipDialog}
+          isOpen={showTipDialog || !!tipSuccess}
           onClose={() => {
             setShowTipDialog(false);
             setTipError(null);
+            setTipSuccess(null);
           }}
           zIndex={1200}
         >
+          {tipSuccess ? (
+            <div className="app-card" style={{ width: "min(92vw, 380px)", padding: "1rem" }}>
+              <h3 style={{ marginTop: 0 }}>Tip sent!</h3>
+              <p>{tipSuccess}</p>
+              <button
+                type="button"
+                className="auth-submit"
+                style={{ width: "auto", marginTop: "0.5rem" }}
+                onClick={() => setTipSuccess(null)}
+              >
+                Close
+              </button>
+            </div>
+          ) : (
           <div
             className="app-card"
             style={{
@@ -1684,58 +1759,37 @@ export default function MessageThread() {
                   marginTop: 0,
                 }}
                 disabled={!tipAmount || parseFloat(tipAmount) < 1 || parseFloat(tipAmount) > 200}
-                onClick={() => {
+                onClick={async () => {
+                  if (!otherUser) return;
                   setTipError(null);
-                  setShowTipDialog(false);
-                  setShowTipPayment(true);
+                  try {
+                    const result = await sendTip(
+                      {
+                        userId: otherUser.id,
+                        amount: parseFloat(tipAmount),
+                      },
+                      { authedFetch }
+                    );
+                    sessionStorage.setItem(
+                      `ccbill_pending_${result.pendingToken}`,
+                      JSON.stringify({ returnUrl: location.pathname, tipAmount })
+                    );
+                    setShowTipDialog(false);
+                    window.location.href = result.flexFormUrl;
+                  } catch (err) {
+                    const message =
+                      (err instanceof Error && err.message) ||
+                      "Failed to initiate tip.";
+                    setTipError(message);
+                  }
                 }}
               >
                 Continue
               </button>
             </div>
           </div>
+          )}
         </Lightbox>
-
-        {/* Tip Payment Selection Dialog */}
-        <PayToViewPaymentModal
-          isOpen={showTipPayment}
-          amount={parseFloat(tipAmount) || 0}
-          onClose={() => {
-            if (isSendingTip) return;
-            setShowTipPayment(false);
-            setTipError(null);
-          }}
-          isConfirmLoading={isSendingTip}
-          errorMessage={tipError}
-          onConfirm={async ({ paymentProfileId, cardInfo }) => {
-            if (!otherUser) return;
-            try {
-              setTipError(null);
-              setIsSendingTip(true);
-              await sendTip(
-                {
-                  userId: otherUser.id,
-                  amount: parseFloat(tipAmount),
-                  paymentProfileId,
-                  cardInfo,
-                },
-                { authedFetch }
-              );
-
-              setShowTipPayment(false);
-              setTipAmount("");
-              // Show success message
-              alert(`Tip of $${tipAmount} sent successfully!`);
-            } catch (err) {
-              const message =
-                (err instanceof Error && err.message) ||
-                "Failed to send tip.";
-              setTipError(message);
-            } finally {
-              setIsSendingTip(false);
-            }
-          }}
-        />
       </section>
     </main>
   );

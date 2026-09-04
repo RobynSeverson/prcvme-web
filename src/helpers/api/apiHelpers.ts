@@ -385,17 +385,10 @@ const getMySubscribers = async (
 const subscribeToUser = async (
   userId: string,
   args?: {
-    paymentProfileId?: string;
-    cardInfo?: {
-      nameOnCard: string;
-      cardNumber: string;
-      expirationDate: string;
-      cardCode?: string;
-    };
     dealId?: string;
   },
   options?: AuthedOptions
-): Promise<UserSubscription> => {
+): Promise<{ flexFormUrl: string; pendingToken: string }> => {
   const response = await authedRequest(
     options,
     `${API_BASE}/subscriptions/${encodeURIComponent(userId)}`,
@@ -405,8 +398,6 @@ const subscribeToUser = async (
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        paymentProfileId: args?.paymentProfileId,
-        cardInfo: args?.cardInfo,
         dealId: args?.dealId,
       }),
     },
@@ -422,11 +413,11 @@ const subscribeToUser = async (
     throw new Error(message);
   }
 
-  if (data && data.subscription) {
-    return data.subscription as UserSubscription;
+  if (data && typeof data.flexFormUrl === "string") {
+    return { flexFormUrl: data.flexFormUrl, pendingToken: data.pendingToken ?? "" };
   }
 
-  throw new Error("Subscription data is missing.");
+  throw new Error("Subscribe response is missing flexFormUrl.");
 };
 
 const subscriptionStatusInFlight = new Map<string, Promise<boolean>>();
@@ -689,16 +680,9 @@ const sendDirectMessage = async (
 const purchaseDirectMessageMedia = async (
   args: {
     messageId: string;
-    paymentProfileId?: string;
-    cardInfo?: {
-      nameOnCard: string;
-      cardNumber: string;
-      expirationDate: string;
-      cardCode?: string;
-    };
   },
   options: AuthedOptions
-): Promise<{ ok: true; messageId: string; isUnlocked: true }> => {
+): Promise<{ ok: boolean; messageId: string; isUnlocked: boolean; flexFormUrl?: string; pendingToken?: string }> => {
   if (!args.messageId) {
     throw new Error("Missing messageId.");
   }
@@ -713,10 +697,7 @@ const purchaseDirectMessageMedia = async (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        paymentProfileId: args.paymentProfileId,
-        cardInfo: args.cardInfo,
-      }),
+      body: JSON.stringify({}),
     },
     "You must be logged in to purchase media."
   );
@@ -729,11 +710,35 @@ const purchaseDirectMessageMedia = async (
     throw new Error(message);
   }
 
-  if (data && data.ok === true && typeof data.messageId === "string") {
-    return { ok: true, messageId: data.messageId, isUnlocked: true };
+  if (data && typeof data.messageId === "string") {
+    return {
+      ok: data.ok === true,
+      messageId: data.messageId,
+      isUnlocked: data.isUnlocked === true,
+      flexFormUrl: typeof data.flexFormUrl === "string" ? data.flexFormUrl : undefined,
+      pendingToken: typeof data.pendingToken === "string" ? data.pendingToken : undefined,
+    };
   }
 
   throw new Error("Purchase response is missing.");
+};
+
+const getPendingPaymentStatus = async (
+  token: string
+): Promise<"pending" | "completed" | "failed" | null> => {
+  try {
+    const response = await fetch(
+      `${API_BASE}/payments/pending/${encodeURIComponent(token)}`
+    );
+    if (response.status === 404) return null;
+    const data = await response.json().catch(() => null);
+    if (data && typeof data.status === "string") {
+      return data.status as "pending" | "completed" | "failed";
+    }
+    return null;
+  } catch {
+    return null;
+  }
 };
 
 const deleteDirectMessage = async (
@@ -772,16 +777,9 @@ const sendTip = async (
   args: {
     userId: string;
     amount: number;
-    paymentProfileId?: string;
-    cardInfo?: {
-      nameOnCard: string;
-      cardNumber: string;
-      expirationDate: string; // MMYY
-      cardCode?: string;
-    };
   },
   options: AuthedOptions
-): Promise<{ ok: true; tipId: string }> => {
+): Promise<{ flexFormUrl: string; pendingToken: string }> => {
   if (!args.userId) {
     throw new Error("Missing userId.");
   }
@@ -802,8 +800,6 @@ const sendTip = async (
       },
       body: JSON.stringify({
         amount: args.amount,
-        paymentProfileId: args.paymentProfileId,
-        cardInfo: args.cardInfo,
       }),
     },
     "You must be logged in to send a tip."
@@ -817,11 +813,11 @@ const sendTip = async (
     throw new Error(message);
   }
 
-  if (data && data.ok === true && typeof data.tipId === "string") {
-    return { ok: true, tipId: data.tipId };
+  if (data && typeof data.flexFormUrl === "string") {
+    return { flexFormUrl: data.flexFormUrl, pendingToken: data.pendingToken ?? "" };
   }
 
-  throw new Error("Tip response is missing.");
+  throw new Error("Tip response is missing flexFormUrl.");
 };
 
 const getMyMessageThreads = async (
@@ -1259,6 +1255,7 @@ export {
   purchaseDirectMessageMedia,
   deleteDirectMessage,
   sendTip,
+  getPendingPaymentStatus,
   markMessageThreadRead,
   getMessagesWebSocketUrl,
   // Password reset

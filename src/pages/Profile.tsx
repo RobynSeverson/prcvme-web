@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import ReactGA from "react-ga4";
 import type { SubscriptionDeal, User } from "../models/user";
 import UserPosts from "../components/UserPosts";
@@ -11,7 +11,6 @@ import {
   unsubscribeFromUser,
   getProfileAPIBase,
 } from "../helpers/api/apiHelpers";
-import SubscribePaymentModal from "../components/SubscribePaymentModal";
 import Lightbox from "../components/Lightbox";
 import LikeBookmarkButtons from "../components/LikeBookmarkButtons";
 import Deal from "../components/Deal";
@@ -42,8 +41,6 @@ export default function Profile({ userName }: { userName?: string }) {
   const [accessUntil, setAccessUntil] = useState<string | null>(null);
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [subError, setSubError] = useState<string | null>(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [isUnsubscribeModalOpen, setIsUnsubscribeModalOpen] = useState(false);
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [unsubscribeError, setUnsubscribeError] = useState<string | null>(null);
@@ -58,6 +55,7 @@ export default function Profile({ userName }: { userName?: string }) {
   } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const loginLink = `/account/login?redirect=${encodeURIComponent(
     location.pathname + location.search
@@ -125,7 +123,6 @@ export default function Profile({ userName }: { userName?: string }) {
       if (isOwner) return;
 
       try {
-        setSubError(null);
         setIsSubLoading(true);
 
         const result = await getMySubscription(user.id, { authedFetch });
@@ -177,6 +174,25 @@ export default function Profile({ userName }: { userName?: string }) {
     setIsSubscriptionActive(subscribed && isActive);
     setAccessUntil(nextAccessUntil);
   };
+
+  // Handle return from CCBill payment redirect.
+  useEffect(() => {
+    const result = searchParams.get("paymentResult");
+    if (!result) return;
+
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("paymentResult");
+    newParams.delete("ptoken");
+    setSearchParams(newParams, { replace: true });
+
+    if (result === "success") {
+      void refreshSubscriptionStatus().then(() => {
+        setPostsReloadToken((prev) => prev + 1);
+      });
+    } else {
+      setSubError("Payment was not completed. Please try again.");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -326,6 +342,32 @@ export default function Profile({ userName }: { userName?: string }) {
     }
   };
 
+  const initiateSubscribeRedirect = async (dealId?: string | null) => {
+    if (!user) return;
+    if (!isLoggedIn) {
+      navigate(loginLink);
+      return;
+    }
+    setSubError(null);
+
+    try {
+      const result = await subscribeToUser(
+        user.id,
+        { dealId: dealId ?? undefined },
+        { authedFetch }
+      );
+      sessionStorage.setItem(
+        `ccbill_pending_${result.pendingToken}`,
+        JSON.stringify({ returnUrl: location.pathname + location.search })
+      );
+      window.location.href = result.flexFormUrl;
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) || "Failed to initiate subscription.";
+      setSubError(message);
+    }
+  };
+
   const handleSubscribeToggle = async () => {
     if (!user) return;
     if (isOwner) return;
@@ -342,9 +384,7 @@ export default function Profile({ userName }: { userName?: string }) {
     }
 
     if (!isSubscribed) {
-      setSubError(null);
-      setSelectedDealId(null);
-      setIsPaymentModalOpen(true);
+      await initiateSubscribeRedirect(null);
       return;
     }
 
@@ -356,49 +396,7 @@ export default function Profile({ userName }: { userName?: string }) {
     }
 
     // Cancelled-but-paid-through: show "Resubscribe" and reopen the payment modal.
-    setSubError(null);
-    setSelectedDealId(null);
-    setIsPaymentModalOpen(true);
-  };
-
-  const handleConfirmSubscribe = async (args?: {
-    paymentProfileId?: string;
-    cardInfo?: {
-      nameOnCard: string;
-      cardNumber: string;
-      expirationDate: string;
-      cardCode?: string;
-    };
-  }) => {
-    if (!user) return;
-    if (isOwner) return;
-    if (!isLoggedIn) {
-      navigate(loginLink);
-      return;
-    }
-
-    try {
-      setSubError(null);
-      setIsSubLoading(true);
-      await subscribeToUser(
-        user.id,
-        {
-          ...args,
-          dealId: selectedDealId ?? undefined,
-        },
-        { authedFetch }
-      );
-      await refreshSubscriptionStatus();
-      setPostsReloadToken((prev) => prev + 1);
-      setIsPaymentModalOpen(false);
-      setSelectedDealId(null);
-    } catch (err) {
-      const message =
-        (err instanceof Error && err.message) || "Failed to subscribe.";
-      setSubError(message);
-    } finally {
-      setIsSubLoading(false);
-    }
+    await initiateSubscribeRedirect(null);
   };
 
   // Deals/discounts must be derived before any early returns to keep hook order stable.
@@ -488,8 +486,7 @@ export default function Profile({ userName }: { userName?: string }) {
     }
 
     setSubError(null);
-    setSelectedDealId(dealId);
-    setIsPaymentModalOpen(true);
+    await initiateSubscribeRedirect(dealId);
   };
 
   const now = new Date();
@@ -860,19 +857,6 @@ export default function Profile({ userName }: { userName?: string }) {
           />
         )}
       </section>
-
-      <SubscribePaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => {
-          setIsPaymentModalOpen(false);
-          setSelectedDealId(null);
-        }}
-        isConfirmLoading={isSubLoading}
-        errorMessage={isPaymentModalOpen ? subError : null}
-        onConfirm={(args) => {
-          void handleConfirmSubscribe(args);
-        }}
-      />
 
       <Lightbox
         isOpen={isUnsubscribeModalOpen}

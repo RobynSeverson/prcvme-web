@@ -22,6 +22,7 @@ import Profit from "./pages/Profit";
 import About from "./pages/about/About";
 import Contact from "./pages/Contact";
 import PaymentMethods from "./pages/PaymentMethods";
+import PaymentResult from "./pages/PaymentResult";
 import Collections from "./pages/Collections";
 import Admin from "./pages/admin/Admin";
 import AdminPosts from "./pages/admin/AdminPosts";
@@ -304,6 +305,7 @@ function App() {
             {/* Account routes */}
             <Route path="/account" element={<Account />} />
             <Route path="/payment" element={<PaymentMethods />} />
+            <Route path="/payment/result" element={<PaymentResult />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/subscriptions" element={<Subscriptions />} />
